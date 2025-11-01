@@ -40,6 +40,7 @@ Thumbs.db
 *.exe
 *.war
 
+
 # Large media files
 *.mp4
 *.tiff
@@ -48,3 +49,29 @@ Thumbs.db
 *.mov
 *.wmv
 
+
+# Common
+.DS_Store
+*.log
+*.tmp
+*.swp
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.env.local
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.env
+
+# Build artifacts
+dist/
+build/
+coverage/
+EOF
