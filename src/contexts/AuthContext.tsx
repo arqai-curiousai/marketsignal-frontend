@@ -1,6 +1,13 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useCallback,
+  type ReactNode,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import {
   User,
@@ -14,7 +21,33 @@ import {
 } from '@/lib/types';
 import { authService } from '@/services/auth.service';
 
-// Authentication Action Types
+/**
+ * ---- Helpers: normalize backend user to app User shape ----
+ * Some APIs may return avatar as { avatarUrl: string } (or null/undefined).
+ * We keep the app contract strictly as avatar: string.
+ */
+
+type MaybeAvatar = string | { avatarUrl?: string | null } | null | undefined;
+
+// Backend user may not strictly match our User; avoid intersecting with User here.
+type BackendUser = Omit<User, 'avatar'> & { avatar?: MaybeAvatar } & Record<string, any>;
+
+function extractAvatar(avatar: unknown): string {
+  if (typeof avatar === 'string') return avatar;
+  if (avatar && typeof avatar === 'object' && 'avatarUrl' in (avatar as object)) {
+    const v = (avatar as { avatarUrl?: unknown }).avatarUrl;
+    return typeof v === 'string' ? v : '';
+  }
+  return '';
+}
+
+function normalizeUser(u: BackendUser): User {
+  const { avatar: rawAvatar, ...rest } = u;
+  const avatar = extractAvatar(rawAvatar);
+  return { ...(rest as Omit<User, 'avatar'>), avatar };
+}
+
+// ----------------- Auth Actions -----------------
 type AuthAction =
   | { type: 'AUTH_LOADING' }
   | { type: 'AUTH_SUCCESS'; payload: { user: User; tokens: AuthTokens } }
@@ -23,26 +56,26 @@ type AuthAction =
   | { type: 'AUTH_UPDATE_USER'; payload: User }
   | { type: 'AUTH_CLEAR_ERROR' };
 
-// Authentication Context Type
+// ----------------- Context Types -----------------
 interface AuthContextType extends AuthState {
-  // OTP Authentication methods
+  // OTP Authentication
   requestOTP: (request: OTPRequest) => Promise<OTPStatusResponse>;
   verifyOTP: (verification: OTPVerification) => Promise<void>;
   logout: () => Promise<void>;
-  
-  // Profile management
+
+  // Profile
   updateProfile: (data: UpdateProfileRequest) => Promise<void>;
   uploadAvatar: (file: File) => Promise<string>;
-  
-  // Token management
+
+  // Tokens
   refreshTokens: () => Promise<void>;
-  
-  // Utility methods
+
+  // Utils
   clearError: () => void;
   checkAuthStatus: () => Promise<void>;
 }
 
-// Initial authentication state
+// ----------------- Initial State -----------------
 const initialState: AuthState = {
   user: null,
   tokens: null,
@@ -51,15 +84,11 @@ const initialState: AuthState = {
   error: null,
 };
 
-// Authentication reducer
+// ----------------- Reducer -----------------
 function authReducer(state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
     case 'AUTH_LOADING':
-      return {
-        ...state,
-        isLoading: true,
-        error: null,
-      };
+      return { ...state, isLoading: true, error: null };
 
     case 'AUTH_SUCCESS':
       return {
@@ -82,67 +111,50 @@ function authReducer(state: AuthState, action: AuthAction): AuthState {
       };
 
     case 'AUTH_LOGOUT':
-      return {
-        ...initialState,
-        isLoading: false,
-      };
+      return { ...initialState, isLoading: false };
 
     case 'AUTH_UPDATE_USER':
-      return {
-        ...state,
-        user: action.payload,
-        error: null,
-      };
+      return { ...state, user: action.payload, error: null };
 
     case 'AUTH_CLEAR_ERROR':
-      return {
-        ...state,
-        error: null,
-      };
+      return { ...state, error: null };
 
     default:
       return state;
   }
 }
 
-// Create authentication context
+// ----------------- Context -----------------
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 interface AuthProviderProps {
   children: ReactNode;
 }
 
-/**
- * Authentication Provider Component
- * Manages global authentication state and provides auth methods to the entire application
- */
+// ----------------- Provider -----------------
 export function AuthProvider({ children }: AuthProviderProps) {
   const [state, dispatch] = useReducer(authReducer, initialState);
   const router = useRouter();
 
-  // Initialize authentication state on mount
-  useEffect(() => {
-    checkAuthStatus();
-  }, []);
-
   /**
    * Check current authentication status
+   * (defined BEFORE useEffect so we can safely include it in deps)
    */
   const checkAuthStatus = useCallback(async () => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
 
-      // Check if we have stored tokens
       const storedTokens = authService.getStoredTokens();
-      
+
       if (!storedTokens || !authService.isAuthenticated()) {
         dispatch({ type: 'AUTH_LOGOUT' });
         return;
       }
 
-      // Fetch current user profile
-      const user = await authService.getCurrentUser();
-      
+      // Normalize backend shape -> app User
+      const rawUser = (await authService.getCurrentUser()) as BackendUser;
+      const user = normalizeUser(rawUser);
+
       dispatch({
         type: 'AUTH_SUCCESS',
         payload: { user, tokens: storedTokens },
@@ -153,15 +165,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  // Initialize authentication state on mount
+  useEffect(() => {
+    void checkAuthStatus();
+  }, [checkAuthStatus]);
+
   /**
    * OTP Authentication
    */
   const requestOTP = useCallback(async (request: OTPRequest): Promise<OTPStatusResponse> => {
     try {
       dispatch({ type: 'AUTH_LOADING' });
-
       const response = await authService.requestOTP(request);
-      
       dispatch({ type: 'AUTH_CLEAR_ERROR' });
       return response;
     } catch (error) {
@@ -179,16 +194,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       dispatch({ type: 'AUTH_LOADING' });
 
       const response = await authService.verifyOTP(verification);
-      
+      const user = normalizeUser(response.user as BackendUser);
+
       dispatch({
         type: 'AUTH_SUCCESS',
-        payload: {
-          user: response.user,
-          tokens: response.tokens,
-        },
+        payload: { user, tokens: response.tokens },
       });
 
-      // Redirect to dashboard or previous page
       router.push('/');
     } catch (error) {
       const authError = error as ApiError;
@@ -216,7 +228,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
    */
   const updateProfile = useCallback(async (data: UpdateProfileRequest) => {
     try {
-      const updatedUser = await authService.updateProfile(data);
+      const rawUser = (await authService.updateProfile(data)) as BackendUser;
+      const updatedUser = normalizeUser(rawUser);
       dispatch({ type: 'AUTH_UPDATE_USER', payload: updatedUser });
     } catch (error) {
       const authError = error as ApiError;
@@ -230,14 +243,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const uploadAvatar = useCallback(async (file: File): Promise<string> => {
     try {
-      const avatarUrl = await authService.uploadAvatar(file);
-      
-      // Update user profile with new avatar
+      // Service may return a string OR an object { avatarUrl: string }
+      const uploaded = (await authService.uploadAvatar(file)) as unknown;
+      const avatarUrl = extractAvatar(uploaded); // normalize to string
+
+      // Update user profile with new avatar (string)
       if (state.user) {
-        const updatedUser = { ...state.user, avatar: avatarUrl };
+        const updatedUser: User = { ...state.user, avatar: avatarUrl };
         dispatch({ type: 'AUTH_UPDATE_USER', payload: updatedUser });
       }
-      
+
       return avatarUrl;
     } catch (error) {
       const authError = error as ApiError;
@@ -255,12 +270,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const refreshTokens = useCallback(async () => {
     try {
       const newTokens = await authService.refreshToken();
-      
+
       if (state.user) {
         dispatch({
           type: 'AUTH_SUCCESS',
           payload: {
-            user: state.user,
+            user: state.user, // already normalized
             tokens: newTokens,
           },
         });
@@ -273,7 +288,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [state.user, router]);
 
   /**
-   * Utility Methods
+   * Utility
    */
   const clearError = useCallback(() => {
     dispatch({ type: 'AUTH_CLEAR_ERROR' });
@@ -292,20 +307,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
     checkAuthStatus,
   };
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
-/**
- * Custom hook to use authentication context
- */
+// ----------------- Hook -----------------
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
-} 
+}

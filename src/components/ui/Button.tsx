@@ -32,12 +32,21 @@ const buttonVariants = cva(
 // Create Motion Button component
 const MotionButton = motion.button;
 
+// export interface ButtonProps
+//   extends Omit<HTMLMotionProps<"button">, 'color'>,
+//     VariantProps<typeof buttonVariants> {
+//   asChild?: boolean;
+//   loading?: boolean;
+// }
+
 export interface ButtonProps
-  extends Omit<HTMLMotionProps<"button">, 'color'>,
+  extends Omit<HTMLMotionProps<"button">, "color" | "children">,
     VariantProps<typeof buttonVariants> {
   asChild?: boolean;
   loading?: boolean;
+  children?: React.ReactNode; // <-- force ReactNode
 }
+
 
 const Button = forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, loading, children, ...props }, ref) => {

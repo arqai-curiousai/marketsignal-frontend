@@ -15,10 +15,11 @@ interface MessageProps {
 }
 
 const sourceIcons: Record<LegalSource['type'], React.ReactNode> = {
-  case_law: <Gavel className="h-4 w-4" />,
+  case: <Gavel className="h-4 w-4" />,
   statute: <BookOpen className="h-4 w-4" />,
   regulation: <FileText className="h-4 w-4" />,
-  policy: <ScrollText className="h-4 w-4" />,
+  article: <ScrollText className="h-4 w-4" />,
+  opinion: <ScrollText className="h-4 w-4" />,
 };
 
 export function Message({ message, isTyping = false }: MessageProps) {

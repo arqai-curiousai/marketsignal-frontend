@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ShieldCheck, Mail, RefreshCw, ArrowRight, AlertCircle } from 'lucide-react';
@@ -20,6 +20,15 @@ function maskEmail(email: string): string {
 }
 
 export default function VerifyOTPPage() {
+  // Wrap the *client* reader of search params in Suspense to satisfy Next's CSR bailout rule
+  return (
+    <Suspense fallback={null}>
+      <VerifyOTPClient />
+    </Suspense>
+  );
+}
+
+function VerifyOTPClient() {
   const router = useRouter();
   const params = useSearchParams();
   const email = params.get('email') || '';
@@ -38,7 +47,7 @@ export default function VerifyOTPPage() {
 
   useEffect(() => {
     if (resendIn <= 0) return;
-    const t = setInterval(() => setResendIn(v => (v > 0 ? v - 1 : 0)), 1000);
+    const t = setInterval(() => setResendIn((v) => (v > 0 ? v - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, [resendIn]);
 
@@ -58,7 +67,7 @@ export default function VerifyOTPPage() {
     const index = Number(target.dataset.index);
     if (e.key === 'Backspace' && !target.value && index > 0) {
       inputsRef.current[index - 1]?.focus();
-      setOtp(curr => {
+      setOtp((curr) => {
         const n = [...curr] as OTPArray;
         n[index - 1] = '';
         return n;
@@ -132,9 +141,11 @@ export default function VerifyOTPPage() {
             <div className="grid grid-cols-6 gap-2 sm:gap-3 mb-4">
               {otp.map((val, i) => (
                 <Input
-                  id={`otp-${i}`} 
+                  id={`otp-${i}`}
                   key={i}
-                  ref={(el) => (inputsRef.current[i] = el)}
+                  ref={(el: HTMLInputElement | null): void => {
+                    inputsRef.current[i] = el;
+                  }}
                   data-index={i}
                   value={val}
                   onChange={(e) => handleChange(i, e.target.value.replace(/\D/g, '').slice(-1))}

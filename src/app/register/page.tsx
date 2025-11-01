@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { OTPVerificationForm } from '@/components/auth/RegisterForm';
 
@@ -22,9 +22,11 @@ export default function RegisterPage() {
         className="relative z-10 w-full max-w-md mx-auto p-6"
       >
         <div className="backdrop-blur-xl bg-purple-950/30 border border-purple-700/50 rounded-2xl p-8 shadow-2xl shadow-purple-500/10">
-          <OTPVerificationForm />
+          <Suspense fallback={null}>
+            <OTPVerificationForm />
+          </Suspense>
         </div>
       </motion.div>
     </div>
   );
-} 
+}
