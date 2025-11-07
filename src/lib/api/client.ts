@@ -3,35 +3,36 @@ import axios, {
   AxiosError,
   AxiosRequestConfig,
   AxiosRequestHeaders,
-} from 'axios';
-import { API_CONFIG } from './config';
-import { addCSRFHeader } from '../security/csrf';
-import { ApiError } from '../types';
+} from "axios";
+import { API_CONFIG } from "./config";
+import { addCSRFHeader } from "../security/csrf";
+import { ApiError } from "../types";
 
 // Forward declaration to avoid circular dependency
 let authServiceInstance: any = null;
 
 /**
  * Set the auth service instance for token management
- * This is called from the auth service to avoid circular dependencies
+ * (used mainly for refresh logic / logout redirects)
  */
 export function setAuthServiceInstance(instance: any) {
   authServiceInstance = instance;
 }
 
 /* ------------------------------------------------------------------ */
-/* Header Utilities: convert between Fetch headers and Axios headers   */
+/* Header utilities                                                    */
 /* ------------------------------------------------------------------ */
 
 type PlainHeaders = Record<string, string>;
 
-// Convert HeadersInit (string[][] | Record | Headers) -> plain object
-function headersInitToPlain(h?: HeadersInit | AxiosRequestHeaders | null): PlainHeaders {
+function headersInitToPlain(
+  h?: HeadersInit | AxiosRequestHeaders | null
+): PlainHeaders {
   const out: PlainHeaders = {};
   if (!h) return out;
 
   // Native Headers
-  if (typeof (globalThis as any).Headers !== 'undefined' && h instanceof Headers) {
+  if (typeof (globalThis as any).Headers !== "undefined" && h instanceof Headers) {
     h.forEach((value, key) => {
       out[key] = value;
     });
@@ -47,9 +48,8 @@ function headersInitToPlain(h?: HeadersInit | AxiosRequestHeaders | null): Plain
   }
 
   // AxiosHeaders (axios v1) or plain object
-  // AxiosHeaders has .toJSON()
   const maybeAxiosHeaders = h as any;
-  if (maybeAxiosHeaders && typeof maybeAxiosHeaders.toJSON === 'function') {
+  if (maybeAxiosHeaders && typeof maybeAxiosHeaders.toJSON === "function") {
     const json = maybeAxiosHeaders.toJSON() as Record<string, string>;
     return { ...json };
   }
@@ -58,137 +58,97 @@ function headersInitToPlain(h?: HeadersInit | AxiosRequestHeaders | null): Plain
   return { ...(h as Record<string, string>) };
 }
 
-// Apply a header key/value to config.headers regardless of underlying type
-function setHeader(
-  headers: AxiosRequestHeaders | any | undefined,
-  key: string,
-  value: string | undefined
-) {
-  if (!value) return;
-  if (!headers) return;
-
-  // AxiosHeaders instance
-  if (typeof (headers as any).set === 'function') {
-    (headers as any).set(key, value);
-    return;
-  }
-
-  // Plain object
-  (headers as Record<string, any>)[key] = value;
-}
-
-// Ensure config.headers is a mutable structure Axios accepts
 function ensureAxiosHeaders(
   headers: HeadersInit | AxiosRequestHeaders | undefined | null
 ): AxiosRequestHeaders {
   const plain = headersInitToPlain(headers);
-  // AxiosRequestHeaders is just a string index signature; the plain object satisfies it
   return plain as AxiosRequestHeaders;
 }
 
-// Run addCSRFHeader (which expects HeadersInit) and convert back to Axios headers
-function applyCsrf(headers: AxiosRequestHeaders | undefined): AxiosRequestHeaders {
+function applyCsrf(
+  headers: AxiosRequestHeaders | undefined
+): AxiosRequestHeaders {
   const before = headersInitToPlain(headers) as HeadersInit;
-  const after = addCSRFHeader(before); // may return HeadersInit (Headers/array/object)
+  const after = addCSRFHeader(before);
   return headersInitToPlain(after) as AxiosRequestHeaders;
 }
 
 /* ------------------------------------------------------------------ */
-/* Create client                                                      */
+/* Create API client                                                   */
 /* ------------------------------------------------------------------ */
 
 const createApiClient = (): AxiosInstance => {
   const client = axios.create({
-    baseURL: API_CONFIG.baseURL,
+    // CRITICAL: hit Next.js /api so rewrites route to FastAPI
+    baseURL: "/api",
+    // If you still want to use API_CONFIG.timeout or headers, you can:
     timeout: API_CONFIG.timeout,
     headers: ensureAxiosHeaders(API_CONFIG.headers as any),
-    withCredentials: true, // Include cookies in requests
+    // Needed so cookies (access_token, refresh_token) are sent/received
+    withCredentials: true,
   });
 
-  // Request interceptor for authentication and CSRF
+  // Request interceptor: CSRF + normalization
   client.interceptors.request.use(
     async (config) => {
-      // Normalize headers to a plain Axios-friendly object
       config.headers = ensureAxiosHeaders(config.headers);
 
-      // Add CSRF token to headers (via your existing helper)
+      // Add CSRF token header (your existing helper)
       config.headers = applyCsrf(config.headers);
 
-      // Add auth token if available
-      if (authServiceInstance) {
-        const tokens = authServiceInstance.getStoredTokens?.();
-        if (tokens?.accessToken) {
-          setHeader(config.headers, 'Authorization', `Bearer ${tokens.accessToken}`);
-        }
-      }
+      // IMPORTANT: do NOT inject Authorization manually anymore.
+      // Auth now relies on HttpOnly cookies (access_token/refresh_token),
+      // which the browser sends automatically with withCredentials: true.
 
       return config;
     },
     (error) => Promise.reject(error)
   );
 
-  // Response interceptor for error handling and token refresh
+  // Response interceptor: error handling + refresh on 401
   client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError<ApiError>) => {
       const originalRequest = error.config as any;
 
       if (error.response) {
-        // Handle specific status codes
-        switch (error.response.status) {
-          case 401: {
-            // Token expired - try to refresh
-            if (!originalRequest?._retry && authServiceInstance) {
-              originalRequest._retry = true;
+        const status = error.response.status;
 
-              try {
-                await authServiceInstance.refreshToken?.();
+        if (status === 401) {
+          // Try token refresh if available
+          if (!originalRequest?._retry && authServiceInstance?.refreshToken) {
+            originalRequest._retry = true;
 
-                // Retry the original request with new token
-                const tokens = authServiceInstance.getStoredTokens?.();
-                if (tokens?.accessToken) {
-                  // Normalize headers on the retried request as well
-                  originalRequest.headers = ensureAxiosHeaders(originalRequest.headers);
-                  setHeader(originalRequest.headers, 'Authorization', `Bearer ${tokens.accessToken}`);
-                  return client(originalRequest);
-                }
-              } catch (refreshError) {
-                // Token refresh failed, redirect to login
-                if (typeof window !== 'undefined') {
-                  window.location.href = '/login?message=session-expired';
-                }
-                return Promise.reject(refreshError);
+            try {
+              // This should call /auth/refresh,
+              // which uses the refresh_token cookie and sets a new access_token cookie
+              await authServiceInstance.refreshToken();
+
+              // Retry the original request; cookies now contain a fresh access token
+              return client(originalRequest);
+            } catch (refreshError) {
+              if (typeof window !== "undefined") {
+                window.location.href = "/login?message=session-expired";
               }
-            } else {
-              // No auth service or retry already attempted, redirect to login
-              if (typeof window !== 'undefined') {
-                window.location.href = '/login?message=session-expired';
-              }
+              return Promise.reject(refreshError);
             }
-            break;
-          }
-
-          case 403:
-            // Forbidden - CSRF token might be invalid or insufficient permissions
-            console.error('Access forbidden:', error.response.data);
-            break;
-
-          case 429: {
-            // Rate limit exceeded
-            const retryAfter = (error.response.headers as any)?.['retry-after'];
-            console.error(`Rate limit exceeded. Retry after ${retryAfter} seconds`);
-            break;
-          }
-
-          case 422:
-            // Validation error
-            console.error('Validation error:', error.response.data);
-            break;
-
-          default:
-            if (error.response.status >= 500) {
-              console.error('Server error:', error.response.data);
+          } else {
+            // No refresh available or already retried
+            if (typeof window !== "undefined") {
+              window.location.href = "/login?message=session-expired";
             }
+          }
+        } else if (status === 403) {
+          console.error("Access forbidden:", error.response.data);
+        } else if (status === 429) {
+          const retryAfter = (error.response.headers as any)?.["retry-after"];
+          console.error(
+            `Rate limit exceeded. Retry after ${retryAfter ?? "some"} seconds`
+          );
+        } else if (status === 422) {
+          console.error("Validation error:", error.response.data);
+        } else if (status >= 500) {
+          console.error("Server error:", error.response.data);
         }
       }
 
@@ -199,9 +159,10 @@ const createApiClient = (): AxiosInstance => {
   return client;
 };
 
-/**
- * API client instance
- */
+/* ------------------------------------------------------------------ */
+/* Public exports                                                      */
+/* ------------------------------------------------------------------ */
+
 export const apiClient = createApiClient();
 
 /**
@@ -218,8 +179,3 @@ export async function apiRequest<T>(config: AxiosRequestConfig): Promise<T> {
     throw error;
   }
 }
-
-export const api = axios.create({
-  baseURL: '/api', // <— single origin via rewrite
-  withCredentials: true, // <— REQUIRED for cookies to stick
-});
