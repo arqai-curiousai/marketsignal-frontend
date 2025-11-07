@@ -21,33 +21,51 @@ const nextConfig: NextConfig = {
   },
 
   // Real HTTP security headers (do NOT try to set these via <meta>)
-  async headers() {
-    return [
-      {
-        // Global security headers for all pages/assets
-        source: "/:path*",
-        headers: [
-          // Prevent your app from being iframed by other sites
-          { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
-          // Legacy equivalent (browsers ignore <meta http-equiv="X-Frame-Options">)
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  // async headers() {
+  //   return [
+  //     {
+  //       // Global security headers for all pages/assets
+  //       source: "/:path*",
+  //       headers: [
+  //         // Prevent your app from being iframed by other sites
+  //         { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+  //         // Legacy equivalent (browsers ignore <meta http-equiv="X-Frame-Options">)
+  //         { key: "X-Frame-Options", value: "SAMEORIGIN" },
 
-          { key: "X-Content-Type-Options", value: "nosniff" },
-          { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
-          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+  //         { key: "X-Content-Type-Options", value: "nosniff" },
+  //         { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
+  //         { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
 
-          // Strong transport (enable after you confirm HTTPS everywhere)
-          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
-          { key: "X-DNS-Prefetch-Control", value: "off" },
-        ],
-      },
-      {
-        // API responses shouldn’t be cached by browsers/proxies
-        source: "/api/:path*",
-        headers: [{ key: "Cache-Control", value: "no-store" }],
-      },
-    ];
-  },
+  //         // Strong transport (enable after you confirm HTTPS everywhere)
+  //         { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+  //         { key: "X-DNS-Prefetch-Control", value: "off" },
+  //       ],
+  //     },
+  //     {
+  //       // API responses shouldn’t be cached by browsers/proxies
+  //       source: "/api/:path*",
+  //       headers: [{ key: "Cache-Control", value: "no-store" }],
+  //     },
+  //   ];
+  // },
+
+  // next.config.ts (trimmed)
+async headers() {
+  return [
+    {
+      source: "/:path*",
+      headers: [
+        // REMOVE CSP, X-Frame-Options, HSTS from here
+        { key: "X-DNS-Prefetch-Control", value: "off" },
+      ],
+    },
+    {
+      source: "/api/:path*",
+      headers: [{ key: "Cache-Control", value: "no-store" }],
+    },
+  ];
+}
+
 };
 
 export default nextConfig;

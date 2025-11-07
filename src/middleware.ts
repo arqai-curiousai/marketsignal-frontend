@@ -126,7 +126,7 @@ const NODE_ENV = process.env.NODE_ENV ?? 'production';
 const IS_PROD = NODE_ENV === 'production';
 
 // Public runtime (exposed at build time)
-const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN || 'https://backend.legalaid.com';
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_ORIGIN || 'https://backend.legalaid.arqai.tech';
 const WS_ORIGIN = process.env.NEXT_PUBLIC_WS_ORIGIN || API_ORIGIN.replace(/^http/, 'ws');
 
 // Optional canonical host (e.g. app.legalaid.com). If set, we'll redirect to it in prod.
