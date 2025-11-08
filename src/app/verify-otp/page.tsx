@@ -88,7 +88,7 @@ function VerifyOTPClient() {
     setInfo(null);
     try {
       await authService.verifyOTP({ email, otpCode: code }); // tokens stored in service
-      router.replace('/'); // go to your home/dashboard
+      router.replace('/chatbot'); // go to your home/dashboard
     } catch (err: any) {
       setError(err?.message || 'Verification failed');
     } finally {
