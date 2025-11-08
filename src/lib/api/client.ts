@@ -114,31 +114,71 @@ const createApiClient = (): AxiosInstance => {
       if (error.response) {
         const status = error.response.status;
 
+        // if (status === 401) {
+        //   // Try token refresh if available
+        //   if (!originalRequest?._retry && authServiceInstance?.refreshToken) {
+        //     originalRequest._retry = true;
+
+        //     try {
+        //       // This should call /auth/refresh,
+        //       // which uses the refresh_token cookie and sets a new access_token cookie
+        //       await authServiceInstance.refreshToken();
+
+        //       // Retry the original request; cookies now contain a fresh access token
+        //       return client(originalRequest);
+        //     } catch (refreshError) {
+        //       if (typeof window !== "undefined") {
+        //         window.location.href = "/login?message=session-expired";
+        //       }
+        //       return Promise.reject(refreshError);
+        //     }
+        //   } else {
+        //     // No refresh available or already retried
+        //     if (typeof window !== "undefined") {
+        //       window.location.href = "/login?message=session-expired";
+        //     }
+        //   }
+        // } 
+
         if (status === 401) {
-          // Try token refresh if available
+          const isBrowser = typeof window !== "undefined";
+          const currentPath = isBrowser ? window.location.pathname : "";
+        
+          // All routes where user MUST be logged in
+          const PROTECTED_PREFIXES = ['/chatbot']; // add more later if needed
+          const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
+            currentPath.startsWith(p)
+          );
+        
+          // If we are NOT on a protected route (e.g. "/")
+          if (!isProtectedRoute) {
+            // Just clear tokens and stay on the same page
+            authServiceInstance?.logout?.();
+            return Promise.reject(error);
+          }
+        
+          // If we ARE on a protected route, keep your existing refresh+redirect logic:
           if (!originalRequest?._retry && authServiceInstance?.refreshToken) {
-            originalRequest._retry = true;
-
             try {
-              // This should call /auth/refresh,
-              // which uses the refresh_token cookie and sets a new access_token cookie
               await authServiceInstance.refreshToken();
-
-              // Retry the original request; cookies now contain a fresh access token
+              originalRequest._retry = true;
               return client(originalRequest);
             } catch (refreshError) {
-              if (typeof window !== "undefined") {
+              if (isBrowser) {
                 window.location.href = "/login?message=session-expired";
               }
               return Promise.reject(refreshError);
             }
           } else {
-            // No refresh available or already retried
-            if (typeof window !== "undefined") {
+            if (isBrowser) {
               window.location.href = "/login?message=session-expired";
             }
+            return Promise.reject(error);
           }
-        } else if (status === 403) {
+        }
+        
+        
+        else if (status === 403) {
           console.error("Access forbidden:", error.response.data);
         } else if (status === 429) {
           const retryAfter = (error.response.headers as any)?.["retry-after"];

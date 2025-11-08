@@ -201,7 +201,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         payload: { user, tokens: response.tokens },
       });
 
-      router.push('/');
+      router.push('/chatbot');
     } catch (error) {
       const authError = error as ApiError;
       dispatch({
