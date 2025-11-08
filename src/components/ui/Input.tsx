@@ -108,11 +108,17 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(function Inp
       <input
         id={inputId}
         ref={ref}
+        // className={cn(
+        //   // inputVariants({ variant, size }),
+        //   'flex w-full rounded-xl border py-2 transition-all',
+        //   className
+        // )}
+
         className={cn(
-          // inputVariants({ variant, size }),
-          'flex w-full rounded-xl border py-2 transition-all',
+          'flex w-full rounded-xl border border-purple-700/60 bg-purple-950/40 px-3 py-2 text-sm text-slate-100 placeholder:text-purple-300/70 focus:outline-none focus:ring-2 focus:ring-emerald-400/70 focus:border-emerald-400/70 disabled:cursor-not-allowed disabled:opacity-50 transition-all',
           className
         )}
+        
         {...props}
       />
 
