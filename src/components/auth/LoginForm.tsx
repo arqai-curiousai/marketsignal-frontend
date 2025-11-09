@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import type { FC, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, AlertCircle, Scale, ArrowRight, User, Phone } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -10,7 +11,70 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils/cn';
 
-// Validation schema
+// ============================================================================
+// THEME TOKENS (Saffron / legalaid)
+// ============================================================================
+
+interface OtpFormThemeTokens {
+  readonly badgeBorder: string;
+  readonly badgeBg: string;
+  readonly badgeText: string;
+  readonly badgeIconBg: string;
+  readonly badgeIconColor: string;
+  readonly headingText: string;
+  readonly bodyText: string;
+  readonly inputBg: string;
+  readonly inputBorder: string;
+  readonly inputPlaceholder: string;
+  readonly inputFocusBorder: string;
+  readonly inputFocusRing: string;
+  readonly inputIcon: string;
+  readonly toggleText: string;
+  readonly buttonGradient: string;
+  readonly buttonHoverGradient: string;
+  readonly buttonShadow: string;
+  readonly errorBorder: string;
+  readonly errorBg: string;
+  readonly errorIcon: string;
+  readonly errorText: string;
+  readonly infoBorder: string;
+  readonly infoText: string;
+}
+
+const getOtpFormTheme = (): OtpFormThemeTokens => ({
+  badgeBorder: 'border-orange-400/45',
+  badgeBg: 'bg-orange-500/12',
+  badgeText: 'text-orange-100',
+  badgeIconBg: 'bg-slate-950',
+  badgeIconColor: 'text-amber-300',
+  headingText: 'text-slate-50',
+  bodyText: 'text-slate-400',
+  inputBg: 'bg-slate-950/80',
+  inputBorder: 'border-slate-700',
+  inputPlaceholder: 'placeholder:text-slate-500',
+  inputFocusBorder: 'focus:border-orange-400 focus:border-opacity-100',
+  inputFocusRing: 'focus:ring-orange-500/45',
+  inputIcon: 'text-amber-300',
+  toggleText: 'text-orange-300 hover:text-orange-200',
+  buttonGradient:
+    'bg-gradient-to-r from-orange-400 via-amber-300 to-yellow-300 text-slate-950',
+  buttonHoverGradient:
+    'hover:from-orange-300 hover:via-amber-200 hover:to-yellow-200',
+  buttonShadow: 'shadow-[0_0_18px_rgba(249,115,22,0.45)]',
+  errorBorder: 'border-red-500/40',
+  errorBg: 'bg-red-500/10',
+  errorIcon: 'text-red-400',
+  errorText: 'text-red-200',
+  infoBorder: 'border-slate-800/70',
+  infoText: 'text-slate-500',
+});
+
+const OTP_THEME = getOtpFormTheme();
+
+// ============================================================================
+// VALIDATION SCHEMA
+// ============================================================================
+
 const otpRequestSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   firstName: z.string().optional(),
@@ -21,27 +85,35 @@ const otpRequestSchema = z.object({
 type OTPRequestData = z.infer<typeof otpRequestSchema>;
 
 interface OTPRequestFormProps {
-  className?: string;
-  onSuccess?: () => void;
+  readonly className?: string;
+  readonly onSuccess?: () => void;
 }
 
-export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
+// ============================================================================
+// COMPONENT
+// ============================================================================
+
+export const OTPRequestForm: FC<OTPRequestFormProps> = ({
+  className,
+  onSuccess,
+}) => {
   const [formData, setFormData] = useState<OTPRequestData>({
     email: '',
     firstName: '',
     lastName: '',
     phone: '',
   });
-  const [showOptionalFields, setShowOptionalFields] = useState(false);
+
+  const [showOptionalFields, setShowOptionalFields] = useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<
     Partial<Record<keyof OTPRequestData, string>>
   >({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const { requestOTP, error: authError, clearError } = useAuth();
   const router = useRouter();
 
-  const handleInputChange = (field: keyof OTPRequestData, value: string) => {
+  const handleInputChange = (field: keyof OTPRequestData, value: string): void => {
     setFormData((prev) => ({ ...prev, [field]: value }));
 
     if (validationErrors[field]) {
@@ -62,8 +134,9 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
       if (error instanceof z.ZodError) {
         const errors: Partial<Record<keyof OTPRequestData, string>> = {};
         error.errors.forEach((err) => {
-          if (err.path[0]) {
-            errors[err.path[0] as keyof OTPRequestData] = err.message;
+          const pathKey = err.path[0];
+          if (pathKey) {
+            errors[pathKey as keyof OTPRequestData] = err.message;
           }
         });
         setValidationErrors(errors);
@@ -72,7 +145,9 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (
+    e: FormEvent<HTMLFormElement>,
+  ): Promise<void> => {
     e.preventDefault();
 
     if (!validateForm()) {
@@ -92,6 +167,7 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
       router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
       onSuccess?.();
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('OTP request failed:', error);
     } finally {
       setIsSubmitting(false);
@@ -99,7 +175,7 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
   };
 
   return (
-    <div className={cn('w-full max-w-md mx-auto', className)}>
+    <div className={cn('mx-auto w-full max-w-md', className)}>
       <motion.div
         initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
@@ -112,22 +188,43 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-            className="mb-2 inline-flex items-center gap-3 rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1"
+            className={cn(
+              'mb-2 inline-flex items-center gap-3 rounded-full border px-3 py-1',
+              OTP_THEME.badgeBorder,
+              OTP_THEME.badgeBg,
+            )}
           >
-            <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-950">
-              <Scale className="h-4 w-4 text-emerald-300" />
+            <div
+              className={cn(
+                'flex h-7 w-7 items-center justify-center rounded-full',
+                OTP_THEME.badgeIconBg,
+              )}
+            >
+              <Scale
+                className={cn('h-4 w-4', OTP_THEME.badgeIconColor)}
+              />
             </div>
-            <span className="text-[11px] font-medium text-emerald-100">
-              Secure OTP login for legal teams
+            <span className={cn('text-[11px] font-medium', OTP_THEME.badgeText)}>
+              legalaid · secure OTP login
             </span>
           </motion.div>
 
-          <h1 className="text-xl font-semibold text-slate-50 md:text-2xl">
+          <h1
+            className={cn(
+              'text-xl font-semibold md:text-2xl',
+              OTP_THEME.headingText,
+            )}
+          >
             Login with your work email
           </h1>
-          <p className="text-xs text-slate-400 md:text-sm">
-            We&apos;ll send a one-time verification code to confirm your identity and
-            device. No passwords to remember, no reset links.
+          <p
+            className={cn(
+              'text-xs md:text-sm',
+              OTP_THEME.bodyText,
+            )}
+          >
+            We&apos;ll send a one-time verification code to confirm your identity
+            and device. No passwords to remember, no reset links.
           </p>
         </div>
 
@@ -138,10 +235,26 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="flex items-center gap-3 rounded-xl border border-red-500/40 bg-red-500/10 p-3.5"
+              className={cn(
+                'flex items-center gap-3 rounded-xl p-3.5',
+                OTP_THEME.errorBorder,
+                OTP_THEME.errorBg,
+              )}
             >
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-400" />
-              <p className="text-xs text-red-200 md:text-sm">{authError}</p>
+              <AlertCircle
+                className={cn(
+                  'h-5 w-5 flex-shrink-0',
+                  OTP_THEME.errorIcon,
+                )}
+              />
+              <p
+                className={cn(
+                  'text-xs md:text-sm',
+                  OTP_THEME.errorText,
+                )}
+              >
+                {authError}
+              </p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -157,17 +270,29 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
               Work email address
             </label>
             <div className="relative">
-              <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-300" />
+              <Mail
+                className={cn(
+                  'pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2',
+                  OTP_THEME.inputIcon,
+                )}
+              />
               <Input
                 id="email"
                 type="email"
                 placeholder="you@firm.com"
                 value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
+                onChange={(event) =>
+                  handleInputChange('email', event.target.value)
+                }
                 className={cn(
-                  'pl-9 bg-slate-950/80 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-500/40',
+                  'pl-9 text-slate-100',
+                  OTP_THEME.inputBg,
+                  OTP_THEME.inputBorder,
+                  OTP_THEME.inputPlaceholder,
+                  OTP_THEME.inputFocusBorder,
+                  OTP_THEME.inputFocusRing,
                   validationErrors.email &&
-                    'border-red-500 focus:border-red-500 focus:ring-red-500/40'
+                    'border-red-500 focus:border-red-500 focus:ring-red-500/40',
                 )}
                 disabled={isSubmitting}
                 autoComplete="email"
@@ -185,19 +310,25 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
             <button
               type="button"
               onClick={() => setShowOptionalFields((prev) => !prev)}
-              className="text-xs font-medium text-emerald-300 hover:text-emerald-200 md:text-sm"
+              className={cn(
+                'text-xs font-medium md:text-sm',
+                OTP_THEME.toggleText,
+              )}
             >
-              {showOptionalFields ? 'Hide' : 'Show'} optional details for new users
+              {showOptionalFields ? 'Hide' : 'Show'} optional details for new
+              users
             </button>
           </div>
 
           {/* Optional Fields */}
-          <AnimatePresence>
+          <AnimatePresence initial={false}>
             {showOptionalFields && (
               <motion.div
+                key="optional-fields"
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
                 className="space-y-4"
               >
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -209,16 +340,28 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
                       First name
                     </label>
                     <div className="relative">
-                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-300" />
+                      <User
+                        className={cn(
+                          'pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2',
+                          OTP_THEME.inputIcon,
+                        )}
+                      />
                       <Input
                         id="firstName"
                         type="text"
                         placeholder="Ankur"
-                        value={formData.firstName}
-                        onChange={(e) =>
-                          handleInputChange('firstName', e.target.value)
+                        value={formData.firstName ?? ''}
+                        onChange={(event) =>
+                          handleInputChange('firstName', event.target.value)
                         }
-                        className="pl-9 bg-slate-950/80 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-500/40"
+                        className={cn(
+                          'pl-9 text-slate-100',
+                          OTP_THEME.inputBg,
+                          OTP_THEME.inputBorder,
+                          OTP_THEME.inputPlaceholder,
+                          OTP_THEME.inputFocusBorder,
+                          OTP_THEME.inputFocusRing,
+                        )}
                         disabled={isSubmitting}
                         autoComplete="given-name"
                       />
@@ -233,16 +376,28 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
                       Last name
                     </label>
                     <div className="relative">
-                      <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-300" />
+                      <User
+                        className={cn(
+                          'pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2',
+                          OTP_THEME.inputIcon,
+                        )}
+                      />
                       <Input
                         id="lastName"
                         type="text"
                         placeholder="Rajauria"
-                        value={formData.lastName}
-                        onChange={(e) =>
-                          handleInputChange('lastName', e.target.value)
+                        value={formData.lastName ?? ''}
+                        onChange={(event) =>
+                          handleInputChange('lastName', event.target.value)
                         }
-                        className="pl-9 bg-slate-950/80 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-500/40"
+                        className={cn(
+                          'pl-9 text-slate-100',
+                          OTP_THEME.inputBg,
+                          OTP_THEME.inputBorder,
+                          OTP_THEME.inputPlaceholder,
+                          OTP_THEME.inputFocusBorder,
+                          OTP_THEME.inputFocusRing,
+                        )}
                         disabled={isSubmitting}
                         autoComplete="family-name"
                       />
@@ -258,16 +413,28 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
                     Phone number (optional)
                   </label>
                   <div className="relative">
-                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-emerald-300" />
+                    <Phone
+                      className={cn(
+                        'pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2',
+                        OTP_THEME.inputIcon,
+                      )}
+                    />
                     <Input
                       id="phone"
                       type="tel"
                       placeholder="For onboarding and support"
-                      value={formData.phone}
-                      onChange={(e) =>
-                        handleInputChange('phone', e.target.value)
+                      value={formData.phone ?? ''}
+                      onChange={(event) =>
+                        handleInputChange('phone', event.target.value)
                       }
-                      className="pl-9 bg-slate-950/80 border-slate-700 text-slate-100 placeholder:text-slate-500 focus:border-emerald-400 focus:ring-emerald-500/40"
+                      className={cn(
+                        'pl-9 text-slate-100',
+                        OTP_THEME.inputBg,
+                        OTP_THEME.inputBorder,
+                        OTP_THEME.inputPlaceholder,
+                        OTP_THEME.inputFocusBorder,
+                        OTP_THEME.inputFocusRing,
+                      )}
                       disabled={isSubmitting}
                       autoComplete="tel"
                     />
@@ -280,7 +447,12 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+            className={cn(
+              'w-full font-semibold',
+              OTP_THEME.buttonGradient,
+              OTP_THEME.buttonHoverGradient,
+              OTP_THEME.buttonShadow,
+            )}
             loading={isSubmitting}
             disabled={isSubmitting}
           >
@@ -290,14 +462,24 @@ export function OTPRequestForm({ className, onSuccess }: OTPRequestFormProps) {
         </form>
 
         {/* Info Section */}
-        <div className="border-t border-slate-800/60 pt-4 text-left">
-          <p className="text-[11px] text-slate-500 md:text-xs">
-            You&apos;ll receive a 6-digit verification code at your email. Using the
-            co-pilot implies you are authorised to access your organisation&apos;s
-            workspace.
+        <div
+          className={cn(
+            'border-t pt-4 text-left',
+            OTP_THEME.infoBorder,
+          )}
+        >
+          <p
+            className={cn(
+              'text-[11px] md:text-xs',
+              OTP_THEME.infoText,
+            )}
+          >
+            You&apos;ll receive a 6-digit verification code at your email. Using
+            legalaid implies you are authorised to access your organisation&apos;s
+            governed workspace.
           </p>
         </div>
       </motion.div>
     </div>
   );
-}
+};
