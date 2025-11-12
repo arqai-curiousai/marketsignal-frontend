@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 /* ------------------------------------------------------------------ */
-/* Theme tokens (emerald/teal on slate)                               */
+/* Theme tokens (emerald/teal on slate) — NO HOOKS AT MODULE SCOPE     */
 /* ------------------------------------------------------------------ */
 
 interface HeaderThemeTokens {
@@ -35,35 +35,28 @@ interface HeaderThemeTokens {
   readonly logoGlow: string;
 }
 
-const useHeaderTheme = (): HeaderThemeTokens =>
-  useMemo(
-    () => ({
-      bg: 'bg-slate-950/85',
-      border: 'border-slate-800/70',
-      topSweep: 'from-transparent via-emerald-400/10 to-transparent',
-      navHoverBg: 'bg-emerald-400/10',
-      navIconActive: 'text-emerald-300',
-      navIcon: 'text-slate-400',
-      navTextActive: 'text-slate-50',
-      navText: 'text-slate-300',
-      ctaPrimaryGrad:
-        'bg-gradient-to-r from-emerald-500 via-cyan-400 to-sky-400',
-      ctaPrimaryRing: 'focus-visible:ring-emerald-400',
-      ctaGhost:
-        'border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-900/70',
-      progressGrad: 'bg-gradient-to-r from-emerald-400 via-cyan-300 to-sky-400',
-      logoGlow: 'from-emerald-500/25 via-cyan-400/20 to-sky-400/25',
-    }),
-    [],
-  );
-
-const THEME = useHeaderTheme();
+const getHeaderTheme = (): HeaderThemeTokens => ({
+  bg: 'bg-slate-950/85',
+  border: 'border-slate-800/70',
+  topSweep: 'from-transparent via-emerald-400/10 to-transparent',
+  navHoverBg: 'bg-emerald-400/10',
+  navIconActive: 'text-emerald-300',
+  navIcon: 'text-slate-400',
+  navTextActive: 'text-slate-50',
+  navText: 'text-slate-300',
+  ctaPrimaryGrad: 'bg-gradient-to-r from-emerald-500 via-cyan-400 to-sky-400',
+  ctaPrimaryRing: 'focus-visible:ring-emerald-400',
+  ctaGhost: 'border-slate-700 bg-slate-900 text-slate-100 hover:bg-slate-900/70',
+  progressGrad: 'bg-gradient-to-r from-emerald-400 via-cyan-300 to-sky-400',
+  logoGlow: 'from-emerald-500/25 via-cyan-400/20 to-sky-400/25',
+});
 
 /* ------------------------------------------------------------------ */
 /* New arQai logo variant (SVG wordmark + animated accent)            */
 /* ------------------------------------------------------------------ */
 
 const ArQaiLogoEmerald: React.FC = () => {
+  const THEME = getHeaderTheme();
   return (
     <Link
       href="/"
@@ -228,6 +221,7 @@ const NAV_LINKS: readonly NavigationLink[] = [
 /* ------------------------------------------------------------------ */
 
 const Header: React.FC = () => {
+  const THEME = getHeaderTheme(); // ✅ computed inside component
   const router = useRouter();
   const [hovered, setHovered] = useState<string | null>(null);
   const [active, setActive] = useState<string | null>(null);
