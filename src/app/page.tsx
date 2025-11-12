@@ -279,46 +279,6 @@ const LandingPage: React.FC = () => {
 
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-16 pt-4 md:px-6 lg:px-8 lg:pt-6">
         {/* Header */}
-        {/* <header className="flex items-center justify-between py-4">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/40">
-              <ShieldCheck className="h-5 w-5 text-emerald-300" />
-            </div>
-            <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold text-slate-50">
-                AI CA Assistant
-              </span>
-              <span className="text-[11px] text-slate-400">
-                Built for Indian Chartered Accountants
-              </span>
-            </div>
-          </div>
-
-          <nav className="hidden items-center gap-6 text-xs font-medium text-slate-300 md:flex">
-            <Link href="#for-ca" className="hover:text-emerald-300">
-              For CAs
-            </Link>
-            <Link href="#for-citizens" className="hover:text-emerald-300">
-              For citizens
-            </Link>
-            <Link href="#how-it-works" className="hover:text-emerald-300">
-              How it works
-            </Link>
-            <Link href="#security" className="hover:text-emerald-300">
-              Security
-            </Link>
-          </nav>
-
-          <div className="flex items-center gap-2">
-            <ButtonLink href="/login" variant="ghost">
-              Log in
-            </ButtonLink>
-            <ButtonLink href="/signup" variant="primary">
-              Get started
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </ButtonLink>
-          </div>
-        </header> */}
         <Header />
 
         {/* Hero */}

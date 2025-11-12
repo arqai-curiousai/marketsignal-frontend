@@ -183,7 +183,7 @@ const ArQaiLogoEmerald: React.FC = () => {
           </svg>
 
           <span className="hidden text-[11px] font-medium uppercase tracking-[0.2em] text-slate-400 sm:inline">
-            AI WORKSPACE
+            Artha-Sarthi
           </span>
         </div>
 
