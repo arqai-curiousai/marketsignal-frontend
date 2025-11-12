@@ -18,6 +18,8 @@ import {
   Lock,
   Clock,
 } from 'lucide-react';
+import Header from '@/components/layout/Header';
+
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost';
 
@@ -277,7 +279,7 @@ const LandingPage: React.FC = () => {
 
       <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-16 pt-4 md:px-6 lg:px-8 lg:pt-6">
         {/* Header */}
-        <header className="flex items-center justify-between py-4">
+        {/* <header className="flex items-center justify-between py-4">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-emerald-500/15 ring-1 ring-emerald-400/40">
               <ShieldCheck className="h-5 w-5 text-emerald-300" />
@@ -316,7 +318,8 @@ const LandingPage: React.FC = () => {
               <ArrowRight className="ml-1.5 h-4 w-4" />
             </ButtonLink>
           </div>
-        </header>
+        </header> */}
+        <Header />
 
         {/* Hero */}
         <main className="mt-6 grid flex-1 gap-10 md:mt-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
