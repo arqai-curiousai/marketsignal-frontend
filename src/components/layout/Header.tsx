@@ -276,6 +276,216 @@ const HEADER_THEME: HeaderThemeTokens = getHeaderTheme();
 /* Fused Logo - arQai + Arthasarthi                                   */
 /* ------------------------------------------------------------------ */
 
+// export const ArthasarthiLogo: React.FC = () => {
+//   const orbVariants = {
+//     rest: {
+//       backgroundColor: '#FFF7ED',
+//       boxShadow: '0 0 8px rgba(248, 250, 252, 0.35)',
+//     },
+//     hover: {
+//       backgroundColor: '#FED7AA',
+//       boxShadow: '0 0 16px rgba(251, 146, 60, 0.7)',
+//     },
+//   } as const;
+
+//   return (
+//     <a href="/" className="relative group cursor-pointer" aria-label="Arthasarthi by arQai">
+//       <motion.div
+//         className="relative rounded-3xl border border-white/20 px-5 py-3 shadow-2xl backdrop-blur-xl"
+//         whileHover={{ scale: 1.03, y: -1 }}
+//         whileTap={{ scale: 0.97 }}
+//         style={{
+//           background:
+//             'linear-gradient(135deg, rgba(248,250,252,0.14) 0%, rgba(15,23,42,0.9) 60%, rgba(15,23,42,0.98) 100%)',
+//         }}
+//       >
+//         {/* Animated border glow */}
+//         <motion.div
+//           className="absolute inset-0 rounded-3xl pointer-events-none"
+//           style={{
+//             background:
+//               'linear-gradient(45deg, transparent, rgba(251,146,60,0.45), transparent, rgba(249,115,22,0.5), transparent)',
+//             backgroundSize: '300% 300%',
+//           }}
+//           animate={{
+//             backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+//           }}
+//           transition={{
+//             duration: 4,
+//             repeat: Infinity,
+//             ease: 'linear',
+//           }}
+//         />
+
+//         <div className="relative z-10 flex flex-col gap-1">
+//           {/* Top: arQai wordmark (company) */}
+//           <div className="flex items-center gap-2">
+//             {/* Floating orb */}
+//             <motion.div
+//               className="h-2.5 w-2.5 rounded-full border-2 border-white/70 shadow-xl backdrop-blur-sm"
+//               style={{
+//                 background:
+//                   'linear-gradient(135deg,#FFF7ED 0%,#FDBA74 40%,#FB923C 100%)',
+//                 filter: 'drop-shadow(0 0 8px rgba(255, 237, 213, 0.8))',
+//               }}
+//               animate={{
+//                 rotate: 360,
+//                 scale: [1, 1.15, 1],
+//               }}
+//               transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+//               variants={orbVariants}
+//               initial="rest"
+//               whileHover="hover"
+//             />
+
+//             {/* arQai text */}
+//             <span
+//               className="text-base font-light tracking-tight inline-flex items-center"
+//               style={{
+//                 backgroundImage:
+//                   'linear-gradient(135deg, #FFF7ED 0%, #FED7AA 40%, #FDBA74 70%, #FFFBEB 100%)',
+//                 WebkitBackgroundClip: 'text',
+//                 WebkitTextFillColor: 'transparent',
+//                 filter: 'drop-shadow(0 0 6px rgba(248, 250, 252, 0.3))',
+//               }}
+//             >
+//               <motion.span className="font-normal">ar</motion.span>
+
+//               <motion.span
+//                 className="mx-0.5 origin-center font-medium relative"
+//                 style={{
+//                   display: 'inline-block',
+//                   backgroundImage:
+//                     'linear-gradient(135deg, #FDBA74 0%, #FB923C 40%, #EA580C 80%, #FFEDD5 100%)',
+//                   WebkitBackgroundClip: 'text',
+//                   WebkitTextFillColor: 'transparent',
+//                 }}
+//                 animate={{
+//                   rotateY: [0, 360],
+//                   scale: [1, 1.05, 1],
+//                 }}
+//                 transition={{
+//                   rotateY: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+//                   scale: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+//                 }}
+//               >
+//                 Q
+//               </motion.span>
+
+//               <motion.span className="font-normal">a</motion.span>
+
+//               <span className="font-normal relative">
+//                 <motion.span
+//                   style={{
+//                     background:
+//                       'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 60%, #FEF9C3 100%)',
+//                     WebkitBackgroundClip: 'text',
+//                     WebkitTextFillColor: 'transparent',
+//                   }}
+//                 >
+//                   ı
+//                 </motion.span>
+
+//                 {/* Dot + ring */}
+//                 <motion.div
+//                   className="absolute h-1.5 w-1.5 rounded-full bg-gradient-to-r from-orange-400 to-amber-300"
+//                   style={{
+//                     top: '1px',
+//                     left: '20%',
+//                     transform: 'translateX(-50%)',
+//                     filter: 'drop-shadow(0 0 4px rgba(249, 115, 22, 0.9))',
+//                   }}
+//                   animate={{
+//                     scale: [1, 1.3, 1],
+//                     opacity: [0.8, 1, 0.8],
+//                   }}
+//                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+//                 />
+//                 <motion.div
+//                   className="absolute h-3 w-3 rounded-full border border-orange-300/40"
+//                   style={{
+//                     top: '-1px',
+//                     left: '20%',
+//                     transform: 'translateX(-50%)',
+//                   }}
+//                   animate={{
+//                     scale: [0.5, 1.3, 0.5],
+//                     opacity: [0.6, 0.1, 0.6],
+//                   }}
+//                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+//                 />
+//               </span>
+//             </span>
+//           </div>
+
+//           {/* Divider line */}
+//           <motion.div
+//             className="h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"
+//             animate={{
+//               opacity: [0.3, 0.6, 0.3],
+//             }}
+//             transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+//           />
+
+//           {/* Bottom: Arthasarthi in Hindi (product) - CORRECTED with stress mark */}
+//           <div className="flex items-center gap-2">
+//             <motion.span
+//               className="text-xl font-semibold tracking-tight"
+//               style={{
+//                 backgroundImage:
+//                   'linear-gradient(135deg, #FCD34D 0%, #FBBF24 30%, #F59E0B 60%, #FDE047 100%)',
+//                 WebkitBackgroundClip: 'text',
+//                 WebkitTextFillColor: 'transparent',
+//                 filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))',
+//               }}
+//               animate={{
+//                 textShadow: [
+//                   '0 0 8px rgba(251, 191, 36, 0.3)',
+//                   '0 0 16px rgba(251, 191, 36, 0.6)',
+//                   '0 0 8px rgba(251, 191, 36, 0.3)',
+//                 ],
+//               }}
+//               transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+//             >
+//               अर्थसारथी
+//             </motion.span>
+
+//             {/* Product badge */}
+//             {/* <motion.div
+//               className="px-2 py-0.5 text-[9px] uppercase tracking-wider font-medium text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded-full"
+//               initial={{ opacity: 0, scale: 0.8 }}
+//               animate={{ opacity: 1, scale: 1 }}
+//               transition={{ delay: 0.3 }}
+//             >
+//               .ai
+//             </motion.div> */}
+            
+//           </div>
+//         </div>
+
+//         {/* Ambient glow sweep */}
+//         <motion.div
+//           className={`absolute -inset-3 rounded-3xl blur-xl bg-gradient-to-r ${HEADER_THEME.logoGlowGradient} opacity-0 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none`}
+//           animate={{
+//             scale: [0.95, 1.05, 0.95],
+//             rotate: [0, 180, 360],
+//             opacity: [0.1, 0.3, 0.1],
+//           }}
+//           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+//         />
+//       </motion.div>
+//     </a>
+//   );
+// };
+
+// import React from 'react';
+// import { motion } from 'framer-motion';
+
+// // Replace with your actual theme constant or remove if not needed
+// const HEADER_THEME = {
+//   logoGlowGradient: 'from-orange-400/20 via-amber-500/20 to-yellow-400/20'
+// };
+
 export const ArthasarthiLogo: React.FC = () => {
   const orbVariants = {
     rest: {
@@ -317,149 +527,135 @@ export const ArthasarthiLogo: React.FC = () => {
           }}
         />
 
-        <div className="relative z-10 flex flex-col gap-1">
-          {/* Top: arQai wordmark (company) */}
-          <div className="flex items-center gap-2">
-            {/* Floating orb */}
-            <motion.div
-              className="h-2.5 w-2.5 rounded-full border-2 border-white/70 shadow-xl backdrop-blur-sm"
-              style={{
-                background:
-                  'linear-gradient(135deg,#FFF7ED 0%,#FDBA74 40%,#FB923C 100%)',
-                filter: 'drop-shadow(0 0 8px rgba(255, 237, 213, 0.8))',
-              }}
-              animate={{
-                rotate: 360,
-                scale: [1, 1.15, 1],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-              variants={orbVariants}
-              initial="rest"
-              whileHover="hover"
-            />
+        <div className="relative z-10 flex items-center gap-3">
+          {/* Left: Floating orb */}
+          <motion.div
+            className="h-2.5 w-2.5 rounded-full border-2 border-white/70 shadow-xl backdrop-blur-sm flex-shrink-0"
+            style={{
+              background:
+                'linear-gradient(135deg,#FFF7ED 0%,#FDBA74 40%,#FB923C 100%)',
+              filter: 'drop-shadow(0 0 8px rgba(255, 237, 213, 0.8))',
+            }}
+            animate={{
+              rotate: 360,
+              scale: [1, 1.15, 1],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+            variants={orbVariants}
+            initial="rest"
+            whileHover="hover"
+          />
 
-            {/* arQai text */}
-            <span
-              className="text-base font-light tracking-tight inline-flex items-center"
+          {/* Center: arQai wordmark */}
+          <span
+            className="text-2xl font-light tracking-tight inline-flex items-center flex-shrink-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(135deg, #FFF7ED 0%, #FED7AA 40%, #FDBA74 70%, #FFFBEB 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 6px rgba(248, 250, 252, 0.3))',
+            }}
+          >
+            <motion.span className="font-normal">ar</motion.span>
+
+            <motion.span
+              className="mx-0.5 origin-center font-medium relative"
               style={{
+                display: 'inline-block',
                 backgroundImage:
-                  'linear-gradient(135deg, #FFF7ED 0%, #FED7AA 40%, #FDBA74 70%, #FFFBEB 100%)',
+                  'linear-gradient(135deg, #FDBA74 0%, #FB923C 40%, #EA580C 80%, #FFEDD5 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 0 6px rgba(248, 250, 252, 0.3))',
+              }}
+              animate={{
+                rotateY: [0, 360],
+                scale: [1, 1.05, 1],
+              }}
+              transition={{
+                rotateY: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
+                scale: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
               }}
             >
-              <motion.span className="font-normal">ar</motion.span>
+              Q
+            </motion.span>
 
+            <motion.span className="font-normal">a</motion.span>
+
+            <span className="font-normal relative">
               <motion.span
-                className="mx-0.5 origin-center font-medium relative"
                 style={{
-                  display: 'inline-block',
-                  backgroundImage:
-                    'linear-gradient(135deg, #FDBA74 0%, #FB923C 40%, #EA580C 80%, #FFEDD5 100%)',
+                  background:
+                    'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 60%, #FEF9C3 100%)',
                   WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                 }}
-                animate={{
-                  rotateY: [0, 360],
-                  scale: [1, 1.05, 1],
-                }}
-                transition={{
-                  rotateY: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
-                  scale: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
-                }}
               >
-                Q
+                ı
               </motion.span>
 
-              <motion.span className="font-normal">a</motion.span>
-
-              <span className="font-normal relative">
-                <motion.span
-                  style={{
-                    background:
-                      'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 60%, #FEF9C3 100%)',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                  }}
-                >
-                  ı
-                </motion.span>
-
-                {/* Dot + ring */}
-                <motion.div
-                  className="absolute h-1.5 w-1.5 rounded-full bg-gradient-to-r from-orange-400 to-amber-300"
-                  style={{
-                    top: '1px',
-                    left: '20%',
-                    transform: 'translateX(-50%)',
-                    filter: 'drop-shadow(0 0 4px rgba(249, 115, 22, 0.9))',
-                  }}
-                  animate={{
-                    scale: [1, 1.3, 1],
-                    opacity: [0.8, 1, 0.8],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <motion.div
-                  className="absolute h-3 w-3 rounded-full border border-orange-300/40"
-                  style={{
-                    top: '-1px',
-                    left: '20%',
-                    transform: 'translateX(-50%)',
-                  }}
-                  animate={{
-                    scale: [0.5, 1.3, 0.5],
-                    opacity: [0.6, 0.1, 0.6],
-                  }}
-                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </span>
+              {/* Dot + ring */}
+              <motion.div
+                className="absolute h-1.5 w-1.5 rounded-full bg-gradient-to-r from-orange-400 to-amber-300"
+                style={{
+                  top: '1px',
+                  left: '20%',
+                  transform: 'translateX(-50%)',
+                  filter: 'drop-shadow(0 0 4px rgba(249, 115, 22, 0.9))',
+                }}
+                animate={{
+                  scale: [1, 1.3, 1],
+                  opacity: [0.8, 1, 0.8],
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              <motion.div
+                className="absolute h-3 w-3 rounded-full border border-orange-300/40"
+                style={{
+                  top: '-1px',
+                  left: '20%',
+                  transform: 'translateX(-50%)',
+                }}
+                animate={{
+                  scale: [0.5, 1.3, 0.5],
+                  opacity: [0.6, 0.1, 0.6],
+                }}
+                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+              />
             </span>
-          </div>
+          </span>
 
-          {/* Divider line */}
+          {/* Divider - vertical line */}
           <motion.div
-            className="h-px bg-gradient-to-r from-transparent via-amber-500/40 to-transparent"
+            className="h-6 w-px bg-gradient-to-b from-transparent via-amber-500/50 to-transparent flex-shrink-0"
             animate={{
-              opacity: [0.3, 0.6, 0.3],
+              opacity: [0.3, 0.7, 0.3],
+              scaleY: [0.8, 1, 0.8],
             }}
-            transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
           />
 
-          {/* Bottom: Arthasarthi in Hindi (product) - CORRECTED with stress mark */}
-          <div className="flex items-center gap-2">
-            <motion.span
-              className="text-xl font-semibold tracking-tight"
-              style={{
-                backgroundImage:
-                  'linear-gradient(135deg, #FCD34D 0%, #FBBF24 30%, #F59E0B 60%, #FDE047 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))',
-              }}
-              animate={{
-                textShadow: [
-                  '0 0 8px rgba(251, 191, 36, 0.3)',
-                  '0 0 16px rgba(251, 191, 36, 0.6)',
-                  '0 0 8px rgba(251, 191, 36, 0.3)',
-                ],
-              }}
-              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              अर्थसारथी
-            </motion.span>
-
-            {/* Product badge */}
-            {/* <motion.div
-              className="px-2 py-0.5 text-[9px] uppercase tracking-wider font-medium text-amber-300/80 bg-amber-500/10 border border-amber-500/20 rounded-full"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.3 }}
-            >
-              .ai
-            </motion.div> */}
-          </div>
+          {/* Right: Arthasarthi in Hindi */}
+          <motion.span
+            className="text-lg font-semibold tracking-tight flex-shrink-0"
+            style={{
+              backgroundImage:
+                'linear-gradient(135deg, #FCD34D 0%, #FBBF24 30%, #F59E0B 60%, #FDE047 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))',
+            }}
+            animate={{
+              textShadow: [
+                '0 0 8px rgba(251, 191, 36, 0.3)',
+                '0 0 16px rgba(251, 191, 36, 0.6)',
+                '0 0 8px rgba(251, 191, 36, 0.3)',
+              ],
+            }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+          >
+            अर्थसारथी
+          </motion.span>
         </div>
 
         {/* Ambient glow sweep */}
