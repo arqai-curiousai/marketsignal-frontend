@@ -1,7 +1,7 @@
-'use client';
+'use client'
 
 import React from 'react';
-import Link from 'next/link';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import {
   ShieldCheck,
   MessageCircle,
@@ -17,609 +17,660 @@ import {
   ArrowUpRight,
   Lock,
   Clock,
+  BookOpen,
+  Zap,
+  TrendingUp,
+  ChevronRight,
 } from 'lucide-react';
 import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
+
+// Premium color palette - Deep navy, gold accents, and emerald
+const theme = {
+  bg: {
+    primary: 'from-[#0a0e1a] via-[#0f1419] to-[#050810]',
+    card: 'bg-gradient-to-br from-slate-900/80 via-slate-800/50 to-slate-900/80',
+    cardHover: 'hover:from-slate-800/90 hover:via-slate-700/60 hover:to-slate-800/90',
+  },
+  text: {
+    primary: 'text-slate-50',
+    secondary: 'text-slate-300',
+    muted: 'text-slate-400',
+    accent: 'text-amber-400',
+  },
+  accent: {
+    primary: 'from-amber-400 via-yellow-500 to-amber-600',
+    secondary: 'from-emerald-400 via-teal-500 to-cyan-600',
+    glow: 'shadow-[0_0_40px_rgba(251,191,36,0.3)]',
+  },
+  border: 'border-slate-700/50',
+};
 
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost';
+// Floating particles background
+const FloatingParticles = () => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(20)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute w-1 h-1 bg-amber-400/20 rounded-full"
+          style={{
+            left: `${Math.random() * 100}%`,
+            top: `${Math.random() * 100}%`,
+          }}
+          animate={{
+            y: [0, -30, 0],
+            x: [0, Math.random() * 20 - 10, 0],
+            opacity: [0.2, 0.5, 0.2],
+            scale: [1, 1.5, 1],
+          }}
+          transition={{
+            duration: 3 + Math.random() * 2,
+            repeat: Infinity,
+            delay: Math.random() * 2,
+            ease: "easeInOut",
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
-interface ButtonLinkProps {
-  href: string;
-  children: React.ReactNode;
-  variant?: ButtonVariant;
-}
+// Hero Section
+const HeroSection = () => {
+  return (
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-12">
+      {/* Background effects */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#0a0e1a] via-[#0f1419] to-[#050810]" />
+      
+      {/* Radial gradient overlay */}
+      <div className="absolute inset-0">
+        <motion.div
+          className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[800px] bg-amber-500/10 rounded-full blur-[120px]"
+          animate={{
+            scale: [1, 1.2, 1],
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+      </div>
 
-interface PillBadgeProps {
-  label: string;
-}
+      <FloatingParticles />
 
-interface Metric {
-  label: string;
-  value: string;
-  helper: string;
-}
+      {/* Content */}
+      <div className="relative max-w-7xl mx-auto px-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2 }}
+        >
+          {/* Badge */}
+          <motion.div
+            className="inline-flex items-center gap-2 px-4 py-2 mb-8 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-full text-sm text-amber-400"
+            whileHover={{ scale: 1.05 }}
+          >
+            <Sparkles className="w-4 h-4" />
+            <span>AI-Powered Financial Intelligence</span>
+          </motion.div>
 
-interface Feature {
+          {/* Main Heading */}
+          <motion.h1
+            className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            <span className="inline-block bg-gradient-to-r from-slate-50 via-slate-200 to-slate-300 bg-clip-text text-transparent">
+              Your Guide in
+            </span>
+            <br />
+            <motion.span
+              className="inline-block bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent"
+              animate={{
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'],
+              }}
+              transition={{
+                duration: 5,
+                repeat: Infinity,
+                ease: "linear",
+              }}
+              style={{
+                backgroundSize: '200% auto',
+              }}
+            >
+              Financial Mastery
+            </motion.span>
+          </motion.h1>
+
+          {/* Subheading */}
+          <motion.p
+            className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+          >
+            Empowering Chartered Accountants and individuals with AI-driven insights for compliance,
+            tax optimization, and strategic financial decisions. Experience the future of accounting today.
+          </motion.p>
+
+          {/* CTA Buttons */}
+          <motion.div
+            className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+          >
+            <motion.a
+              href="/signup"
+              className="group relative px-8 py-4 text-lg font-semibold text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 rounded-full overflow-hidden shadow-[0_0_40px_rgba(251,191,36,0.3)]"
+              whileHover={{ scale: 1.05, boxShadow: '0 0 60px rgba(251,191,36,0.5)' }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="relative z-10 flex items-center gap-2">
+                Start Your Journey
+                <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700"
+                initial={{ x: '100%' }}
+                whileHover={{ x: 0 }}
+                transition={{ duration: 0.4 }}
+              />
+            </motion.a>
+
+            <motion.a
+              href="#how-it-works"
+              className="group px-8 py-4 text-lg font-medium text-slate-300 border-2 border-slate-700 rounded-full hover:border-amber-500/50 hover:bg-slate-900/50 transition-all"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="flex items-center gap-2">
+                See How It Works
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </span>
+            </motion.a>
+          </motion.div>
+
+          {/* Stats */}
+          <motion.div
+            className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1 }}
+          >
+            {[
+              { value: '40-60%', label: 'Time Saved', icon: Clock },
+              { value: '<3 min', label: 'AI Response', icon: Zap },
+              { value: '100%', label: 'Compliance', icon: ShieldCheck },
+              { value: '24/7', label: 'Available', icon: Bot },
+            ].map((stat, i) => (
+              <motion.div
+                key={i}
+                className="relative group"
+                whileHover={{ scale: 1.05, y: -5 }}
+              >
+                <div className="relative p-6 bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden">
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-r from-amber-500/5 to-yellow-500/5 opacity-0 group-hover:opacity-100 transition-opacity"
+                  />
+                  <stat.icon className="w-8 h-8 text-amber-400 mb-3 mx-auto" />
+                  <div className="text-3xl font-bold text-slate-50 mb-1">{stat.value}</div>
+                  <div className="text-sm text-slate-400">{stat.label}</div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+      </div>
+
+      {/* Scroll indicator */}
+      <motion.div
+        className="absolute bottom-8 left-1/2 -translate-x-1/2"
+        animate={{ y: [0, 10, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+      >
+        <div className="w-6 h-10 border-2 border-amber-400/30 rounded-full flex justify-center pt-2">
+          <motion.div
+            className="w-1.5 h-2 bg-amber-400 rounded-full"
+            animate={{ y: [0, 16, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </div>
+      </motion.div>
+    </section>
+  );
+};
+
+// Feature Card Component
+interface FeatureCardProps {
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
   title: string;
   description: string;
-  icon: React.ReactNode;
   tag?: string;
 }
 
-interface Step {
-  id: number;
-  title: string;
-  description: string;
-}
-
-const metrics: Metric[] = [
-  {
-    label: 'Compliance time saved',
-    value: '40–60%',
-    helper: 'Per CA team on recurring work',
-  },
-  {
-    label: 'Turnaround for queries',
-    value: '< 3 min',
-    helper: 'Average AI answer time',
-  },
-  {
-    label: 'Citizen-friendly flows',
-    value: '100%',
-    helper: 'No finance jargon in wizards',
-  },
-];
-
-const caFeatures: Feature[] = [
-  {
-    title: 'Compliance cockpit for every client',
-    description:
-      'See ITR, GST, TDS and ROC due dates in one view, with risk-weighted tags, filters and calendar sync for your entire portfolio.',
-    icon: <BarChart3 className="h-6 w-6" />,
-    tag: 'For CAs',
-  },
-  {
-    title: 'AI that understands Indian tax law',
-    description:
-      'Ask case-style questions (“Proprietorship converted to LLP mid-year…”) and get structured answers with sections, slabs and citations.',
-    icon: <MessageCircle className="h-6 w-6" />,
-    tag: 'Reasoning-first',
-  },
-  {
-    title: 'Document-aware reconciliation',
-    description:
-      'Upload ledgers, bank statements and GST returns. OCR + extraction prepares reconciled views that you can review and finalize.',
-    icon: <FileText className="h-6 w-6" />,
-    tag: 'OCR-native',
-  },
-];
-
-const citizenFeatures: Feature[] = [
-  {
-    title: 'Guided tax-saving wizard',
-    description:
-      'Simple “Yes/No” and multiple-choice steps to discover the right mix of 80C, 80D, NPS and home loan benefits without form chaos.',
-    icon: <Sparkles className="h-6 w-6" />,
-    tag: 'For citizens',
-  },
-  {
-    title: 'Plain-language explanations',
-    description:
-      'Every recommendation is explained in clean, jargon-free language you can share with your family or CA.',
-    icon: <Users className="h-6 w-6" />,
-    tag: 'Human readable',
-  },
-  {
-    title: 'Exportable summary',
-    description:
-      'Generate a neat summary with action items you can email to your CA or keep as a checklist for the financial year.',
-    icon: <CheckCircle2 className="h-6 w-6" />,
-    tag: 'Share ready',
-  },
-];
-
-const steps: Step[] = [
-  {
-    id: 1,
-    title: 'Upload or connect data',
-    description:
-      'Upload PDFs, images or spreadsheets, or connect accounting tools. The system standardizes and indexes everything securely.',
-  },
-  {
-    id: 2,
-    title: 'AI reads like a senior CA',
-    description:
-      'OCR + tax-aware models extract entities, periods and sections. The AI assistant becomes context-aware for each client or citizen.',
-  },
-  {
-    id: 3,
-    title: 'Decide, file, and stay ahead',
-    description:
-      'Use dashboards, structured answers and guided flows to complete filings, optimize tax saving and never miss a deadline again.',
-  },
-];
-
-const ButtonLink: React.FC<ButtonLinkProps> = ({ href, children, variant = 'primary' }) => {
-  let baseClasses =
-    'inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950';
-  let variantClasses: string;
-
-  if (variant === 'primary') {
-    variantClasses =
-      'bg-emerald-500 text-slate-950 hover:bg-emerald-400 focus-visible:ring-emerald-400';
-  } else if (variant === 'secondary') {
-    variantClasses =
-      'bg-slate-900 text-slate-50 hover:bg-slate-800 focus-visible:ring-slate-600 border border-slate-700';
-  } else {
-    variantClasses =
-      'bg-transparent text-slate-100 hover:bg-slate-900/40 focus-visible:ring-slate-700 border border-slate-800';
-  }
-
+const FeatureCard = ({ icon: Icon, title, description, tag }: FeatureCardProps) => {
   return (
-    <Link href={href} className={`${baseClasses} ${variantClasses}`}>
-      {children}
-    </Link>
+    <motion.div
+      className="group relative h-full"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5 }}
+      whileHover={{ y: -8 }}
+    >
+      <div className="relative h-full p-6 bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden">
+        {/* Hover glow effect */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+        />
+        
+        {/* Content */}
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-4">
+            <div className="p-3 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-xl">
+              <Icon className="w-6 h-6 text-amber-400" />
+            </div>
+            {tag && (
+              <span className="px-3 py-1 text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-full">
+                {tag}
+              </span>
+            )}
+          </div>
+          
+          <h3 className="text-lg font-semibold text-slate-50 mb-2">{title}</h3>
+          <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
+        </div>
+
+        {/* Corner accent */}
+        <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+      </div>
+    </motion.div>
   );
 };
 
-const PillBadge: React.FC<PillBadgeProps> = ({ label }) => (
-  <span className="inline-flex items-center rounded-full border border-emerald-400/40 bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-300">
-    <span className="mr-2 h-1.5 w-1.5 rounded-full bg-emerald-400" />
-    {label}
-  </span>
-);
+// Main Landing Page
+const LandingPage = () => {
+  const { scrollYProgress } = useScroll();
+  const opacity = useTransform(scrollYProgress, [0, 0.2], [1, 0]);
 
-const MetricCard: React.FC<Metric> = ({ label, value, helper }) => (
-  <div className="flex flex-col gap-1 rounded-2xl bg-slate-900/40 px-4 py-3 shadow-sm ring-1 ring-white/5">
-    <span className="text-xs font-medium uppercase tracking-wide text-slate-400">
-      {label}
-    </span>
-    <span className="text-xl font-semibold text-slate-50">{value}</span>
-    <span className="text-xs text-slate-400">{helper}</span>
-  </div>
-);
+  const caFeatures = [
+    {
+      icon: BarChart3,
+      title: 'Unified Compliance Dashboard',
+      description: 'Monitor ITR, GST, TDS, and ROC deadlines across your entire portfolio with intelligent risk assessment and automated reminders.',
+      tag: 'For CAs',
+    },
+    {
+      icon: MessageCircle,
+      title: 'AI Tax Advisor',
+      description: 'Get instant, accurate answers to complex Indian tax queries with proper citations, sections, and real-world case applications.',
+      tag: 'Smart AI',
+    },
+    {
+      icon: FileText,
+      title: 'Intelligent Document Processing',
+      description: 'Advanced OCR and AI extraction automatically reconciles ledgers, bank statements, and GST returns with human-level accuracy.',
+      tag: 'Automated',
+    },
+  ];
 
-const FeatureCard: React.FC<Feature> = ({ title, description, icon, tag }) => (
-  <div className="group flex h-full flex-col rounded-2xl bg-slate-900/40 p-5 shadow-sm ring-1 ring-slate-800/80 transition duration-200 hover:-translate-y-0.5 hover:bg-slate-900/70 hover:ring-emerald-500/60">
-    <div className="mb-4 flex items-center justify-between gap-3">
-      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-300">
-        {icon}
-      </div>
-      {tag ? (
-        <span className="rounded-full bg-slate-800 px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-slate-300">
-          {tag}
-        </span>
-      ) : null}
-    </div>
-    <h3 className="mb-2 text-sm font-semibold text-slate-50">{title}</h3>
-    <p className="text-sm text-slate-400">{description}</p>
-  </div>
-);
+  const citizenFeatures = [
+    {
+      icon: Sparkles,
+      title: 'Guided Tax Wizard',
+      description: 'Interactive step-by-step guidance to discover optimal tax-saving strategies across 80C, 80D, NPS, and more without complexity.',
+      tag: 'Simple',
+    },
+    {
+      icon: Users,
+      title: 'Plain Language Reports',
+      description: 'Every recommendation explained in clear, jargon-free language that anyone can understand and share confidently.',
+      tag: 'Clear',
+    },
+    {
+      icon: CheckCircle2,
+      title: 'Actionable Insights',
+      description: 'Generate comprehensive summaries with prioritized action items, ready to share with your CA or implement yourself.',
+      tag: 'Ready',
+    },
+  ];
 
-const StepCard: React.FC<Step> = ({ id, title, description }) => (
-  <div className="relative flex h-full flex-col rounded-2xl bg-slate-900/40 p-5 ring-1 ring-slate-800/80">
-    <div className="mb-3 flex items-center gap-2 text-xs font-medium text-slate-400">
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-[11px] text-slate-200">
-        {id}
-      </span>
-      <span className="uppercase tracking-wide">Step {id}</span>
-    </div>
-    <h3 className="mb-2 text-sm font-semibold text-slate-50">{title}</h3>
-    <p className="text-sm text-slate-400">{description}</p>
-  </div>
-);
-
-const ChatPreview: React.FC = () => (
-  <div className="relative flex flex-col rounded-2xl bg-slate-950/80 p-4 ring-1 ring-slate-800/80">
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-300">
-          <Bot className="h-4 w-4" />
-        </div>
-        <div className="flex flex-col">
-          <span className="text-xs font-medium text-slate-100">
-            AI CA Assistant
-          </span>
-          <span className="text-[11px] text-emerald-300">Context: Client – Sharma & Co · AY 24–25</span>
-        </div>
-      </div>
-      <span className="rounded-full bg-slate-900 px-2.5 py-1 text-[10px] font-medium uppercase tracking-wide text-slate-300">
-        CA mode
-      </span>
-    </div>
-
-    <div className="flex flex-col gap-2">
-      <div className="max-w-[80%] self-end rounded-2xl bg-emerald-500/10 px-3 py-2 text-xs text-slate-50">
-        What are the pending GST and TDS compliances for Sharma & Co for this
-        month? Highlight anything time-critical.
-      </div>
-
-      <div className="max-w-[90%] self-start rounded-2xl bg-slate-900 px-3 py-2 text-xs text-slate-200 ring-1 ring-slate-800">
-        <p className="mb-1 font-semibold text-slate-50">
-          Summary – next 7 days
-        </p>
-        <ul className="mb-2 list-disc pl-4 text-[11px] text-slate-300">
-          <li>1 GST 3B filing due in 3 days</li>
-          <li>2 TDS returns due in 5 days</li>
-        </ul>
-        <div className="mb-2 rounded-xl bg-slate-950/70 p-2 text-[11px] text-slate-300 ring-1 ring-slate-800">
-          <p className="mb-1 font-semibold text-slate-100">High-risk</p>
-          <p>
-            GST 3B – Regular · Period: Apr 24 · Risk: Overdue interest if
-            delayed beyond 3 days.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300">
-            <CheckCircle2 className="mr-1 h-3 w-3" />
-            Create client task
-          </span>
-          <span className="inline-flex items-center rounded-full bg-slate-800 px-2 py-1 text-[10px] text-slate-200">
-            <FileText className="mr-1 h-3 w-3" />
-            View detailed schedule
-          </span>
-        </div>
-      </div>
-    </div>
-
-    <div className="mt-3 flex items-center gap-2 rounded-full bg-slate-900 px-3 py-1.5 text-[11px] text-slate-300">
-      <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-      Answers are grounded in latest Govt. notifications. Ask “why” anytime.
-    </div>
-  </div>
-);
-
-const LandingPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-950 text-slate-50">
-      {/* Glow backdrop */}
-      <div className="pointer-events-none fixed inset-x-0 top-[-6rem] -z-10 flex justify-center blur-3xl">
-        <div className="aspect-[5/1] w-[60rem] bg-gradient-to-r from-emerald-500/30 via-cyan-500/20 to-indigo-500/30 opacity-60" />
-      </div>
+    <div className="relative min-h-screen bg-gradient-to-b from-[#0a0e1a] via-[#0f1419] to-[#050810] text-slate-50 overflow-x-hidden">
+      <Header />
+      <HeroSection />
 
-      <div className="mx-auto flex min-h-screen max-w-6xl flex-col px-4 pb-16 pt-4 md:px-6 lg:px-8 lg:pt-6">
-        {/* Header */}
-        <Header />
-
-        {/* Hero */}
-        <main className="mt-6 grid flex-1 gap-10 md:mt-10 md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] md:items-center">
-          <section className="space-y-8">
-            <div className="space-y-4">
-              <PillBadge label="Premium AI workspace for Indian CAs & citizens" />
-              <h1 className="text-balance text-3xl font-semibold text-slate-50 sm:text-4xl lg:text-5xl">
-                One workspace for{' '}
-                <span className="bg-gradient-to-r from-emerald-300 via-cyan-300 to-sky-300 bg-clip-text text-transparent">
-                  compliance
-                </span>{' '}
-                and tax-saving,
-                <br className="hidden sm:block" /> powered by an AI CA assistant.
-              </h1>
-              <p className="max-w-xl text-sm leading-relaxed text-slate-300 sm:text-[15px]">
-                Designed for Indian Chartered Accountants who handle hundreds of
-                entities{' '}
-                <span className="hidden sm:inline">
-                  — and for citizens who just want simple, correct tax
-                  decisions.
-                </span>{' '}
-                High-density dashboards for CAs, guided flows for everyone else.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-3">
-              <ButtonLink href="/signup" variant="primary">
-                Start as CA practice
-                <ArrowUpRight className="ml-1.5 h-4 w-4" />
-              </ButtonLink>
-              <ButtonLink href="/citizen/start" variant="secondary">
-                Try citizen tax-saving wizard
-              </ButtonLink>
-              <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-                <Lock className="h-3.5 w-3.5" />
-                <span>Data stays encrypted in India-first infra.</span>
-              </div>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-3">
-              {metrics.map((metric) => (
-                <MetricCard
-                  key={metric.label}
-                  label={metric.label}
-                  value={metric.value}
-                  helper={metric.helper}
-                />
-              ))}
-            </div>
-          </section>
-
-          {/* Hero Preview */}
-          <section className="space-y-4 rounded-3xl bg-slate-950/80 p-4 ring-1 ring-slate-800/80 md:p-5">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900">
-                  <LineChart className="h-4 w-4 text-emerald-300" />
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs font-medium text-slate-100">
-                    CA dashboard snapshot
-                  </span>
-                  <span className="text-[11px] text-slate-400">
-                    76 entities · 214 active filings
-                  </span>
-                </div>
-              </div>
-              <span className="rounded-full bg-slate-900 px-3 py-1 text-[11px] text-slate-300">
-                Next 7 days
+      {/* For CAs Section */}
+      <section id="for-ca" className="relative py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <motion.div
+              className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-gradient-to-r from-amber-500/10 to-yellow-500/10 border border-amber-500/20 rounded-full text-sm text-amber-400"
+              whileHover={{ scale: 1.05 }}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              <span>For Chartered Accountants</span>
+            </motion.div>
+            
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent">
+                Your Command Center
               </span>
-            </div>
+            </h2>
+            <p className="text-lg text-slate-400 max-w-3xl mx-auto">
+              Transform your practice with AI-powered tools that handle the complexity while you focus on strategy and client relationships.
+            </p>
+          </motion.div>
 
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-900/90 p-3 text-xs ring-1 ring-slate-800">
-                <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Returns due</span>
-                  <Clock className="h-3.5 w-3.5" />
-                </div>
-                <div className="mb-1 text-2xl font-semibold text-emerald-300">
-                  32
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  5 high-risk filings with potential late fees.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-slate-900/90 p-3 text-xs ring-1 ring-slate-800">
-                <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Reconciliation</span>
-                  <LineChart className="h-3.5 w-3.5" />
-                </div>
-                <div className="mb-1 text-2xl font-semibold text-slate-50">
-                  87%
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Bank & GST books reconciled for active clients.
-                </p>
-              </div>
-              <div className="rounded-2xl bg-slate-900/90 p-3 text-xs ring-1 ring-slate-800">
-                <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <span>Citizen flows</span>
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-                <div className="mb-1 text-2xl font-semibold text-slate-50">
-                  4.9★
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Average rating for tax-saving wizard experience.
-                </p>
-              </div>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {caFeatures.map((feature, i) => (
+              <FeatureCard key={i} {...feature} />
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div className="rounded-2xl bg-slate-900/90 p-3 text-xs ring-1 ring-slate-800">
-                <div className="mb-2 flex items-center justify-between text-[11px] text-slate-400">
-                  <div className="flex items-center gap-1.5">
-                    <UploadCloud className="h-3.5 w-3.5 text-emerald-300" />
-                    <span>Document intake</span>
+      {/* For Citizens Section */}
+      <section id="for-citizens" className="relative py-24 px-6 bg-gradient-to-b from-transparent via-slate-950/50 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <motion.div
+              className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-gradient-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20 rounded-full text-sm text-emerald-400"
+              whileHover={{ scale: 1.05 }}
+            >
+              <Users className="w-4 h-4" />
+              <span>For Everyone</span>
+            </motion.div>
+            
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                Tax Made Simple
+              </span>
+            </h2>
+            <p className="text-lg text-slate-400 max-w-3xl mx-auto">
+              No finance degree required. Get personalized tax-saving recommendations explained in plain language.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {citizenFeatures.map((feature, i) => (
+              <FeatureCard key={i} {...feature} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works Section */}
+      <section id="how-it-works" className="relative py-24 px-6">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent">
+                Three Simple Steps
+              </span>
+            </h2>
+            <p className="text-lg text-slate-400 max-w-3xl mx-auto">
+              From data to decisions in minutes, not hours.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                step: '01',
+                title: 'Upload & Connect',
+                description: 'Securely upload documents or connect your accounting tools. Our AI standardizes and indexes everything automatically.',
+                icon: UploadCloud,
+              },
+              {
+                step: '02',
+                title: 'AI Analysis',
+                description: 'Advanced OCR and tax-aware models extract insights, identify patterns, and prepare intelligent recommendations.',
+                icon: Bot,
+              },
+              {
+                step: '03',
+                title: 'Act with Confidence',
+                description: 'Review AI-generated insights, approve recommendations, and file with complete peace of mind.',
+                icon: TrendingUp,
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.2 }}
+                className="relative group"
+              >
+                <div className="relative p-8 bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden">
+                  {/* Step number */}
+                  <div className="absolute top-4 right-4 text-6xl font-bold text-amber-500/10 group-hover:text-amber-500/20 transition-colors">
+                    {item.step}
                   </div>
-                  <span className="rounded-full bg-slate-800 px-2 py-0.5 text-[10px] text-emerald-300">
-                    OCR active
-                  </span>
+                  
+                  <div className="relative z-10">
+                    <div className="w-14 h-14 mb-6 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-xl flex items-center justify-center">
+                      <item.icon className="w-7 h-7 text-amber-400" />
+                    </div>
+                    
+                    <h3 className="text-2xl font-semibold text-slate-50 mb-3">{item.title}</h3>
+                    <p className="text-slate-400 leading-relaxed">{item.description}</p>
+                  </div>
+
+                  {/* Connector line */}
+                  {i < 2 && (
+                    <div className="hidden md:block absolute top-1/2 -right-4 w-8 h-0.5 bg-gradient-to-r from-amber-500/50 to-transparent" />
+                  )}
                 </div>
-                <ul className="space-y-1 text-[11px] text-slate-300">
-                  <li>• 18 PDFs in queue</li>
-                  <li>• 12 completed · 3 under review</li>
-                  <li>• Auto-tagged to 9 clients</li>
-                </ul>
-              </div>
-              <ChatPreview />
-            </div>
-          </section>
-        </main>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-        {/* For CAs */}
-        <section
-          id="for-ca"
-          className="mt-16 border-t border-slate-800/80 pt-10"
-        >
-          <div className="mb-6 flex items-center justify-between gap-4">
-            <div className="space-y-2">
-              <PillBadge label="For Chartered Accountants" />
-              <h2 className="text-xl font-semibold text-slate-50 sm:text-2xl">
-                A command center for your entire practice — not just a chatbot.
-              </h2>
-              <p className="max-w-2xl text-sm text-slate-300">
-                Replace scattered spreadsheets, reminder apps and WhatsApp
-                threads with a single view of deadlines, reconciliations and
-                client health, always backed by an AI that understands Indian
-                tax and compliance.
-              </p>
-            </div>
-            <div className="hidden flex-col items-end text-xs text-slate-400 md:flex">
-              <span className="mb-1 text-[11px] uppercase tracking-wide">
-                Built on
+      {/* Security Section */}
+      <section id="security" className="relative py-24 px-6 bg-gradient-to-b from-transparent via-slate-950/50 to-transparent">
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="text-center mb-16"
+          >
+            <motion.div
+              className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-gradient-to-r from-red-500/10 to-pink-500/10 border border-red-500/20 rounded-full text-sm text-red-400"
+              whileHover={{ scale: 1.05 }}
+            >
+              <Lock className="w-4 h-4" />
+              <span>Enterprise-Grade Security</span>
+            </motion.div>
+            
+            <h2 className="text-4xl md:text-5xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent">
+                Built for Confidentiality
               </span>
-              <span>Next.js · TypeScript · Production-grade design system</span>
-            </div>
-          </div>
+            </h2>
+            <p className="text-lg text-slate-400 max-w-3xl mx-auto">
+              Your financial data deserves bank-grade protection. We exceed industry standards for security and compliance.
+            </p>
+          </motion.div>
 
-          <div className="grid gap-4 md:grid-cols-3">
-            {caFeatures.map((feature) => (
-              <FeatureCard
-                key={feature.title}
-                title={feature.title}
-                description={feature.description}
-                icon={feature.icon}
-                tag={feature.tag}
-              />
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Lock,
+                title: 'End-to-End Encryption',
+                description: 'Military-grade encryption in transit and at rest. Your data is protected at every step with zero-knowledge architecture.',
+              },
+              {
+                icon: ShieldCheck,
+                title: 'Compliance First',
+                description: 'GDPR, SOC 2, and India data residency compliant. Regular third-party audits ensure we maintain the highest standards.',
+              },
+              {
+                icon: Users,
+                title: 'Role-Based Access',
+                description: 'Granular permission controls for teams. Every action is logged and auditable for complete transparency.',
+              },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                whileHover={{ y: -5 }}
+                className="group"
+              >
+                <div className="relative h-full p-6 bg-gradient-to-br from-slate-900/80 to-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl overflow-hidden">
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
+                  />
+                  
+                  <div className="relative z-10">
+                    <div className="w-12 h-12 mb-4 bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-xl flex items-center justify-center">
+                      <item.icon className="w-6 h-6 text-red-400" />
+                    </div>
+                    
+                    <h3 className="text-lg font-semibold text-slate-50 mb-2">{item.title}</h3>
+                    <p className="text-sm text-slate-400 leading-relaxed">{item.description}</p>
+                  </div>
+                </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </div>
+      </section>
 
-        {/* For Citizens */}
-        <section
-          id="for-citizens"
-          className="mt-16 border-t border-slate-800/80 pt-10"
-        >
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
-              <PillBadge label="For common citizens" />
-              <h2 className="text-xl font-semibold text-slate-50 sm:text-2xl">
-                Tax-saving, explained like a friend — structured like a CA.
-              </h2>
-              <p className="max-w-2xl text-sm text-slate-300">
-                No more guessing between old vs new regime or which instrument
-                to pick. A guided, visual wizard asks you human questions and
-                produces CA-grade recommendations you can trust.
-              </p>
-            </div>
-            <ButtonLink href="/citizen/start" variant="ghost">
-              Start tax-saving wizard
-              <ArrowRight className="ml-1.5 h-4 w-4" />
-            </ButtonLink>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {citizenFeatures.map((feature) => (
-              <FeatureCard
-                key={feature.title}
-                title={feature.title}
-                description={feature.description}
-                icon={feature.icon}
-                tag={feature.tag}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* How it works */}
-        <section
-          id="how-it-works"
-          className="mt-16 border-t border-slate-800/80 pt-10"
-        >
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
-              <PillBadge label="Architecture-first, yet simple for users" />
-              <h2 className="text-xl font-semibold text-slate-50 sm:text-2xl">
-                From documents and ledgers to live, AI-augmented decisions.
-              </h2>
-              <p className="max-w-2xl text-sm text-slate-300">
-                Under the hood: OCR, vector search and policy-aware reasoning.
-                On the surface: three clean steps that work the same for CAs and
-                citizens.
-              </p>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <Sparkles className="h-3.5 w-3.5 text-emerald-300" />
-              <span>Optimized for rapid, incremental module additions.</span>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            {steps.map((step) => (
-              <StepCard
-                key={step.id}
-                id={step.id}
-                title={step.title}
-                description={step.description}
-              />
-            ))}
-          </div>
-        </section>
-
-        {/* Security */}
-        <section
-          id="security"
-          className="mt-16 border-t border-slate-800/80 pt-10"
-        >
-          <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="space-y-2">
-              <PillBadge label="Security & control" />
-              <h2 className="text-xl font-semibold text-slate-50 sm:text-2xl">
-                Designed for confidential financial data from day zero.
-              </h2>
-              <p className="max-w-2xl text-sm text-slate-300">
-                Your practice and your clients deserve bank-grade security
-                standards and clear auditability. The assistant works inside
-                these guardrails — not around them.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="flex flex-col gap-2 rounded-2xl bg-slate-900/40 p-5 ring-1 ring-slate-800/80">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-100">
-                <Lock className="h-4 w-4 text-emerald-300" />
-                <span>Data security by design</span>
+      {/* Testimonial Section */}
+      <section className="relative py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="relative p-12 bg-gradient-to-br from-slate-900/90 to-slate-800/70 backdrop-blur-xl border border-amber-500/20 rounded-3xl overflow-hidden"
+          >
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-yellow-500/10 to-transparent rounded-tr-full" />
+            
+            <div className="relative z-10 text-center">
+              <motion.div
+                className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-full flex items-center justify-center"
+                animate={{
+                  scale: [1, 1.1, 1],
+                  rotate: [0, 5, -5, 0],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+              >
+                <Sparkles className="w-8 h-8 text-amber-400" />
+              </motion.div>
+              
+              <blockquote className="text-2xl md:text-3xl font-medium text-slate-200 mb-8 leading-relaxed">
+                "Arthasarthi transformed our practice. What used to take hours now takes minutes, and our clients love the transparency and speed."
+              </blockquote>
+              
+              <div className="flex items-center justify-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full" />
+                <div className="text-left">
+                  <div className="font-semibold text-slate-50">Rajesh Kumar, CA</div>
+                  <div className="text-sm text-slate-400">Managing Partner, Kumar & Associates</div>
+                </div>
               </div>
-              <p className="text-sm text-slate-300">
-                Data is encrypted in transit and rest, with strict separation
-                across practices and no use of your private data to train public
-                models.
-              </p>
             </div>
-            <div className="flex flex-col gap-2 rounded-2xl bg-slate-900/40 p-5 ring-1 ring-slate-800/80">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-100">
-                <FileText className="h-4 w-4 text-emerald-300" />
-                <span>Explainable answers</span>
-              </div>
-              <p className="text-sm text-slate-300">
-                Each answer comes in structured blocks with referenced sections
-                and assumptions, so you can sign off with confidence.
-              </p>
-            </div>
-            <div className="flex flex-col gap-2 rounded-2xl bg-slate-900/40 p-5 ring-1 ring-slate-800/80">
-              <div className="mb-1 flex items-center gap-2 text-xs font-semibold text-slate-100">
-                <Users className="h-4 w-4 text-emerald-300" />
-                <span>Built for teams and citizens</span>
-              </div>
-              <p className="text-sm text-slate-300">
-                Role-aware access for partners, associates and back-office
-                staff, alongside guided flows tailored for non-experts.
-              </p>
-            </div>
-          </div>
-        </section>
+          </motion.div>
+        </div>
+      </section>
 
-        {/* Final CTA */}
-        <section className="mt-16 border-t border-slate-800/80 pt-10">
-          <div className="flex flex-col gap-4 rounded-3xl bg-slate-950/90 p-6 ring-1 ring-slate-800/80 md:flex-row md:items-center md:justify-between md:p-7">
-            <div className="space-y-2">
-              <h2 className="text-lg font-semibold text-slate-50 sm:text-xl">
-                Ready to design your AI-first CA practice?
-              </h2>
-              <p className="max-w-xl text-sm text-slate-300">
-                Start with a single client, a single citizen flow, or a single
-                OCR pipeline. The underlying architecture and design system are
-                ready to scale when you are.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-3">
-              <ButtonLink href="/signup" variant="primary">
-                Get started as CA
-                <ArrowUpRight className="ml-1.5 h-4 w-4" />
-              </ButtonLink>
-              <ButtonLink href="/citizen/start" variant="ghost">
-                Explore citizen experience
-              </ButtonLink>
-            </div>
-          </div>
-
-          <footer className="mt-6 flex flex-col items-center justify-between gap-3 border-t border-slate-900 pt-4 text-[11px] text-slate-500 md:flex-row">
-            <span>© {new Date().getFullYear()} AI CA Assistant. All rights reserved.</span>
-            <div className="flex flex-wrap items-center gap-3">
-              <Link href="/terms" className="hover:text-slate-300">
-                Terms
-              </Link>
-              <Link href="/privacy" className="hover:text-slate-300">
-                Privacy
-              </Link>
-              <span className="flex items-center gap-1 text-slate-500">
-                <Sparkles className="h-3.5 w-3.5" />
-                Built with Next.js & TypeScript-first architecture.
+      {/* Final CTA Section */}
+      <section className="relative py-32 px-6">
+        <div className="max-w-5xl mx-auto text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-4xl md:text-6xl font-bold mb-6">
+              <span className="bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 bg-clip-text text-transparent">
+                Ready to Transform Your Practice?
               </span>
+            </h2>
+            <p className="text-xl text-slate-400 mb-12 max-w-3xl mx-auto">
+              Join thousands of CAs and individuals who trust Arthasarthi for smarter financial decisions.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <motion.a
+                href="/signup"
+                className="group relative px-10 py-5 text-lg font-semibold text-slate-950 bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-600 rounded-full overflow-hidden shadow-[0_0_60px_rgba(251,191,36,0.4)]"
+                whileHover={{ scale: 1.05, boxShadow: '0 0 80px rgba(251,191,36,0.6)' }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <span className="relative z-10 flex items-center gap-3">
+                  Get Started Free
+                  <ArrowUpRight className="w-5 h-5 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                </span>
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-amber-500 via-yellow-600 to-amber-700"
+                  initial={{ x: '100%' }}
+                  whileHover={{ x: 0 }}
+                  transition={{ duration: 0.4 }}
+                />
+              </motion.a>
+
+              <motion.a
+                href="#for-ca"
+                className="px-10 py-5 text-lg font-medium text-slate-300 border-2 border-slate-700 rounded-full hover:border-amber-500/50 hover:bg-slate-900/50 transition-all"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                Learn More
+              </motion.a>
             </div>
-          </footer>
-        </section>
-      </div>
+
+            <p className="mt-8 text-sm text-slate-500">
+              No credit card required • Free 14-day trial • Cancel anytime
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      <Footer />
     </div>
   );
 };
 
-export default LandingPage;
+export default LandingPage

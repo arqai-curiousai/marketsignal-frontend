@@ -18,21 +18,21 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: 'Legal AI Assistant - Indian Law Chatbot',
-  description: 'AI-powered legal assistant for Indian law consultation. Get instant answers about cases, statutes, and legal procedures.',
-  keywords: ['Indian law', 'legal AI', 'lawyer chatbot', 'legal consultation', 'Indian Penal Code', 'case law'],
-  authors: [{ name: 'Legal AI Team' }],
+  title: 'Finance AI Assistant - Financial Advisory Chatbot',
+  description: 'AI-powered finance assistant for financial consultation. Get instant answers about investments, financial planning, market analysis, and financial procedures.',
+  keywords: ['finance AI', 'financial advisor', 'investment chatbot', 'financial consultation', 'financial planning', 'market analysis', 'wealth management'],
+  authors: [{ name: 'Finance AI Team' }],
   robots: 'index, follow',
   openGraph: {
-    title: 'Legal AI Assistant - Indian Law Chatbot',
-    description: 'AI-powered legal assistant for Indian law consultation',
+    title: 'Finance AI Assistant - Financial Advisory Chatbot',
+    description: 'AI-powered finance assistant for financial consultation',
     type: 'website',
     locale: 'en_IN',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Legal AI Assistant',
-    description: 'AI-powered Indian law consultation',
+    title: 'Finance AI Assistant',
+    description: 'AI-powered financial consultation',
   },
 };
 

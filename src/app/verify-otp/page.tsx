@@ -25,8 +25,8 @@ import { authService } from '@/services/auth.service';
 import type { OTPStatusResponse } from '@/lib/types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import LegalHeader from '@/components/layout/Header';
-import LegalFooter from '@/components/layout/Footer';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { cn } from '@/lib/utils/cn';
 
 type OTPArray = [string, string, string, string, string, string];
@@ -271,7 +271,7 @@ const VerifyOTPClient: FC = () => {
         VERIFY_OTP_THEME.pageBackground,
       )}
     >
-      <LegalHeader />
+      <Header />
 
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-10 pt-24 md:px-6 md:pt-24">
         {/* Background glows */}
@@ -364,7 +364,7 @@ const VerifyOTPClient: FC = () => {
                     VERIFY_OTP_THEME.subtitleText,
                   )}
                 >
-                  Enter the 6-digit code to unlock your legalaid workspace.
+                  Enter the 6-digit code to unlock your workspace.
                 </p>
               </div>
             </div>
@@ -503,7 +503,7 @@ const VerifyOTPClient: FC = () => {
         </motion.div>
       </main>
 
-      <LegalFooter />
+      <Footer />
     </div>
   );
 };

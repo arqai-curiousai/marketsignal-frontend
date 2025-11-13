@@ -2,8 +2,8 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import LegalHeader from '@/components/layout/Header';
-import LegalFooter from '@/components/layout/Footer';
+import Header from '@/components/layout/Header';
+import Footer from '@/components/layout/Footer';
 import { OTPRequestForm } from '@/components/auth/LoginForm';
 
 interface LoginHighlightProps {
@@ -84,7 +84,7 @@ const LoginPage: React.FC = () => {
     <div
       className={`flex min-h-screen flex-col ${LOGIN_THEME.pageBackground} text-slate-100`}
     >
-      <LegalHeader />
+      <Header />
 
       <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-10 pt-24 md:px-6 md:pt-24">
         {/* Background glows */}
@@ -129,7 +129,7 @@ const LoginPage: React.FC = () => {
             <div className="space-y-3">
               <h1 className="text-balance text-2xl font-semibold text-slate-50 md:text-3xl">
                 Sign in to your{' '}
-                <span className={LOGIN_THEME.headingAccent}>legalaid</span>{' '}
+                <span className={LOGIN_THEME.headingAccent}>arthasarthi</span>{' '}
                 workspace
               </h1>
               <p className="max-w-md text-sm leading-relaxed text-slate-300 md:text-base">
@@ -182,7 +182,7 @@ const LoginPage: React.FC = () => {
         </div>
       </main>
 
-      <LegalFooter />
+      <Footer />
     </div>
   );
 };
