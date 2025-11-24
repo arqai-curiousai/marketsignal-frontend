@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
 import { Inter, Merriweather } from 'next/font/google';
 import './globals.css';
-import { CSP_HEADERS } from '@/lib/security/xss';
+
 import { AuthProvider } from '@/contexts/AuthContext';
 
-const inter = Inter({ 
+const inter = Inter({
   subsets: ['latin'],
   variable: '--font-inter',
   display: 'swap',
@@ -18,21 +18,21 @@ const merriweather = Merriweather({
 });
 
 export const metadata: Metadata = {
-  title: 'Finance AI Assistant - Financial Advisory Chatbot',
-  description: 'AI-powered finance assistant for financial consultation. Get instant answers about investments, financial planning, market analysis, and financial procedures.',
-  keywords: ['finance AI', 'financial advisor', 'investment chatbot', 'financial consultation', 'financial planning', 'market analysis', 'wealth management'],
+  title: 'ArthSarthi - Your Financial Companion',
+  description: 'AI-powered financial companion for expert consultation. Get instant answers about investments, tax planning, market analysis, and financial procedures.',
+  keywords: ['ArthSarthi', 'finance AI', 'financial companion', 'tax planning', 'investment advisor', 'market analysis', 'wealth management'],
   authors: [{ name: 'Finance AI Team' }],
   robots: 'index, follow',
   openGraph: {
-    title: 'Finance AI Assistant - Financial Advisory Chatbot',
-    description: 'AI-powered finance assistant for financial consultation',
+    title: 'ArthSarthi - Your Financial Companion',
+    description: 'AI-powered financial companion for expert consultation',
     type: 'website',
     locale: 'en_IN',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Finance AI Assistant',
-    description: 'AI-powered financial consultation',
+    title: 'ArthSarthi',
+    description: 'AI-powered financial companion',
   },
 };
 
@@ -57,7 +57,7 @@ export default function RootLayout({
       </head>
       <body className={`${inter.variable} ${merriweather.variable} font-sans antialiased`}>
         <AuthProvider>
-        {children}
+          {children}
         </AuthProvider>
       </body>
     </html>

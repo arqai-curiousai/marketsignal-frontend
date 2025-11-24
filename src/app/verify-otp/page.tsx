@@ -21,7 +21,7 @@ import {
   ArrowRight,
   AlertCircle,
 } from 'lucide-react';
-import { authService } from '@/services/auth.service';
+import { useAuth } from '@/contexts/AuthContext';
 import type { OTPStatusResponse } from '@/lib/types';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -138,6 +138,8 @@ const VerifyOTPClient: FC = () => {
   const router = useRouter();
   const params = useSearchParams();
   const email = params.get('email') ?? '';
+  const userType = params.get('userType') ?? 'citizen';
+  const { verifyOTP, requestOTP } = useAuth();
 
   const [otp, setOtp] = useState<OTPArray>([
     '',
@@ -223,11 +225,16 @@ const VerifyOTPClient: FC = () => {
     setInfo(null);
 
     try {
-      await authService.verifyOTP({
+      await verifyOTP({
         email,
         otpCode: code,
       });
-      router.replace('/chatbot');
+
+      if (userType === 'ca') {
+        router.replace('/ca-view');
+      } else {
+        router.replace('/folk-view');
+      }
     } catch (err: unknown) {
       const message =
         err instanceof Error ? err.message : 'Verification failed';
@@ -245,7 +252,7 @@ const VerifyOTPClient: FC = () => {
     setInfo(null);
 
     try {
-      const res: OTPStatusResponse = await authService.requestOTP({
+      const res: OTPStatusResponse = await requestOTP({
         email,
       });
 

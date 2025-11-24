@@ -49,15 +49,28 @@ const theme = {
 
 // Floating particles background
 const FloatingParticles = () => {
+  const [particles, setParticles] = React.useState<Array<{ left: string; top: string; duration: number; delay: number }>>([]);
+
+  React.useEffect(() => {
+    setParticles(
+      [...Array(20)].map(() => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        duration: 3 + Math.random() * 2,
+        delay: Math.random() * 2,
+      }))
+    );
+  }, []);
+
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(20)].map((_, i) => (
+      {particles.map((p, i) => (
         <motion.div
           key={i}
           className="absolute w-1 h-1 bg-amber-400/20 rounded-full"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: p.left,
+            top: p.top,
           }}
           animate={{
             y: [0, -30, 0],
@@ -66,9 +79,9 @@ const FloatingParticles = () => {
             scale: [1, 1.5, 1],
           }}
           transition={{
-            duration: 3 + Math.random() * 2,
+            duration: p.duration,
             repeat: Infinity,
-            delay: Math.random() * 2,
+            delay: p.delay,
             ease: "easeInOut",
           }}
         />
@@ -83,7 +96,7 @@ const HeroSection = () => {
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-24 pb-12">
       {/* Background effects */}
       <div className="absolute inset-0 bg-gradient-to-b from-[#0a0e1a] via-[#0f1419] to-[#050810]" />
-      
+
       {/* Radial gradient overlay */}
       <div className="absolute inset-0">
         <motion.div
@@ -269,7 +282,7 @@ const FeatureCard = ({ icon: Icon, title, description, tag }: FeatureCardProps) 
         <motion.div
           className="absolute inset-0 bg-gradient-to-br from-amber-500/10 via-transparent to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
         />
-        
+
         {/* Content */}
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-4">
@@ -282,7 +295,7 @@ const FeatureCard = ({ icon: Icon, title, description, tag }: FeatureCardProps) 
               </span>
             )}
           </div>
-          
+
           <h3 className="text-lg font-semibold text-slate-50 mb-2">{title}</h3>
           <p className="text-sm text-slate-400 leading-relaxed">{description}</p>
         </div>
@@ -363,7 +376,7 @@ const LandingPage = () => {
               <ShieldCheck className="w-4 h-4" />
               <span>For Chartered Accountants</span>
             </motion.div>
-            
+
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent">
                 Your Command Center
@@ -399,7 +412,7 @@ const LandingPage = () => {
               <Users className="w-4 h-4" />
               <span>For Everyone</span>
             </motion.div>
-            
+
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
                 Tax Made Simple
@@ -472,12 +485,12 @@ const LandingPage = () => {
                   <div className="absolute top-4 right-4 text-6xl font-bold text-amber-500/10 group-hover:text-amber-500/20 transition-colors">
                     {item.step}
                   </div>
-                  
+
                   <div className="relative z-10">
                     <div className="w-14 h-14 mb-6 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-xl flex items-center justify-center">
                       <item.icon className="w-7 h-7 text-amber-400" />
                     </div>
-                    
+
                     <h3 className="text-2xl font-semibold text-slate-50 mb-3">{item.title}</h3>
                     <p className="text-slate-400 leading-relaxed">{item.description}</p>
                   </div>
@@ -510,7 +523,7 @@ const LandingPage = () => {
               <Lock className="w-4 h-4" />
               <span>Enterprise-Grade Security</span>
             </motion.div>
-            
+
             <h2 className="text-4xl md:text-5xl font-bold mb-6">
               <span className="bg-gradient-to-r from-slate-50 to-slate-300 bg-clip-text text-transparent">
                 Built for Confidentiality
@@ -552,12 +565,12 @@ const LandingPage = () => {
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-br from-red-500/5 via-transparent to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"
                   />
-                  
+
                   <div className="relative z-10">
                     <div className="w-12 h-12 mb-4 bg-gradient-to-br from-red-500/20 to-pink-500/20 rounded-xl flex items-center justify-center">
                       <item.icon className="w-6 h-6 text-red-400" />
                     </div>
-                    
+
                     <h3 className="text-lg font-semibold text-slate-50 mb-2">{item.title}</h3>
                     <p className="text-sm text-slate-400 leading-relaxed">{item.description}</p>
                   </div>
@@ -581,7 +594,7 @@ const LandingPage = () => {
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-amber-500/10 to-transparent rounded-bl-full" />
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-yellow-500/10 to-transparent rounded-tr-full" />
-            
+
             <div className="relative z-10 text-center">
               <motion.div
                 className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-full flex items-center justify-center"
@@ -597,11 +610,11 @@ const LandingPage = () => {
               >
                 <Sparkles className="w-8 h-8 text-amber-400" />
               </motion.div>
-              
+
               <blockquote className="text-2xl md:text-3xl font-medium text-slate-200 mb-8 leading-relaxed">
                 "Arthasarthi transformed our practice. What used to take hours now takes minutes, and our clients love the transparency and speed."
               </blockquote>
-              
+
               <div className="flex items-center justify-center gap-4">
                 <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full" />
                 <div className="text-left">

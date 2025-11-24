@@ -22,13 +22,13 @@ export function generateCSRFToken(): string {
  */
 export function setCSRFToken(): string {
   const token = generateCSRFToken();
-  
+
   Cookies.set(CSRF_TOKEN_NAME, token, {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     path: '/',
   });
-  
+
   return token;
 }
 
@@ -44,14 +44,14 @@ export function getCSRFToken(): string | undefined {
  */
 export function addCSRFHeader(headers: HeadersInit = {}): HeadersInit {
   const token = getCSRFToken();
-  
+
   if (token) {
     return {
       ...headers,
       [CSRF_HEADER_NAME]: token,
     };
   }
-  
+
   return headers;
 }
 
@@ -60,11 +60,11 @@ export function addCSRFHeader(headers: HeadersInit = {}): HeadersInit {
  */
 export function verifyCSRFToken(token: string | null): boolean {
   if (!token) return false;
-  
+
   const storedToken = getCSRFToken();
   if (!storedToken) return false;
-  
+
   // Constant time comparison to prevent timing attacks
-  return token.length === storedToken.length && 
+  return token.length === storedToken.length &&
     token.split('').every((char, i) => char === storedToken[i]);
 } 

@@ -159,8 +159,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'AUTH_SUCCESS',
         payload: { user, tokens: storedTokens },
       });
-    } catch (error) {
-      console.error('Auth check failed:', error);
+    } catch (error: any) {
+      if (error?.status !== 401 && error?.response?.status !== 401) {
+        console.error('Auth check failed:', error);
+      }
       dispatch({ type: 'AUTH_LOGOUT' });
     }
   }, []);
@@ -200,8 +202,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         type: 'AUTH_SUCCESS',
         payload: { user, tokens: response.tokens },
       });
-
-      router.push('/chatbot');
     } catch (error) {
       const authError = error as ApiError;
       dispatch({
@@ -210,7 +210,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       });
       throw error;
     }
-  }, [router]);
+  }, []);
 
   const logout = useCallback(async () => {
     try {

@@ -54,34 +54,23 @@ const HEADER_THEME: HeaderThemeTokens = getHeaderTheme();
 /* ------------------------------------------------------------------ */
 
 export const ArthasarthiLogo: React.FC = () => {
-  const orbVariants = {
-    rest: {
-      backgroundColor: '#FFF7ED',
-      boxShadow: '0 0 8px rgba(248, 250, 252, 0.35)',
-    },
-    hover: {
-      backgroundColor: '#FED7AA',
-      boxShadow: '0 0 16px rgba(251, 146, 60, 0.7)',
-    },
-  } as const;
-
   return (
     <a href="/" className="relative group cursor-pointer" aria-label="Arthasarthi by arQai">
       <motion.div
-        className="relative rounded-3xl border border-white/20 px-5 py-3 shadow-2xl backdrop-blur-xl"
-        whileHover={{ scale: 1.03, y: -1 }}
-        whileTap={{ scale: 0.97 }}
+        className="relative rounded-2xl border border-white/10 px-5 py-2 shadow-2xl backdrop-blur-xl overflow-hidden"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
         style={{
           background:
-            'linear-gradient(135deg, rgba(248,250,252,0.14) 0%, rgba(15,23,42,0.9) 60%, rgba(15,23,42,0.98) 100%)',
+            'linear-gradient(135deg, rgba(15,23,42,0.8) 0%, rgba(15,23,42,0.95) 100%)',
         }}
       >
         {/* Animated border glow */}
         <motion.div
-          className="absolute inset-0 rounded-3xl pointer-events-none"
+          className="absolute inset-0 rounded-2xl pointer-events-none opacity-40"
           style={{
             background:
-              'linear-gradient(45deg, transparent, rgba(251,146,60,0.45), transparent, rgba(249,115,22,0.5), transparent)',
+              'linear-gradient(45deg, transparent, rgba(251,146,60,0.3), transparent, rgba(249,115,22,0.3), transparent)',
             backgroundSize: '300% 300%',
           }}
           animate={{
@@ -95,145 +84,55 @@ export const ArthasarthiLogo: React.FC = () => {
         />
 
         <div className="relative z-10 flex items-center gap-3">
-          {/* Left: Floating orb */}
-          <motion.div
-            className="h-2.5 w-2.5 rounded-full border-2 border-white/70 shadow-xl backdrop-blur-sm flex-shrink-0"
-            style={{
-              background:
-                'linear-gradient(135deg,#FFF7ED 0%,#FDBA74 40%,#FB923C 100%)',
-              filter: 'drop-shadow(0 0 8px rgba(255, 237, 213, 0.8))',
-            }}
-            animate={{
-              rotate: 360,
-              scale: [1, 1.15, 1],
-            }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-            variants={orbVariants}
-            initial="rest"
-            whileHover="hover"
-          />
+          {/* Left: Abstract Logo Mark */}
+          <div className="relative h-9 w-9 flex items-center justify-center">
+            <motion.div
+              className="absolute inset-0 rounded-full border border-orange-500/20"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="absolute inset-1 rounded-full border border-orange-400/30"
+              animate={{ rotate: -360 }}
+              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+            />
+            <motion.div
+              className="h-2.5 w-2.5 rounded-full bg-gradient-to-br from-orange-300 to-amber-500 shadow-[0_0_12px_rgba(249,115,22,0.6)]"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+            />
+          </div>
 
-          {/* Center: arQai wordmark */}
-          <span
-            className="text-2xl font-light tracking-tight inline-flex items-center flex-shrink-0"
-            style={{
-              backgroundImage:
-                'linear-gradient(135deg, #FFF7ED 0%, #FED7AA 40%, #FDBA74 70%, #FFFBEB 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 0 6px rgba(248, 250, 252, 0.3))',
-            }}
-          >
-            <motion.span className="font-normal">ar</motion.span>
-
+          <div className="flex flex-col justify-center -space-y-0.5">
+            {/* Main Highlight: Arthasarthi (Hindi) */}
             <motion.span
-              className="mx-0.5 origin-center font-medium relative"
+              className="text-2xl font-bold tracking-wide leading-tight"
               style={{
-                display: 'inline-block',
                 backgroundImage:
-                  'linear-gradient(135deg, #FDBA74 0%, #FB923C 40%, #EA580C 80%, #FFEDD5 100%)',
+                  'linear-gradient(135deg, #FFEDD5 0%, #FDBA74 50%, #FB923C 100%)',
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
-              }}
-              animate={{
-                rotateY: [0, 360],
-                scale: [1, 1.05, 1],
-              }}
-              transition={{
-                rotateY: { duration: 5, repeat: Infinity, ease: 'easeInOut' },
-                scale: { duration: 3, repeat: Infinity, ease: 'easeInOut' },
+                filter: 'drop-shadow(0 2px 8px rgba(249, 115, 22, 0.25))',
               }}
             >
-              Q
+              अर्थसारथी
             </motion.span>
 
-            <motion.span className="font-normal">a</motion.span>
-
-            <span className="font-normal relative">
-              <motion.span
-                style={{
-                  background:
-                    'linear-gradient(135deg, #FEF3C7 0%, #FDE68A 60%, #FEF9C3 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                ı
-              </motion.span>
-
-              {/* Dot + ring */}
-              <motion.div
-                className="absolute h-1.5 w-1.5 rounded-full bg-gradient-to-r from-orange-400 to-amber-300"
-                style={{
-                  top: '1px',
-                  left: '20%',
-                  transform: 'translateX(-50%)',
-                  filter: 'drop-shadow(0 0 4px rgba(249, 115, 22, 0.9))',
-                }}
-                animate={{
-                  scale: [1, 1.3, 1],
-                  opacity: [0.8, 1, 0.8],
-                }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              />
-              <motion.div
-                className="absolute h-3 w-3 rounded-full border border-orange-300/40"
-                style={{
-                  top: '-1px',
-                  left: '20%',
-                  transform: 'translateX(-50%)',
-                }}
-                animate={{
-                  scale: [0.5, 1.3, 0.5],
-                  opacity: [0.6, 0.1, 0.6],
-                }}
-                transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-              />
-            </span>
-          </span>
-
-          {/* Divider - vertical line */}
-          <motion.div
-            className="h-6 w-px bg-gradient-to-b from-transparent via-amber-500/50 to-transparent flex-shrink-0"
-            animate={{
-              opacity: [0.3, 0.7, 0.3],
-              scaleY: [0.8, 1, 0.8],
-            }}
-            transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-          />
-
-          {/* Right: Arthasarthi in Hindi */}
-          <motion.span
-            className="text-lg font-semibold tracking-tight flex-shrink-0"
-            style={{
-              backgroundImage:
-                'linear-gradient(135deg, #FCD34D 0%, #FBBF24 30%, #F59E0B 60%, #FDE047 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              filter: 'drop-shadow(0 0 8px rgba(251, 191, 36, 0.4))',
-            }}
-            animate={{
-              textShadow: [
-                '0 0 8px rgba(251, 191, 36, 0.3)',
-                '0 0 16px rgba(251, 191, 36, 0.6)',
-                '0 0 8px rgba(251, 191, 36, 0.3)',
-              ],
-            }}
-            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          >
-            अर्थसारथी
-          </motion.span>
+            {/* Subtle Highlight: arQai */}
+            <div className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity duration-300">
+              <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">
+                Powered by
+              </span>
+              <span className="text-xs font-semibold text-slate-300 tracking-wide">
+                arQai
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Ambient glow sweep */}
         <motion.div
-          className={`absolute -inset-3 rounded-3xl blur-xl bg-gradient-to-r ${HEADER_THEME.logoGlowGradient} opacity-0 group-hover:opacity-70 transition-opacity duration-700 pointer-events-none`}
-          animate={{
-            scale: [0.95, 1.05, 0.95],
-            rotate: [0, 180, 360],
-            opacity: [0.1, 0.3, 0.1],
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-10 group-hover:animate-shine"
         />
       </motion.div>
     </a>
@@ -310,11 +209,10 @@ const Header: React.FC = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
           ? `${HEADER_THEME.background} backdrop-blur-2xl border-b ${HEADER_THEME.border}`
           : 'bg-transparent'
-      }`}
+        }`}
       role="banner"
     >
       {/* Animated top border */}
@@ -357,14 +255,12 @@ const Header: React.FC = () => {
                       transition={{ duration: 0.18 }}
                     />
                     <Icon
-                      className={`h-4 w-4 ${
-                        isHot ? HEADER_THEME.navIconActive : HEADER_THEME.navIconDefault
-                      } transition-colors`}
+                      className={`h-4 w-4 ${isHot ? HEADER_THEME.navIconActive : HEADER_THEME.navIconDefault
+                        } transition-colors`}
                     />
                     <span
-                      className={`text-sm ${
-                        isHot ? HEADER_THEME.navTextActive : HEADER_THEME.navTextDefault
-                      } transition-colors`}
+                      className={`text-sm ${isHot ? HEADER_THEME.navTextActive : HEADER_THEME.navTextDefault
+                        } transition-colors`}
                     >
                       {label}
                     </span>
@@ -417,11 +313,10 @@ const Header: React.FC = () => {
                     <button
                       key={href}
                       onClick={() => navigate(href)}
-                      className={`flex items-center gap-3 px-4 py-3 text-sm rounded-xl transition-colors text-left w-full ${
-                        isCurrentPage
+                      className={`flex items-center gap-3 px-4 py-3 text-sm rounded-xl transition-colors text-left w-full ${isCurrentPage
                           ? 'text-orange-300 bg-slate-800/70 border border-orange-500/30'
                           : 'text-slate-300 hover:text-orange-300 hover:bg-slate-800/50'
-                      }`}
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span>{label}</span>

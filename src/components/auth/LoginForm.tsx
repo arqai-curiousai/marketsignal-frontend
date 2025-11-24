@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import type { FC, FormEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, AlertCircle, Scale, ArrowRight, User, Phone } from 'lucide-react';
+import { Mail, AlertCircle, ArrowRight, User, Phone, Briefcase, Users } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { z } from 'zod';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/Input';
 import { cn } from '@/lib/utils/cn';
 
 // ============================================================================
-// THEME TOKENS (Saffron / legalaid)
+// THEME TOKENS (Saffron / arthasarthi)
 // ============================================================================
 
 interface OtpFormThemeTokens {
@@ -103,6 +103,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
     lastName: '',
     phone: '',
   });
+  const [userType, setUserType] = useState<'citizen' | 'ca'>('citizen');
 
   const [showOptionalFields, setShowOptionalFields] = useState<boolean>(false);
   const [validationErrors, setValidationErrors] = useState<
@@ -164,7 +165,9 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
         phone: formData.phone || undefined,
       });
 
-      router.push(`/verify-otp?email=${encodeURIComponent(formData.email)}`);
+      router.push(
+        `/verify-otp?email=${encodeURIComponent(formData.email)}&userType=${userType}`,
+      );
       onSuccess?.();
     } catch (error) {
       // eslint-disable-next-line no-console
@@ -184,30 +187,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
       >
         {/* Header */}
         <div className="space-y-3 text-left">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 260, damping: 18 }}
-            className={cn(
-              'mb-2 inline-flex items-center gap-3 rounded-full border px-3 py-1',
-              OTP_THEME.badgeBorder,
-              OTP_THEME.badgeBg,
-            )}
-          >
-            <div
-              className={cn(
-                'flex h-7 w-7 items-center justify-center rounded-full',
-                OTP_THEME.badgeIconBg,
-              )}
-            >
-              <Scale
-                className={cn('h-4 w-4', OTP_THEME.badgeIconColor)}
-              />
-            </div>
-            <span className={cn('text-[11px] font-medium', OTP_THEME.badgeText)}>
-              legalaid · secure OTP login
-            </span>
-          </motion.div>
+
 
           <h1
             className={cn(
@@ -260,7 +240,50 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
         </AnimatePresence>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* User Type Selection */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setUserType('citizen')}
+              className={cn(
+                'relative flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all duration-200',
+                userType === 'citizen'
+                  ? 'border-orange-400/50 bg-orange-500/10 text-orange-100'
+                  : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:bg-slate-900',
+              )}
+            >
+              <Users className={cn("h-6 w-6", userType === 'citizen' ? "text-orange-400" : "text-slate-500")} />
+              <span className="text-sm font-medium">Citizen</span>
+              {userType === 'citizen' && (
+                <motion.div
+                  layoutId="activeType"
+                  className="absolute inset-0 rounded-xl border-2 border-orange-400/50"
+                  transition={{ type: 'spring', duration: 0.5 }}
+                />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setUserType('ca')}
+              className={cn(
+                'relative flex flex-col items-center justify-center gap-2 rounded-xl border p-4 transition-all duration-200',
+                userType === 'ca'
+                  ? 'border-orange-400/50 bg-orange-500/10 text-orange-100'
+                  : 'border-slate-800 bg-slate-950/50 text-slate-400 hover:border-slate-700 hover:bg-slate-900',
+              )}
+            >
+              <Briefcase className={cn("h-6 w-6", userType === 'ca' ? "text-orange-400" : "text-slate-500")} />
+              <span className="text-sm font-medium">Chartered Accountant</span>
+              {userType === 'ca' && (
+                <motion.div
+                  layoutId="activeType"
+                  className="absolute inset-0 rounded-xl border-2 border-orange-400/50"
+                  transition={{ type: 'spring', duration: 0.5 }}
+                />
+              )}
+            </button>
+          </div>
           {/* Email Field */}
           <div className="space-y-2">
             <label
@@ -292,7 +315,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
                   OTP_THEME.inputFocusBorder,
                   OTP_THEME.inputFocusRing,
                   validationErrors.email &&
-                    'border-red-500 focus:border-red-500 focus:ring-red-500/40',
+                  'border-red-500 focus:border-red-500 focus:ring-red-500/40',
                 )}
                 disabled={isSubmitting}
                 autoComplete="email"
@@ -475,7 +498,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
             )}
           >
             You&apos;ll receive a 6-digit verification code at your email. Using
-            legalaid implies you are authorised to access your organisation&apos;s
+            arthasarthi implies you are authorised to access your organisation&apos;s
             governed workspace.
           </p>
         </div>

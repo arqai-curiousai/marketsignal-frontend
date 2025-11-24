@@ -29,7 +29,7 @@ class TokenStorage {
     try {
       localStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.accessToken);
       localStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken);
-      
+
       const expiryTime = Date.now() + (tokens.expiresIn * 1000);
       localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiryTime.toString());
     } catch (error) {
@@ -68,7 +68,7 @@ class TokenStorage {
 
   static isTokenExpired(): boolean {
     if (typeof window === 'undefined') return true;
-    
+
     const expiryStr = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
     if (!expiryStr) return true;
 
@@ -153,12 +153,12 @@ export class AuthService {
       return resp;
     }).catch((error) => { throw this.handleAuthError(error); });
   }
-  
+
 
   async logout(): Promise<void> {
     try {
       const refreshToken = TokenStorage.getRefreshToken();
-      
+
       if (refreshToken) {
         await apiRequest({
           method: 'POST',
@@ -166,8 +166,10 @@ export class AuthService {
           data: { refresh_token: refreshToken },
         });
       }
-    } catch (error) {
-      console.error('Logout error:', error);
+    } catch (error: any) {
+      if (error?.status !== 401 && error?.response?.status !== 401) {
+        console.error('Logout error:', error);
+      }
     } finally {
       // Always clear local tokens
       TokenStorage.clearTokens();
