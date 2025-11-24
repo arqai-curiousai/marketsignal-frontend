@@ -8,7 +8,7 @@ const API_BASE = isDev
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify removed – Next.js 15 handles minification automatically
 
   // Proxy browser requests to your FastAPI backend
   // async rewrites() {
@@ -24,27 +24,27 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_URL}/:path*`, // forwards to backend
+        destination: `${process.env.NEXT_PUBLIC_API_URL || API_BASE}/api/v1/:path*`, // forwards to backend
       },
     ];
   },
 
   // next.config.ts (trimmed)
-async headers() {
-  return [
-    {
-      source: "/:path*",
-      headers: [
-        // REMOVE CSP, X-Frame-Options, HSTS from here
-        { key: "X-DNS-Prefetch-Control", value: "off" },
-      ],
-    },
-    {
-      source: "/api/:path*",
-      headers: [{ key: "Cache-Control", value: "no-store" }],
-    },
-  ];
-}
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          // REMOVE CSP, X-Frame-Options, HSTS from here
+          { key: "X-DNS-Prefetch-Control", value: "off" },
+        ],
+      },
+      {
+        source: "/api/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+    ];
+  }
 
 };
 
