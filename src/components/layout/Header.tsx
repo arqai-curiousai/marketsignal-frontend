@@ -132,7 +132,7 @@ export const ArthasarthiLogo: React.FC = () => {
 
         {/* Ambient glow sweep */}
         <motion.div
-          className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-10 group-hover:animate-shine"
+          className="absolute -inset-full top-0 block h-full w-1/2 -skew-x-12 bg-gradient-to-r from-transparent to-white opacity-10 group-hover:animate-shimmer"
         />
       </motion.div>
     </a>
