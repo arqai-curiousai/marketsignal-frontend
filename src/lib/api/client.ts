@@ -78,15 +78,27 @@ function applyCsrf(
 /* ------------------------------------------------------------------ */
 
 const createApiClient = (): AxiosInstance => {
+  // const client = axios.create({
+  //   // CRITICAL: hit Next.js /api so rewrites route to FastAPI
+  //   baseURL: "/api",
+  //   // If you still want to use API_CONFIG.timeout or headers, you can:
+  //   timeout: API_CONFIG.timeout,
+  //   headers: ensureAxiosHeaders(API_CONFIG.headers as any),
+  //   // Needed so cookies (access_token, refresh_token) are sent/received
+  //   withCredentials: true,
+  // });
+
   const client = axios.create({
-    // CRITICAL: hit Next.js /api so rewrites route to FastAPI
-    baseURL: "/api",
-    // If you still want to use API_CONFIG.timeout or headers, you can:
+   // Use the backend URL defined in .env (NEXT_PUBLIC_API_URL)
+    baseURL: API_CONFIG.baseURL,
     timeout: API_CONFIG.timeout,
     headers: ensureAxiosHeaders(API_CONFIG.headers as any),
-    // Needed so cookies (access_token, refresh_token) are sent/received
+    // Keep credentials if your backend uses HttpOnly cookies
     withCredentials: true,
   });
+
+  
+
 
   // Request interceptor: CSRF + normalization
   client.interceptors.request.use(
