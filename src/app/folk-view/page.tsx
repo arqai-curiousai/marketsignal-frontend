@@ -31,6 +31,8 @@ import {
   PiggyBank,
   MessageCircle,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserInitials, getUserDisplayName, formatUserEmail } from '@/lib/utils/user.utils';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -169,9 +171,14 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  user: {
+    displayName: string;
+    email: string;
+    initials: string;
+  } | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpen, onClose, user }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: Home },
     { id: 'documents', label: 'My Documents', icon: Folder, badge: 3 },
@@ -213,10 +220,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpe
             }}
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all
-              ${
-                activeSection === item.id
-                  ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
-                  : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-50'
+              ${activeSection === item.id
+                ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
+                : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-50'
               }
             `}
           >
@@ -235,11 +241,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpe
       <div className="p-4 border-t border-slate-700/50">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50">
           <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-slate-950 font-bold">
-            AS
+            {user?.initials || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-50 truncate">Amit Sharma</p>
-            <p className="text-xs text-slate-400 truncate">amit.sharma@email.com</p>
+            <p className="text-sm font-medium text-slate-50 truncate">{user?.displayName || 'User'}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.email || 'Not logged in'}</p>
           </div>
           <button className="p-2 text-slate-400 hover:text-red-400 transition-colors">
             <LogOut className="w-4 h-4" />
@@ -403,6 +409,14 @@ export default function CitizenDashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const { user: authUser } = useAuth();
+
+  // Compute user display properties
+  const user = authUser ? {
+    displayName: getUserDisplayName(authUser),
+    email: formatUserEmail(authUser.email),
+    initials: getUserInitials(getUserDisplayName(authUser)),
+  } : null;
 
   // Mock Data
   const stats: StatCard[] = [
@@ -491,6 +505,7 @@ export default function CitizenDashboardPage() {
         onSectionChange={setActiveSection}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        user={user}
       />
 
       {/* Main Content */}
@@ -506,8 +521,8 @@ export default function CitizenDashboardPage() {
                 <Menu className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-slate-50">My Tax Dashboard</h1>
-                <p className="text-sm text-slate-400">Track your tax filings and savings</p>
+                <h1 className="text-2xl font-bold text-slate-50">Financial Wellness Dashboard</h1>
+                <p className="text-sm text-slate-400">Your partner in smarter tax planning and financial compliance</p>
               </div>
             </div>
 
@@ -583,13 +598,12 @@ export default function CitizenDashboardPage() {
                     className="p-5 bg-gradient-to-r from-slate-800/40 to-slate-800/20 border border-slate-700/30 rounded-xl hover:border-amber-500/30 transition-all"
                   >
                     <div className="flex items-start gap-4">
-                      <div className={`flex-shrink-0 p-3 rounded-xl ${
-                        insight.type === 'opportunity' ? colors.emerald :
-                        insight.type === 'warning' ? colors.red : colors.amber
-                      }`}>
+                      <div className={`flex-shrink-0 p-3 rounded-xl ${insight.type === 'opportunity' ? colors.emerald :
+                          insight.type === 'warning' ? colors.red : colors.amber
+                        }`}>
                         {insight.type === 'opportunity' ? <TrendingUp className="w-5 h-5" /> :
-                         insight.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
-                         <CheckCircle2 className="w-5 h-5" />}
+                          insight.type === 'warning' ? <AlertTriangle className="w-5 h-5" /> :
+                            <CheckCircle2 className="w-5 h-5" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
@@ -683,11 +697,10 @@ export default function CitizenDashboardPage() {
                   {progressItems.map((item, index) => (
                     <div key={item.id} className="flex items-center gap-4">
                       <div className="flex-shrink-0">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${
-                          item.completed
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 ${item.completed
                             ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400'
                             : 'bg-slate-800/50 border-slate-700/50 text-slate-500'
-                        }`}>
+                          }`}>
                           {item.completed ? (
                             <CheckCircle2 className="w-5 h-5" />
                           ) : (
@@ -695,15 +708,13 @@ export default function CitizenDashboardPage() {
                           )}
                         </div>
                         {index < progressItems.length - 1 && (
-                          <div className={`w-0.5 h-8 ml-5 ${
-                            item.completed ? 'bg-emerald-500/30' : 'bg-slate-700/30'
-                          }`} />
+                          <div className={`w-0.5 h-8 ml-5 ${item.completed ? 'bg-emerald-500/30' : 'bg-slate-700/30'
+                            }`} />
                         )}
                       </div>
                       <div className="flex-1">
-                        <p className={`text-sm font-medium ${
-                          item.completed ? 'text-slate-200' : 'text-slate-400'
-                        }`}>
+                        <p className={`text-sm font-medium ${item.completed ? 'text-slate-200' : 'text-slate-400'
+                          }`}>
                           {item.label}
                         </p>
                         {item.completed && (

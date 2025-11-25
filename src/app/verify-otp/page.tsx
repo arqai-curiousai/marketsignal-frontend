@@ -230,18 +230,21 @@ const VerifyOTPClient: FC = () => {
         otpCode: code,
       });
 
+      // Verification successful - redirect based on user type
+      // We explicitly return here to avoid any race conditions with finally block
       if (userType === 'ca') {
         router.replace('/ca-view');
       } else {
         router.replace('/folk-view');
       }
     } catch (err: unknown) {
+      // Only set error if we are NOT redirecting (i.e. verification failed)
       const message =
         err instanceof Error ? err.message : 'Verification failed';
       setError(message);
-    } finally {
-      setSubmitting(false);
+      setSubmitting(false); // Re-enable button only on error
     }
+    // Note: We removed the finally block to prevent state updates after redirect
   };
 
   const onResend = async (): Promise<void> => {
@@ -280,7 +283,7 @@ const VerifyOTPClient: FC = () => {
     >
       <Header />
 
-      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-10 pt-24 md:px-6 md:pt-24">
+      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-8 md:px-6 md:py-12">
         {/* Background glows */}
         <div className="pointer-events-none absolute inset-0">
           <motion.div
@@ -330,7 +333,7 @@ const VerifyOTPClient: FC = () => {
         >
           <motion.div
             className={cn(
-              'rounded-2xl border p-6 md:p-7 backdrop-blur-xl',
+              'rounded-2xl border p-5 md:p-6 backdrop-blur-xl',
               VERIFY_OTP_THEME.cardBorder,
               VERIFY_OTP_THEME.cardBackground,
               VERIFY_OTP_THEME.cardShadow,

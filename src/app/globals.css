@@ -1,3 +1,5 @@
+@import './fonts.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,17 +55,38 @@
   * {
     border-color: hsl(var(--border));
   }
-  
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-family: var(--font-inter);
     font-feature-settings: "rlig" 1, "calt" 1;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Professional heading styles */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-inter);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-tight);
+  }
+
+  /* Improved focus states for accessibility */
+  *:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
   }
 }
 
 @layer utilities {
+
   /* Premium scrollbar styling */
   ::-webkit-scrollbar {
     width: 10px;
@@ -101,6 +124,7 @@
 }
 
 @layer components {
+
   /* Enhanced glass morphism with multiple variants */
   .glass-morphism {
     backdrop-filter: blur(20px) saturate(180%);
@@ -152,22 +176,30 @@
   }
 
   @keyframes gradient {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+    0% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
+
+    100% {
+      background-position: 0% 50%;
+    }
   }
 
   /* Glow effects */
   .glow-amber {
     box-shadow: 0 0 20px rgba(251, 191, 36, 0.5),
-                0 0 40px rgba(251, 191, 36, 0.3),
-                0 0 60px rgba(251, 191, 36, 0.1);
+      0 0 40px rgba(251, 191, 36, 0.3),
+      0 0 60px rgba(251, 191, 36, 0.1);
   }
 
   .glow-red {
     box-shadow: 0 0 20px rgba(220, 38, 38, 0.5),
-                0 0 40px rgba(220, 38, 38, 0.3),
-                0 0 60px rgba(220, 38, 38, 0.1);
+      0 0 40px rgba(220, 38, 38, 0.3),
+      0 0 60px rgba(220, 38, 38, 0.1);
   }
 
   /* Premium hover effects */
@@ -193,14 +225,12 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(
-      90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.2) 20%,
-      rgba(255, 255, 255, 0.5) 50%,
-      rgba(255, 255, 255, 0.2) 80%,
-      transparent 100%
-    );
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.2) 20%,
+        rgba(255, 255, 255, 0.5) 50%,
+        rgba(255, 255, 255, 0.2) 80%,
+        transparent 100%);
     transform: translateX(-100%);
     animation: shimmer 2s infinite;
   }
@@ -209,6 +239,7 @@
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }

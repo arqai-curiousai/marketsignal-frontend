@@ -26,15 +26,16 @@ function buildCSP(): string {
   // Keep CSP permissive enough for Next.js dev; tighten in prod.
   const connectSrc = ["'self'", API_ORIGIN, 'https:', 'wss:', WS_ORIGIN, ...EXTRA_CONNECT];
 
+  // Debugging CSP
+  console.log('Middleware: Generating CSP headers');
+
   const base: string[] = [
     "default-src 'self'",
-    // Next.js + (optionally) analytics/sentry often need 'unsafe-inline' in real-world apps.
-    // If you fully nonce your scripts, remove 'unsafe-inline' and 'unsafe-eval'.
     "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
-    "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https:",
-    "font-src 'self' data:",
-    `connect-src ${connectSrc.join(' ')}`,
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "img-src 'self' data: blob: https:",
+    "font-src 'self' data: https://fonts.gstatic.com https:",
+    `connect-src 'self' ${connectSrc.join(' ')} https://fonts.googleapis.com https://fonts.gstatic.com https:`,
     "frame-ancestors 'none'",
     "base-uri 'none'",
     "form-action 'self'",

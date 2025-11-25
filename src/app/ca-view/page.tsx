@@ -29,6 +29,8 @@ import {
   BookOpen,
   ArrowUpRight,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserInitials, getUserDisplayName, formatUserEmail } from '@/lib/utils/user.utils';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -163,9 +165,14 @@ interface SidebarProps {
   onSectionChange: (section: string) => void;
   isOpen: boolean;
   onClose: () => void;
+  user: {
+    displayName: string;
+    email: string;
+    initials: string;
+  } | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpen, onClose, user }) => {
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
     { id: 'clients', label: 'Clients', icon: Users, badge: 5 },
@@ -207,10 +214,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpe
             }}
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all
-              ${
-                activeSection === item.id
-                  ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
-                  : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-50'
+              ${activeSection === item.id
+                ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
+                : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-50'
               }
             `}
           >
@@ -229,11 +235,13 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpe
       <div className="p-4 border-t border-slate-700/50">
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50">
           <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-slate-950 font-bold">
-            RK
+            {user?.initials || 'U'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-50 truncate">CA Rajesh Kumar</p>
-            <p className="text-xs text-slate-400 truncate">rajesh@kumar.com</p>
+            <p className="text-sm font-medium text-slate-50 truncate">
+              {user?.displayName || 'CA User'}
+            </p>
+            <p className="text-xs text-slate-400 truncate">{user?.email || 'Not logged in'}</p>
           </div>
           <button className="p-2 text-slate-400 hover:text-red-400 transition-colors">
             <LogOut className="w-4 h-4" />
@@ -403,6 +411,14 @@ export default function CADashboardPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('dashboard');
+  const { user: authUser } = useAuth();
+
+  // Compute user display properties
+  const user = authUser ? {
+    displayName: getUserDisplayName(authUser),
+    email: formatUserEmail(authUser.email),
+    initials: getUserInitials(getUserDisplayName(authUser)),
+  } : null;
 
   // Mock Data
   const stats: StatCard[] = [
@@ -461,6 +477,7 @@ export default function CADashboardPage() {
         onSectionChange={setActiveSection}
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
+        user={user}
       />
 
       {/* Main Content */}
@@ -476,8 +493,8 @@ export default function CADashboardPage() {
                 <Menu className="w-5 h-5" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-slate-50">Practice Dashboard</h1>
-                <p className="text-sm text-slate-400">Manage your clients and compliance workflows</p>
+                <h1 className="text-2xl font-bold text-slate-50">Professional Dashboard</h1>
+                <p className="text-sm text-slate-400">Manage your practice and client compliance workflows</p>
               </div>
             </div>
 

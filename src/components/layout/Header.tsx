@@ -11,7 +11,10 @@ import {
   Menu,
   X,
   Bot,
+  ArrowRight,
 } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { checkAuthAndNavigate } from '@/services/navigation.service';
 
 /* ------------------------------------------------------------------ */
 /* Theme tokens                                                        */
@@ -103,7 +106,7 @@ export const ArthasarthiLogo: React.FC = () => {
             />
           </div>
 
-          <div className="flex flex-col justify-center -space-y-0.5">
+          <div className="flex items-center gap-3">
             {/* Main Highlight: Arthasarthi (Hindi) */}
             <motion.span
               className="text-2xl font-bold tracking-wide leading-tight"
@@ -114,19 +117,266 @@ export const ArthasarthiLogo: React.FC = () => {
                 WebkitTextFillColor: 'transparent',
                 filter: 'drop-shadow(0 2px 8px rgba(249, 115, 22, 0.25))',
               }}
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
             >
               अर्थसारथी
             </motion.span>
 
-            {/* Subtle Highlight: arQai */}
-            <div className="flex items-center gap-1.5 opacity-70 group-hover:opacity-100 transition-opacity duration-300">
-              <span className="text-[10px] text-slate-400 font-medium tracking-wider uppercase">
-                Powered by
-              </span>
-              <span className="text-xs font-semibold text-slate-300 tracking-wide">
-                arQai
-              </span>
-            </div>
+            {/* Premium Separator with gradient */}
+            <motion.div
+              className="relative h-6 w-px"
+              initial={{ scaleY: 0, opacity: 0 }}
+              animate={{ scaleY: 1, opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.3, ease: "easeOut" }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-b from-orange-400/60 via-amber-300/80 to-orange-400/60" />
+              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/30 to-transparent blur-[1px]" />
+            </motion.div>
+
+            {/* arQai with EPIC light-travel animation */}
+            <motion.div
+              className="relative group/arqai"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.3, delay: 0.5 }}
+            >
+              {/* Light traveling beam effect */}
+              <motion.div
+                className="absolute -inset-2 bg-gradient-to-r from-transparent via-orange-400/40 to-transparent blur-md pointer-events-none"
+                initial={{ x: '-200%', opacity: 0 }}
+                animate={{
+                  x: ['200%', '200%'],
+                  opacity: [0, 1, 1, 0]
+                }}
+                transition={{
+                  duration: 2,
+                  delay: 0.8,
+                  times: [0, 0.1, 0.9, 1],
+                  ease: "easeInOut"
+                }}
+              />
+
+              {/* Particle trail effect */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 1, 0] }}
+                transition={{ duration: 1.5, delay: 1.2 }}
+              >
+                {[...Array(6)].map((_, i) => (
+                  <motion.div
+                    key={i}
+                    className="absolute w-1 h-1 rounded-full bg-orange-400/60"
+                    style={{
+                      left: `${i * 20}%`,
+                      top: '50%',
+                    }}
+                    initial={{ opacity: 0, scale: 0, y: 0 }}
+                    animate={{
+                      opacity: [0, 1, 0],
+                      scale: [0, 1.5, 0],
+                      y: [0, -10, -20]
+                    }}
+                    transition={{
+                      duration: 0.8,
+                      delay: 0.9 + (i * 0.1),
+                      ease: "easeOut"
+                    }}
+                  />
+                ))}
+              </motion.div>
+
+              <div className="relative flex items-center text-base font-semibold tracking-wide">
+                {/* Letter: a */}
+                <motion.span
+                  className="relative inline-block"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    filter: [
+                      'brightness(1) drop-shadow(0 0 0px rgba(251,146,60,0))',
+                      'brightness(2) drop-shadow(0 0 8px rgba(251,146,60,0.8))',
+                      'brightness(1) drop-shadow(0 0 2px rgba(251,146,60,0.3))',
+                    ]
+                  }}
+                  transition={{
+                    opacity: { duration: 0.3, delay: 0.9 },
+                    y: { duration: 0.3, delay: 0.9 },
+                    filter: { duration: 0.6, delay: 0.9, times: [0, 0.5, 1] }
+                  }}
+                  whileHover={{ scale: 1.1 }}
+                >
+                  a
+                </motion.span>
+
+                {/* Letter: r */}
+                <motion.span
+                  className="relative inline-block"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    filter: [
+                      'brightness(1) drop-shadow(0 0 0px rgba(251,146,60,0))',
+                      'brightness(2) drop-shadow(0 0 8px rgba(251,146,60,0.8))',
+                      'brightness(1) drop-shadow(0 0 2px rgba(251,146,60,0.3))',
+                    ]
+                  }}
+                  transition={{
+                    opacity: { duration: 0.3, delay: 1.0 },
+                    y: { duration: 0.3, delay: 1.0 },
+                    filter: { duration: 0.6, delay: 1.0, times: [0, 0.5, 1] }
+                  }}
+                  whileHover={{ scale: 1.1 }}
+                >
+                  r
+                </motion.span>
+
+                {/* Letter: Q - HERO LETTER with special effects */}
+                <motion.span
+                  className="relative inline-block mx-0.5"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #FB923C 0%, #F97316 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                  initial={{ opacity: 0, y: 10, rotateY: 0 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    rotateY: [0, 0, 360],
+                    filter: [
+                      'brightness(1) drop-shadow(0 0 0px rgba(251,146,60,0))',
+                      'brightness(3) drop-shadow(0 0 12px rgba(251,146,60,1))',
+                      'brightness(1.5) drop-shadow(0 0 4px rgba(251,146,60,0.5))',
+                    ]
+                  }}
+                  transition={{
+                    opacity: { duration: 0.3, delay: 1.1 },
+                    y: { duration: 0.3, delay: 1.1 },
+                    rotateY: { duration: 1, delay: 1.1, ease: "easeInOut" },
+                    filter: { duration: 1, delay: 1.1, times: [0, 0.4, 1] }
+                  }}
+                  whileHover={{
+                    scale: 1.2,
+                    rotateY: 180,
+                    transition: { duration: 0.5 }
+                  }}
+                >
+                  Q
+                  {/* Ring pulse around Q */}
+                  <motion.div
+                    className="absolute inset-0 rounded-full border-2 border-orange-400/40"
+                    initial={{ scale: 1, opacity: 0 }}
+                    animate={{
+                      scale: [1, 2, 2.5],
+                      opacity: [0, 0.6, 0]
+                    }}
+                    transition={{ duration: 1, delay: 1.3 }}
+                  />
+                </motion.span>
+
+                {/* Letter: a */}
+                <motion.span
+                  className="relative inline-block"
+                  style={{
+                    backgroundImage: 'linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{
+                    opacity: 1,
+                    y: 0,
+                    filter: [
+                      'brightness(1) drop-shadow(0 0 0px rgba(251,146,60,0))',
+                      'brightness(2) drop-shadow(0 0 8px rgba(251,146,60,0.8))',
+                      'brightness(1) drop-shadow(0 0 2px rgba(251,146,60,0.3))',
+                    ]
+                  }}
+                  transition={{
+                    opacity: { duration: 0.3, delay: 1.2 },
+                    y: { duration: 0.3, delay: 1.2 },
+                    filter: { duration: 0.6, delay: 1.2, times: [0, 0.5, 1] }
+                  }}
+                  whileHover={{ scale: 1.1 }}
+                >
+                  a
+                </motion.span>
+
+                {/* Letter: i with special dot */}
+                <motion.span
+                  className="relative inline-block ml-0.5"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 1.3 }}
+                >
+                  <span
+                    className="relative inline-block"
+                    style={{
+                      backgroundImage: 'linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)',
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                    }}
+                  >
+                    ı
+                  </span>
+                  {/* Animated dot with projectile motion */}
+                  <motion.div
+                    className="absolute top-[2px] left-[45%] -translate-x-1/2 w-[3px] h-[3px] rounded-full bg-orange-400"
+                    initial={{ opacity: 0, x: -60, y: 4, scale: 0 }}
+                    animate={{
+                      opacity: 1,
+                      x: 0,
+                      y: [4, -10, 0],
+                      scale: [0, 1.2, 1],
+                      boxShadow: [
+                        '0 0 0px rgba(251,146,60,0)',
+                        '0 0 12px rgba(251,146,60,1)',
+                        '0 0 4px rgba(251,146,60,0.6)',
+                      ]
+                    }}
+                    transition={{
+                      duration: 0.6,
+                      delay: 1.35,
+                      times: [0, 0.4, 1],
+                      ease: "easeOut"
+                    }}
+                  />
+                  {/* Energy ring around dot */}
+                  <motion.div
+                    className="absolute -top-[2px] left-[45%] -translate-x-1/2 w-[8px] h-[8px] rounded-full border border-orange-400/40"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{
+                      scale: [0, 2, 0],
+                      opacity: [0, 0.8, 0]
+                    }}
+                    transition={{ duration: 0.8, delay: 1.4 }}
+                  />
+                </motion.span>
+              </div>
+
+              {/* Holographic shine sweep on hover */}
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover/arqai:opacity-100 blur-sm pointer-events-none -skew-x-12"
+                initial={{ x: '-100%' }}
+                whileHover={{ x: '200%' }}
+                transition={{ duration: 0.6, ease: "easeInOut" }}
+              />
+            </motion.div>
           </div>
         </div>
 
@@ -163,6 +413,7 @@ const NAV_LINKS: readonly NavigationLink[] = [
 const Header: React.FC = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { isAuthenticated, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [hovered, setHovered] = useState<string | null>(null);
@@ -175,13 +426,23 @@ const Header: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  /**
+   * Determines if a navigation link requires authentication
+   */
+  const isProtectedRoute = (href: string): boolean => {
+    return href === '/ca-view' || href === '/folk-view';
+  };
+
+  /**
+   * Handles navigation with authentication checks for protected routes
+   */
   const navigate = (href: string): void => {
     setActive(href);
     setIsNavigating(true);
     setMobileOpen(false);
 
+    // Handle hash links (scroll to section on same page)
     if (href.startsWith('#')) {
-      // Handle hash links (scroll to section on same page)
       const el = document.querySelector(href);
       if (el instanceof HTMLElement) {
         el.scrollIntoView({ behavior: 'smooth' });
@@ -193,7 +454,29 @@ const Header: React.FC = () => {
       return;
     }
 
-    // Handle page navigation using Next.js router
+    // Check if route requires authentication
+    if (isProtectedRoute(href)) {
+      checkAuthAndNavigate({
+        isAuthenticated,
+        targetPath: href,
+        router,
+        onSuccess: () => {
+          setTimeout(() => {
+            setIsNavigating(false);
+            setActive(null);
+          }, 500);
+        },
+        onRedirect: () => {
+          setTimeout(() => {
+            setIsNavigating(false);
+            setActive(null);
+          }, 500);
+        },
+      });
+      return;
+    }
+
+    // Handle regular page navigation
     router.push(href);
     setTimeout(() => {
       setIsNavigating(false);
@@ -210,8 +493,8 @@ const Header: React.FC = () => {
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${scrolled
-          ? `${HEADER_THEME.background} backdrop-blur-2xl border-b ${HEADER_THEME.border}`
-          : 'bg-transparent'
+        ? `${HEADER_THEME.background} backdrop-blur-2xl border-b ${HEADER_THEME.border}`
+        : 'bg-transparent'
         }`}
       role="banner"
     >
@@ -272,17 +555,34 @@ const Header: React.FC = () => {
 
           {/* Desktop CTAs */}
           <div className="hidden lg:flex items-center gap-3">
-            <motion.button
-              type="button"
-              onClick={() => onCta('/login')}
-              className={`relative inline-flex items-center gap-2 overflow-hidden rounded-xl px-6 py-2.5 text-sm font-semibold text-slate-950 ${HEADER_THEME.loginGradient} ${HEADER_THEME.loginShadow} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 focus-visible:ring-orange-400`}
-              whileHover={{ y: -1, scale: 1.03 }}
-              whileTap={{ scale: 0.98 }}
-            >
-              <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/25 via-transparent to-white/25 opacity-0 transition-opacity duration-200 hover:opacity-100" />
-              <span className="relative z-10">Login</span>
-              <Bot className="h-4 w-4 relative z-10" />
-            </motion.button>
+            {isAuthenticated ? (
+              <motion.button
+                type="button"
+                onClick={() => {
+                  const dashboardLink = user?.role === 'lawyer' ? '/ca-view' : '/folk-view';
+                  navigate(dashboardLink);
+                }}
+                className={`relative inline-flex items-center gap-2 overflow-hidden rounded-xl px-6 py-2.5 text-sm font-semibold text-slate-950 ${HEADER_THEME.loginGradient} ${HEADER_THEME.loginShadow} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 focus-visible:ring-orange-400`}
+                whileHover={{ y: -1, scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/25 via-transparent to-white/25 opacity-0 transition-opacity duration-200 hover:opacity-100" />
+                <span className="relative z-10">Dashboard</span>
+                <ArrowRight className="h-4 w-4 relative z-10" />
+              </motion.button>
+            ) : (
+              <motion.button
+                type="button"
+                onClick={() => onCta('/login')}
+                className={`relative inline-flex items-center gap-2 overflow-hidden rounded-xl px-6 py-2.5 text-sm font-semibold text-slate-950 ${HEADER_THEME.loginGradient} ${HEADER_THEME.loginShadow} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 focus-visible:ring-orange-400`}
+                whileHover={{ y: -1, scale: 1.03 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-white/25 via-transparent to-white/25 opacity-0 transition-opacity duration-200 hover:opacity-100" />
+                <span className="relative z-10">Login</span>
+                <Bot className="h-4 w-4 relative z-10" />
+              </motion.button>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -314,8 +614,8 @@ const Header: React.FC = () => {
                       key={href}
                       onClick={() => navigate(href)}
                       className={`flex items-center gap-3 px-4 py-3 text-sm rounded-xl transition-colors text-left w-full ${isCurrentPage
-                          ? 'text-orange-300 bg-slate-800/70 border border-orange-500/30'
-                          : 'text-slate-300 hover:text-orange-300 hover:bg-slate-800/50'
+                        ? 'text-orange-300 bg-slate-800/70 border border-orange-500/30'
+                        : 'text-slate-300 hover:text-orange-300 hover:bg-slate-800/50'
                         }`}
                     >
                       <Icon className="h-4 w-4" />

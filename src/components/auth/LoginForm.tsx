@@ -195,7 +195,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
               OTP_THEME.headingText,
             )}
           >
-            Login with your work email
+            {/* Login with your email */}
           </h1>
           <p
             className={cn(
@@ -203,8 +203,8 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
               OTP_THEME.bodyText,
             )}
           >
-            We&apos;ll send a one-time verification code to confirm your identity
-            and device. No passwords to remember, no reset links.
+            {/* We&apos;ll send a one-time verification code to confirm your identity
+            and device. No passwords to remember, no reset links. */}
           </p>
         </div>
 

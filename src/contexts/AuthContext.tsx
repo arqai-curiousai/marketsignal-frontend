@@ -42,9 +42,21 @@ function extractAvatar(avatar: unknown): string {
 }
 
 function normalizeUser(u: BackendUser): User {
-  const { avatar: rawAvatar, ...rest } = u;
+  // Handle potential nested response structure (e.g. { data: User } or { user: User })
+  const userData = (u as any).data || (u as any).user || u;
+
+  const { avatar: rawAvatar, ...rest } = userData;
   const avatar = extractAvatar(rawAvatar);
-  return { ...(rest as Omit<User, 'avatar'>), avatar };
+
+  // Ensure email is present, fallback to username or empty string if missing
+  // This addresses the issue where email might be missing in the dashboard
+  const email = userData.email || userData.username || '';
+
+  return {
+    ...(rest as Omit<User, 'avatar'>),
+    avatar,
+    email
+  };
 }
 
 // ----------------- Auth Actions -----------------

@@ -54,14 +54,9 @@ const loginHighlights: LoginHighlightProps[] = [
       'Sign in with a verified email used by your firm or organisation. No passwords to manage or reset.',
   },
   {
-    title: 'Governed workspace',
+    title: 'Governed workspace with citations',
     description:
-      'Your matters, notes, and queries are scoped to controlled workspaces and firm policies.',
-  },
-  {
-    title: 'Citations by default',
-    description:
-      'Every answer can be traced back to judgments, statutes, or your internal documents.',
+      'Your matters, notes, and queries are secured within controlled workspaces. Every answer traces back to judgments or statutes.',
   },
 ];
 
@@ -86,7 +81,7 @@ const LoginPage: React.FC = () => {
     >
       <Header />
 
-      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 pb-10 pt-24 md:px-6 md:pt-24">
+      <main className="relative flex flex-1 items-center justify-center overflow-hidden px-4 py-8 md:px-6 md:py-12">
         {/* Background glows */}
         <div className="pointer-events-none absolute inset-0">
           <motion.div
@@ -108,10 +103,10 @@ const LoginPage: React.FC = () => {
         </div>
 
         {/* Content layout */}
-        <div className="relative z-10 mx-auto flex w-full max-w-5xl flex-col gap-10 md:flex-row md:items-center md:gap-12">
+        <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col gap-6 md:flex-row md:items-center md:gap-8">
           {/* Left column: copy */}
           <motion.section
-            className="space-y-6 md:flex-1"
+            className="space-y-4 md:flex-1"
             initial={{ opacity: 0, x: -24 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.5 }}
@@ -126,19 +121,18 @@ const LoginPage: React.FC = () => {
               <span className="h-1 w-1 rounded-full bg-orange-300" />
               OTP login for legal teams
             </motion.span>
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <h1 className="text-balance text-2xl font-semibold text-slate-50 md:text-3xl">
                 Sign in to your{' '}
                 <span className={LOGIN_THEME.headingAccent}>arthasarthi</span>{' '}
                 workspace
               </h1>
-              <p className="max-w-md text-sm leading-relaxed text-slate-300 md:text-base">
+              <p className="max-w-md text-sm leading-relaxed text-slate-300">
                 Continue research notes, matters, and drafts exactly where you
-                left off. Your work is encrypted in transit and at rest, and
-                stays within your governed workspace.
+                left off. Your work is encrypted and secure.
               </p>
             </div>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid gap-3 sm:grid-cols-1">
               {loginHighlights.map((item) => (
                 <LoginHighlight
                   key={item.title}
@@ -157,22 +151,22 @@ const LoginPage: React.FC = () => {
             transition={{ duration: 0.5, delay: 0.05 }}
           >
             <motion.div
-              className={`mx-auto w-full max-w-md rounded-2xl border p-6 shadow-[0_24px_60px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-7 ${LOGIN_THEME.cardBorder} ${LOGIN_THEME.cardBackground}`}
+              className={`mx-auto w-full max-w-md rounded-2xl border p-5 shadow-[0_24px_60px_rgba(0,0,0,0.8)] backdrop-blur-xl md:p-6 ${LOGIN_THEME.cardBorder} ${LOGIN_THEME.cardBackground}`}
               whileHover={{ y: -4, rotateX: 1.2, rotateY: -1.2 }}
               transition={{ type: 'spring', stiffness: 260, damping: 22 }}
             >
-              <div className="mb-4 space-y-1">
+              <div className="mb-3.5 space-y-1">
                 <h2 className="text-lg font-semibold text-slate-50">
                   Login with your email
                 </h2>
                 <p className="text-[11px] leading-relaxed text-slate-400">
                   We&apos;ll send a one-time passcode (OTP) to verify your
-                  identity and device. No passwords, no recovery questions.
+                  identity and device.
                 </p>
               </div>
-              <div className={`mb-4 h-px w-full ${LOGIN_THEME.dividerGradient}`} />
+              <div className={`mb-3.5 h-px w-full ${LOGIN_THEME.dividerGradient}`} />
               <OTPRequestForm />
-              <p className="mt-4 text-[11px] leading-relaxed text-slate-500">
+              <p className="mt-3.5 text-[11px] leading-relaxed text-slate-500">
                 By continuing, you confirm that you&apos;re authorised to access
                 your organisation&apos;s legal workspace and agree to the
                 applicable terms and privacy policy.
