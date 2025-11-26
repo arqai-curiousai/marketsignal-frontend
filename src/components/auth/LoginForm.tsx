@@ -184,7 +184,17 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
         setErrorMessage('');
 
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check-email`, {
+            // Robust URL construction with proper fallback
+            let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+            if (!baseUrl) {
+                // If NEXT_PUBLIC_API_URL is not set, use the Next.js proxy
+                baseUrl = '';
+            }
+            baseUrl = baseUrl.replace(/\/$/, '');
+            baseUrl = baseUrl.replace(/\/api\/v1$/, '');
+            baseUrl = baseUrl.replace(/\/api$/, '');
+            
+            const response = await fetch(`${baseUrl}/api/v1/auth/check-email`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
