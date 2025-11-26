@@ -184,9 +184,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
         setErrorMessage('');
 
         try {
-            // Use Next.js proxy to avoid CORS issues
-            // The /api route is rewritten to backend URL in next.config.ts
-            const response = await fetch('/api/auth/check-email', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/check-email`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -268,8 +266,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
                 }
             }
 
-            // Use Next.js proxy to avoid CORS issues
-            const response = await fetch('/api/auth/request-otp', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/request-otp`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
