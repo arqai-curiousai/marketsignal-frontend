@@ -184,7 +184,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
         setErrorMessage('');
 
         try {
-            const response = await fetch('/api/v1/auth/check-email', {
+            const response = await fetch('/api/auth/check-email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -266,7 +266,7 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
                 }
             }
 
-            const response = await fetch('/api/v1/auth/request-otp', {
+            const response = await fetch('/api/auth/request-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
