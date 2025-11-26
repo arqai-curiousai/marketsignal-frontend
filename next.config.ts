@@ -20,14 +20,17 @@ const nextConfig: NextConfig = {
   //   ];
   // },
 
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_ORIGIN || API_BASE}/api/v1/:path*`,
-      },
-    ];
-  },
+  // Rewrites disabled - using Next.js API routes for backend proxy instead
+  // This provides better error handling, logging, and security
+  // See: src/app/api/auth/[...path]/route.ts
+  // async rewrites() {
+  //   return [
+  //     {
+  //       source: '/api/:path*',
+  //       destination: `${process.env.NEXT_PUBLIC_API_ORIGIN || API_BASE}/api/v1/:path*`,
+  //     },
+  //   ];
+  // },
 
   // next.config.ts (trimmed)
   async headers() {
