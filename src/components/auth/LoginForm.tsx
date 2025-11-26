@@ -184,17 +184,9 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
         setErrorMessage('');
 
         try {
-            // Robust URL construction with proper fallback
-            let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            if (!baseUrl) {
-                // If NEXT_PUBLIC_API_URL is not set, use the Next.js proxy
-                baseUrl = '';
-            }
-            baseUrl = baseUrl.replace(/\/$/, '');
-            baseUrl = baseUrl.replace(/\/api\/v1$/, '');
-            baseUrl = baseUrl.replace(/\/api$/, '');
-            
-            const response = await fetch(`${baseUrl}/api/v1/auth/check-email`, {
+            // Use Next.js proxy to avoid CORS issues
+            // The /api route is rewritten to backend URL in next.config.ts
+            const response = await fetch('/api/auth/check-email', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -276,14 +268,8 @@ export const OTPRequestForm: FC<OTPRequestFormProps> = ({
                 }
             }
 
-            // Direct API call to bypass potential relative path issues in AuthContext
-            // Robust URL construction
-            let baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-            baseUrl = baseUrl.replace(/\/$/, '');
-            baseUrl = baseUrl.replace(/\/api\/v1$/, '');
-            baseUrl = baseUrl.replace(/\/api$/, '');
-
-            const response = await fetch(`${baseUrl}/api/v1/auth/request-otp`, {
+            // Use Next.js proxy to avoid CORS issues
+            const response = await fetch('/api/auth/request-otp', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
