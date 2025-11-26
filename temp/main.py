@@ -45,19 +45,18 @@ limiter = Limiter(key_func=get_remote_address)
 
 async def periodic_cleanup():
     """
-    Periodic cleanup of expired tokens and sessions.
+    Periodic cleanup of expired OTPs and sessions.
     Runs every hour.
     """
-    from app.models.email_verification import EmailVerificationToken
-    from app.models.password_reset import PasswordResetToken
+    from app.models.otp import OTP
     from app.models.session import Session
 
     while True:
         try:
             await asyncio.sleep(3600)
 
-            await EmailVerificationToken.cleanup_expired_tokens()
-            await PasswordResetToken.cleanup_expired_tokens()
+            # Cleanup expired OTPs
+            await OTP.cleanup_expired()
 
             now = datetime.utcnow()
             # Mark expired sessions as inactive
@@ -140,13 +139,27 @@ if settings.is_production:
             "arqai.tech",
             "localhost",
             "127.0.0.1",
+            "6ca20d22e6f6.ngrok-free.app"  # Just the hostname, not full URL
         ],
     )
 
-# CORS
-cors_origins = ["http://localhost:3000"]
-if settings.is_production:
-    cors_origins += ["https://arthsarthi.arqai.tech"]
+# # CORS
+# cors_origins = ["http://localhost:3000"]
+# if settings.is_production:
+#     cors_origins += ["https://arthsarthi.arqai.tech"]
+
+# app.add_middleware(
+#     CORSMiddleware,
+#     allow_origins=cors_origins,
+#     allow_credentials=settings.cors_allow_credentials,
+#     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+#     allow_headers=["*"],
+# )
+
+cors_origins = settings.allowed_origins 
+
+# Debug: Log the CORS origins being used
+logger.info(f"CORS Origins configured: {cors_origins}")
 
 app.add_middleware(
     CORSMiddleware,
