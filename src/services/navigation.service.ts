@@ -120,7 +120,7 @@ export function getRedirectUrl(options: RedirectOptions = {}): string {
  * @returns true if path requires auth
  */
 export function requiresAuth(pathname: string): boolean {
-    const protectedPaths = ['/ca-view', '/folk-view', '/dashboard', '/profile'];
+    const protectedPaths = [/* '/ca-view', '/folk-view', */ '/dashboard', '/profile'];
 
     return protectedPaths.some((path) => pathname.startsWith(path));
 }

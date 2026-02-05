@@ -430,7 +430,7 @@ const Header: React.FC = () => {
    * Determines if a navigation link requires authentication
    */
   const isProtectedRoute = (href: string): boolean => {
-    return href === '/ca-view' || href === '/folk-view';
+    return false; // href === '/ca-view' || href === '/folk-view';
   };
 
   /**

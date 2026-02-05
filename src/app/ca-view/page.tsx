@@ -1,105 +1,97 @@
 // app/ca/dashboard/page.tsx
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
+  BarChart3,
   Users,
   FileText,
   Clock,
-  BarChart3,
-  Calendar,
-  TrendingUp,
-  Upload,
-  Bot,
   Sparkles,
-  ChevronRight,
+  Bot,
+  Calendar,
   AlertCircle,
   CheckCircle2,
-  Search,
-  Bell,
-  Settings,
-  LogOut,
+  Upload,
+  ArrowUpRight,
   Menu,
   X,
-  Download,
-  Filter,
-  Plus,
-  MessageCircle,
-  BookOpen,
-  ArrowUpRight,
+  LogOut,
+  Settings,
+  Search,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { getUserInitials, getUserDisplayName, formatUserEmail } from '@/lib/utils/user.utils';
+import {
+  getUserInitials,
+  getUserDisplayName,
+  formatUserEmail,
+} from '@/lib/utils/user.utils';
 
 // ============================================================================
-// TYPE DEFINITIONS
+// TYPES
 // ============================================================================
 
-interface StatCard {
-  id: string;
-  label: string;
-  value: string | number;
-  trend: {
-    value: string;
-    positive: boolean;
+interface CaDashboardResponse {
+  stats: {
+    activeClients: number;
+    pendingFilingsThisMonth: number;
+    avgHoursSavedPerWeek: number;
+    deepvueCoveragePercent: number;
   };
-  icon: React.ElementType;
-  color: 'emerald' | 'amber' | 'blue' | 'purple';
-}
-
-interface Deadline {
-  id: string;
-  type: 'GST' | 'TDS' | 'ITR' | 'AUDIT' | 'ROC';
-  client: string;
-  title: string;
-  dueDate: string;
-  status: 'due-soon' | 'upcoming';
-}
-
-interface Activity {
-  id: string;
-  type: 'upload' | 'reconciliation' | 'insight' | 'filing';
-  client: string;
-  description: string;
-  timestamp: string;
-}
-
-interface Client {
-  id: string;
-  name: string;
-  status: 'active' | 'pending' | 'overdue';
-  upcomingTasks: number;
-}
-
-interface AIPrompt {
-  id: string;
-  text: string;
-  category: 'reconciliation' | 'query' | 'report' | 'analysis';
+  clients: Array<{
+    id: string;
+    name: string;
+    pan: string;
+    gstin?: string;
+    status: 'onboarding' | 'in-progress' | 'ready-to-file' | 'filed';
+    nextDeadlineLabel: string;
+    riskLevel: 'low' | 'medium' | 'high';
+    tasksDue: number;
+  }>;
+  deadlines: Array<{
+    id: string;
+    label: string;
+    clientName: string | null;
+    dueDate: string;
+    type: 'GST' | 'ITR' | 'TDS' | 'Audit';
+    urgency: 'due-soon' | 'upcoming';
+  }>;
+  documentQueue: Array<{
+    id: string;
+    clientName: string;
+    fileName: string;
+    type: 'pan' | 'gstin' | 'bank' | 'invoice' | 'other';
+    uploadedAt: string;
+    status: 'processing' | 'ready' | 'failed';
+  }>;
+  insights: Array<{
+    id: string;
+    title: string;
+    impact: 'time' | 'revenue' | 'risk';
+    summary: string;
+    suggestedAction: string;
+  }>;
 }
 
 // ============================================================================
-// DESIGN TOKENS
+// DESIGN TOKENS – SAFFRON + ZEN
 // ============================================================================
 
-const colors = {
-  emerald: 'from-emerald-500/20 to-teal-500/20 text-emerald-400',
-  amber: 'from-amber-500/20 to-yellow-500/20 text-amber-400',
-  blue: 'from-blue-500/20 to-cyan-500/20 text-blue-400',
-  purple: 'from-purple-500/20 to-pink-500/20 text-purple-400',
-  red: 'from-red-500/20 to-rose-500/20 text-red-400',
-} as const;
+const saffron = {
+  primary: 'from-[#FF8A00] via-[#FFB547] to-[#FFDC8A]',
+  soft: 'from-[#FF8A00]/10 via-[#FFB547]/10 to-transparent',
+  pill: 'bg-[#24140A] text-[#FFB547] border border-[#FF8A00]/40',
+};
 
-const badgeStyles = {
-  'due-soon': 'bg-red-500/10 text-red-400 border-red-500/30',
-  upcoming: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  active: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  pending: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  overdue: 'bg-red-500/10 text-red-400 border-red-500/30',
-} as const;
+const bg = {
+  base: 'bg-[#050608]',
+  card: 'bg-gradient-to-br from-[#0B0C10] via-[#050608] to-[#050608]',
+  subtle: 'bg-[#090B10]',
+};
 
 // ============================================================================
-// REUSABLE COMPONENTS (Single Responsibility Principle)
+// REUSABLE COMPONENTS
 // ============================================================================
 
 interface CardProps {
@@ -108,13 +100,12 @@ interface CardProps {
   hover?: boolean;
 }
 
-const Card: React.FC<CardProps> = ({ children, className = '', hover = false }) => (
+const Card: React.FC<CardProps> = ({ children, className = '', hover }) => (
   <motion.div
     className={`
-      bg-gradient-to-br from-slate-900/90 to-slate-800/70 backdrop-blur-xl
-      border border-slate-700/50 rounded-2xl shadow-xl
+      ${bg.card} border border-white/5 rounded-2xl shadow-lg
       transition-all duration-300
-      ${hover ? 'hover:border-amber-500/30 hover:shadow-2xl' : ''}
+      ${hover ? 'hover:border-[#FFB547]/50 hover:shadow-xl' : ''}
       ${className}
     `}
     whileHover={hover ? { y: -2 } : undefined}
@@ -123,41 +114,58 @@ const Card: React.FC<CardProps> = ({ children, className = '', hover = false }) 
   </motion.div>
 );
 
-interface BadgeProps {
-  children: React.ReactNode;
-  variant: keyof typeof badgeStyles;
-}
-
-const Badge: React.FC<BadgeProps> = ({ children, variant }) => (
-  <span className={`inline-flex items-center px-2.5 py-1 text-xs font-medium border rounded-full ${badgeStyles[variant]}`}>
-    {children}
-  </span>
+const SkeletonLine: React.FC<{ className?: string }> = ({ className = '' }) => (
+  <div
+    className={`h-3 rounded-full bg-white/5 animate-pulse ${className}`}
+  />
 );
 
 // ============================================================================
-// STAT CARD COMPONENT
+// DATA HOOK
 // ============================================================================
 
-const StatisticCard: React.FC<StatCard> = ({ label, value, trend, icon: Icon, color }) => (
-  <Card hover className="p-6">
-    <div className="flex items-start justify-between">
-      <div className="flex-1">
-        <p className="text-sm text-slate-400 mb-2">{label}</p>
-        <h3 className="text-3xl font-bold text-slate-50 mb-2">{value}</h3>
-        <div className={`flex items-center gap-1 text-sm ${trend.positive ? 'text-emerald-400' : 'text-amber-400'}`}>
-          <TrendingUp className={`w-4 h-4 ${!trend.positive && 'rotate-180'}`} />
-          <span>{trend.value}</span>
-        </div>
-      </div>
-      <div className={`p-3 bg-gradient-to-br ${colors[color]} rounded-xl`}>
-        <Icon className="w-6 h-6" />
-      </div>
-    </div>
-  </Card>
-);
+const useCaDashboard = () => {
+  const [data, setData] = useState<CaDashboardResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch('/api/ca/dashboard');
+        if (!res.ok) {
+          throw new Error('Failed to load dashboard');
+        }
+        const json: CaDashboardResponse = await res.json();
+        if (!cancelled) {
+          setData(json);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(err);
+          setError('Unable to load CA workspace right now.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return { data, loading, error };
+};
 
 // ============================================================================
-// SIDEBAR COMPONENT
+// SIDEBAR
 // ============================================================================
 
 interface SidebarProps {
@@ -172,79 +180,104 @@ interface SidebarProps {
   } | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpen, onClose, user }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  activeSection,
+  onSectionChange,
+  isOpen,
+  onClose,
+  user,
+}) => {
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'clients', label: 'Clients', icon: Users, badge: 5 },
-    { id: 'documents', label: 'Documents', icon: FileText, badge: 12 },
-    { id: 'reconciliation', label: 'Reconciliation', icon: CheckCircle2 },
-    { id: 'ai-assistant', label: 'AI Assistant', icon: Bot },
-    { id: 'reports', label: 'Reports', icon: TrendingUp },
+    { id: 'overview', label: 'Overview', icon: BarChart3 },
+    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'documents', label: 'Documents', icon: FileText },
+    { id: 'deadlines', label: 'Deadlines', icon: Calendar },
+    { id: 'ai', label: 'AI Workspace', icon: Bot },
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  const sidebarContent = (
-    <div className="flex flex-col h-full bg-gradient-to-b from-slate-900/95 to-slate-950/95 backdrop-blur-xl border-r border-slate-700/50">
+  const content = (
+    <div
+      className={`flex h-full flex-col border-r border-white/5 bg-gradient-to-b ${bg.base} from-black/80 to-black/95 backdrop-blur-xl`}
+    >
       {/* Logo */}
-      <div className="p-6 border-b border-slate-700/50">
+      <div className="border-b border-white/5 px-6 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-slate-950" />
+            <div
+              className={`
+                inline-flex h-10 w-10 items-center justify-center rounded-2xl
+                bg-gradient-to-br ${saffron.primary}
+              `}
+            >
+              <Sparkles className="h-5 w-5 text-black" />
             </div>
-            <div>
-              <h1 className="text-lg font-bold text-slate-50">Arthasarthi</h1>
-              <p className="text-xs text-slate-400">CA Workspace</p>
+            <div className="space-y-0.5">
+              <p className="text-sm font-semibold tracking-wide text-white">
+                Arthasarthi
+              </p>
+              <p className="text-xs text-white/60">CA Workspace</p>
             </div>
           </div>
-          <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-slate-200">
-            <X className="w-5 h-5" />
+          <button
+            onClick={onClose}
+            className="lg:hidden rounded-full p-1 text-white/50 hover:bg-white/5 hover:text-white"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
-        {navItems.map((item) => (
-          <button
-            key={item.id}
-            onClick={() => {
-              onSectionChange(item.id);
-              onClose();
-            }}
-            className={`
-              w-full flex items-center gap-3 px-4 py-3 rounded-xl font-medium transition-all
-              ${activeSection === item.id
-                ? 'bg-gradient-to-r from-amber-500/20 to-yellow-500/20 text-amber-400 border border-amber-500/30'
-                : 'text-slate-300 hover:bg-slate-800/50 hover:text-slate-50'
-              }
-            `}
-          >
-            <item.icon className="w-5 h-5" />
-            <span className="flex-1 text-left">{item.label}</span>
-            {item.badge && (
-              <span className="px-2 py-0.5 text-xs font-bold bg-red-500 text-white rounded-full">
-                {item.badge}
-              </span>
-            )}
-          </button>
-        ))}
+      {/* Nav */}
+      <nav className="flex-1 space-y-1 px-3 py-4">
+        {navItems.map((item) => {
+          const active = activeSection === item.id;
+          const Icon = item.icon;
+          return (
+            <button
+              key={item.id}
+              onClick={() => {
+                onSectionChange(item.id);
+                onClose();
+              }}
+              className={`
+                flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm
+                transition-all
+                ${
+                  active
+                    ? 'bg-gradient-to-r from-[#2A190D] to-transparent text-[#FFB547] border border-[#FF8A00]/40'
+                    : 'text-white/70 hover:bg-white/5 hover:text-white'
+                }
+              `}
+            >
+              <Icon className="h-4 w-4" />
+              <span className="flex-1 text-left">{item.label}</span>
+            </button>
+          );
+        })}
       </nav>
 
-      {/* User Profile */}
-      <div className="p-4 border-t border-slate-700/50">
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50">
-          <div className="w-10 h-10 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-full flex items-center justify-center text-slate-950 font-bold">
-            {user?.initials || 'U'}
+      {/* User */}
+      <div className="border-t border-white/5 px-4 py-4">
+        <div className="flex items-center gap-3 rounded-2xl bg-white/5 px-3 py-2.5">
+          <div
+            className={`
+              flex h-9 w-9 items-center justify-center rounded-full
+              bg-gradient-to-br ${saffron.primary} text-xs font-semibold text-black
+            `}
+          >
+            {user?.initials ?? 'CA'}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-slate-50 truncate">
-              {user?.displayName || 'CA User'}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-medium text-white">
+              {user?.displayName ?? 'CA User'}
             </p>
-            <p className="text-xs text-slate-400 truncate">{user?.email || 'Not logged in'}</p>
+            <p className="truncate text-[11px] text-white/60">
+              {user?.email ?? 'Not signed in'}
+            </p>
           </div>
-          <button className="p-2 text-slate-400 hover:text-red-400 transition-colors">
-            <LogOut className="w-4 h-4" />
+          <button className="rounded-full p-1.5 text-white/50 hover:bg-white/10 hover:text-red-400">
+            <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -253,29 +286,25 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpe
 
   return (
     <>
-      {/* Desktop Sidebar */}
-      <aside className="hidden lg:block w-72">
-        {sidebarContent}
-      </aside>
+      <aside className="hidden h-screen w-64 lg:block">{content}</aside>
 
-      {/* Mobile Sidebar */}
       <AnimatePresence>
         {isOpen && (
           <>
             <motion.div
+              className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
               onClick={onClose}
             />
             <motion.aside
-              initial={{ x: -300 }}
+              className="fixed inset-y-0 left-0 z-50 w-64 lg:hidden"
+              initial={{ x: -260 }}
               animate={{ x: 0 }}
-              exit={{ x: -300 }}
-              className="fixed inset-y-0 left-0 w-72 z-50 lg:hidden"
+              exit={{ x: -260 }}
             >
-              {sidebarContent}
+              {content}
             </motion.aside>
           </>
         )}
@@ -285,118 +314,110 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, isOpe
 };
 
 // ============================================================================
-// AI ASSISTANT PANEL
+// AI PANEL (SLIDE-OVER)
 // ============================================================================
 
-interface AIAssistantPanelProps {
-  isOpen: boolean;
+interface AIPanelProps {
+  open: boolean;
   onClose: () => void;
 }
 
-const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ isOpen, onClose }) => {
+const AIPanel: React.FC<AIPanelProps> = ({ open, onClose }) => {
   const [message, setMessage] = useState('');
 
-  const quickPrompts: AIPrompt[] = [
-    { id: '1', text: 'Reconcile GSTR-2B with purchase register', category: 'reconciliation' },
-    { id: '2', text: 'Summarize 26AS vs books mismatches', category: 'query' },
-    { id: '3', text: 'Draft mail to client about GST notice', category: 'report' },
-    { id: '4', text: 'Explain latest change in ITC rules', category: 'query' },
+  const quickPrompts = [
+    'Summarize mismatches between 26AS and books for Client A.',
+    'Show ITC risk and blocked credits for my top 10 GST clients.',
+    'Draft a mail to client about GST return delay with penalties.',
+    'Explain implications of 206AB for my high-risk deductees.',
   ];
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {open && (
         <>
           <motion.div
+            className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             onClick={onClose}
           />
-          <motion.div
+          <motion.aside
+            className={`fixed right-0 top-0 z-50 h-full w-full max-w-md border-l border-white/5 ${bg.subtle}`}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full sm:w-[480px] bg-slate-900 border-l border-slate-700/50 z-50 flex flex-col"
+            transition={{ type: 'spring', stiffness: 260, damping: 30 }}
           >
-            {/* Header */}
-            <div className="p-6 border-b border-slate-700/50">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gradient-to-br from-amber-500/20 to-yellow-500/20 rounded-lg">
-                    <Bot className="w-5 h-5 text-amber-400" />
+            <div className="flex h-full flex-col">
+              <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`
+                      flex h-8 w-8 items-center justify-center rounded-xl
+                      bg-gradient-to-br ${saffron.primary}
+                    `}
+                  >
+                    <Bot className="h-4 w-4 text-black" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-slate-50">Arthasarthi Copilot</h2>
-                    <p className="text-sm text-slate-400">Grounded in tax laws & your vault</p>
+                    <p className="text-xs font-semibold text-white">
+                      Arthasarthi Copilot
+                    </p>
+                    <p className="text-[11px] text-white/60">
+                      For CA workflows & notices
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={onClose}
-                  className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                  className="rounded-full p-1 text-white/60 hover:bg-white/10 hover:text-white"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
-            </div>
 
-            {/* Chat Area */}
-            <div className="flex-1 p-6 overflow-y-auto">
-              <div className="space-y-4">
-                {/* AI Welcome Message */}
-                <div className="flex gap-3">
-                  <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-amber-400 to-yellow-600 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-4 h-4 text-slate-950" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="bg-slate-800/50 border border-slate-700/50 rounded-2xl rounded-tl-sm p-4">
-                      <p className="text-sm text-slate-200">
-                        Hello! I'm your AI assistant specialized in tax laws, 26AS, GST & your vault. How can I help you today?
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quick Prompts */}
-                <div className="space-y-2">
-                  <p className="text-xs text-slate-400 font-medium">Suggested actions:</p>
-                  {quickPrompts.map((prompt) => (
+              <div className="flex-1 space-y-3 overflow-y-auto px-5 py-4 text-sm text-white/80">
+                <p className="text-xs text-white/50">
+                  Ask anything about GST, ITR, notices, reconciliations.
+                </p>
+                <div className="grid grid-cols-1 gap-2">
+                  {quickPrompts.map((p) => (
                     <button
-                      key={prompt.id}
-                      onClick={() => setMessage(prompt.text)}
-                      className="w-full text-left p-3 bg-slate-800/30 border border-slate-700/30 rounded-xl text-sm text-slate-300 hover:bg-slate-800/50 hover:border-amber-500/30 hover:text-amber-400 transition-all"
+                      key={p}
+                      onClick={() => setMessage(p)}
+                      className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left text-[11px] text-white/80 hover:border-[#FFB547]/40 hover:bg-white/10"
                     >
-                      {prompt.text}
+                      {p}
                     </button>
                   ))}
                 </div>
               </div>
-            </div>
 
-            {/* Input Area */}
-            <div className="p-4 border-t border-slate-700/50">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  placeholder="Ask anything about tax, GST, reconciliation..."
-                  className="flex-1 px-4 py-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50"
-                />
-                <button className="px-6 py-3 bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-semibold rounded-xl hover:shadow-lg hover:shadow-amber-500/50 transition-all">
-                  Send
-                </button>
-              </div>
-              <div className="flex items-center gap-2 mt-3">
-                <button className="text-xs text-slate-400 hover:text-amber-400 flex items-center gap-1">
-                  <BookOpen className="w-3 h-3" />
-                  View sources
-                </button>
+              <div className="border-t border-white/5 p-4">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 rounded-2xl border border-white/10 bg-black/40 px-3 py-2">
+                    <textarea
+                      rows={2}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      placeholder="Describe the client / notice / query..."
+                      className="h-full w-full resize-none bg-transparent text-xs text-white placeholder:text-white/40 focus:outline-none"
+                    />
+                  </div>
+                  <button
+                    className={`
+                      flex h-9 w-9 items-center justify-center rounded-2xl
+                      bg-gradient-to-br ${saffron.primary} text-black
+                    `}
+                  >
+                    <ArrowUpRight className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             </div>
-          </motion.div>
+          </motion.aside>
         </>
       )}
     </AnimatePresence>
@@ -404,245 +425,426 @@ const AIAssistantPanel: React.FC<AIAssistantPanelProps> = ({ isOpen, onClose }) 
 };
 
 // ============================================================================
-// MAIN PAGE COMPONENT
+// MAIN PAGE
 // ============================================================================
 
-export default function CADashboardPage() {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState('dashboard');
-  const { user: authUser } = useAuth();
+const CaDashboardPage: React.FC = () => {
+  const { user } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('overview');
 
-  // Compute user display properties
-  const user = authUser ? {
-    displayName: getUserDisplayName(authUser),
-    email: formatUserEmail(authUser.email),
-    initials: getUserInitials(getUserDisplayName(authUser)),
-  } : null;
+  const { data, loading, error } = useCaDashboard();
 
-  // Mock Data
-  const stats: StatCard[] = [
-    {
-      id: '1',
-      label: 'Active Clients',
-      value: '47',
-      trend: { value: '+3 this month', positive: true },
-      icon: Users,
-      color: 'emerald',
-    },
-    {
-      id: '2',
-      label: 'Pending Actions',
-      value: '12',
-      trend: { value: '8 due soon', positive: false },
-      icon: AlertCircle,
-      color: 'amber',
-    },
-    {
-      id: '3',
-      label: 'Documents Processed',
-      value: '234',
-      trend: { value: '+45 this week', positive: true },
-      icon: FileText,
-      color: 'blue',
-    },
-    {
-      id: '4',
-      label: 'Time Saved',
-      value: '156h',
-      trend: { value: 'This month', positive: true },
-      icon: Clock,
-      color: 'purple',
-    },
-  ];
+  const userMeta = user
+    ? {
+        displayName: getUserDisplayName(user),
+        email: formatUserEmail(user),
+        initials: getUserInitials(user),
+      }
+    : null;
 
-  const upcomingDeadlines: Deadline[] = [
-    { id: '1', type: 'GST', client: 'ABC Ltd', title: 'GST Return Filing - Client ABC Ltd', dueDate: '20/11/2025', status: 'due-soon' },
-    { id: '2', type: 'TDS', client: 'XYZ Pvt Ltd', title: 'TDS Quarterly Return - Client XYZ Pvt Ltd', dueDate: '25/11/2025', status: 'upcoming' },
-    { id: '3', type: 'AUDIT', client: 'PQR Corp', title: 'Audit Report Submission - Client PQR Corp', dueDate: '30/11/2025', status: 'upcoming' },
-    { id: '4', type: 'ITR', client: 'John Doe', title: 'ITR Filing - Client John Doe', dueDate: '05/12/2025', status: 'upcoming' },
-  ];
-
-  const recentActivity: Activity[] = [
-    { id: '1', type: 'upload', client: 'ABC Ltd', description: 'Bank statement for Sep 2025', timestamp: '2 hours ago' },
-    { id: '2', type: 'reconciliation', client: 'XYZ Pvt Ltd', description: 'GST ITC matching - 100% matched', timestamp: '5 hours ago' },
-    { id: '3', type: 'insight', client: 'PQR Corp', description: 'Tax saving opportunity identified', timestamp: '1 day ago' },
-  ];
+  const stats = data?.stats;
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0f1419] to-[#050810] overflow-hidden">
+    <div className={`flex min-h-screen ${bg.base} text-white`}>
       {/* Sidebar */}
       <Sidebar
         activeSection={activeSection}
         onSectionChange={setActiveSection}
-        isOpen={isSidebarOpen}
-        onClose={() => setIsSidebarOpen(false)}
-        user={user}
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        user={userMeta}
       />
 
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-slate-900/50 backdrop-blur-xl border-b border-slate-700/50 px-6 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      {/* Main */}
+      <div className="flex min-h-screen flex-1 flex-col">
+        {/* Top bar */}
+        <header className="sticky top-0 z-30 border-b border-white/5 bg-[#050608]/95 backdrop-blur-xl">
+          <div className="flex items-center justify-between px-4 py-3 lg:px-6">
+            <div className="flex items-center gap-3">
               <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg transition-colors"
+                className="rounded-xl p-2 text-white/70 hover:bg-white/10 lg:hidden"
+                onClick={() => setSidebarOpen(true)}
               >
-                <Menu className="w-5 h-5" />
+                <Menu className="h-4 w-4" />
               </button>
               <div>
-                <h1 className="text-2xl font-bold text-slate-50">Professional Dashboard</h1>
-                <p className="text-sm text-slate-400">Manage your practice and client compliance workflows</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-white/40">
+                  Dashboard
+                </p>
+                <h1 className="text-sm font-semibold text-white">
+                  CA Command Center
+                </h1>
               </div>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Search */}
-              <div className="hidden md:flex relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white/60 sm:flex">
+                <Search className="h-3.5 w-3.5" />
                 <input
-                  type="text"
-                  placeholder="Search..."
-                  className="pl-10 pr-4 py-2 w-64 bg-slate-800/50 border border-slate-700/50 rounded-xl text-slate-300 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/50 text-sm"
+                  placeholder="Search clients, PAN, GSTIN..."
+                  className="w-40 bg-transparent text-[11px] text-white focus:outline-none"
                 />
               </div>
-
-              {/* Notifications */}
-              <button className="relative p-2 text-slate-400 hover:text-amber-400 hover:bg-slate-800 rounded-lg transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
-
-              {/* AI Assistant Button */}
               <button
-                onClick={() => setIsAIOpen(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/30 rounded-xl text-amber-400 hover:border-amber-500/50 transition-all"
+                onClick={() => setAiOpen(true)}
+                className={`
+                  hidden items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium
+                  bg-gradient-to-r ${saffron.soft} text-[#FFB547]
+                  border border-[#FF8A00]/40 hover:border-[#FFDC8A]/70 sm:flex
+                `}
               >
-                <Bot className="w-4 h-4" />
-                <span className="hidden sm:inline text-sm font-medium">AI Assistant</span>
+                <Bot className="h-3.5 w-3.5" />
+                Ask Copilot
               </button>
             </div>
           </div>
         </header>
 
         {/* Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-7xl mx-auto space-y-6">
-            {/* Stats Grid */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
-            >
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={stat.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <StatisticCard {...stat} />
-                </motion.div>
-              ))}
-            </motion.div>
+        <main className="flex-1 px-4 py-4 lg:px-6 lg:py-6">
+          {/* Error */}
+          {error && (
+            <Card className="mb-4 border-red-500/40 bg-red-950/40">
+              <div className="flex items-center gap-2 px-4 py-3 text-xs text-red-100">
+                <AlertCircle className="h-4 w-4" />
+                <span>{error}</span>
+              </div>
+            </Card>
+          )}
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Upcoming Deadlines */}
-              <Card className="lg:col-span-2 p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-gradient-to-br from-red-500/20 to-rose-500/20 rounded-lg">
-                      <Calendar className="w-5 h-5 text-red-400" />
-                    </div>
-                    <h2 className="text-lg font-semibold text-slate-50">Upcoming Deadlines</h2>
-                  </div>
-                  <button className="text-sm text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium">
-                    View All <ChevronRight className="w-4 h-4" />
-                  </button>
-                </div>
+          {/* Top summary row */}
+          <div className="grid gap-3 md:grid-cols-4">
+            <Card hover className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-white/50">Active clients</p>
+                <Users className="h-4 w-4 text-[#FFB547]" />
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                {loading || !stats ? (
+                  <SkeletonLine className="mt-1 h-6 w-12" />
+                ) : (
+                  <p className="text-2xl font-semibold">
+                    {stats.activeClients}
+                  </p>
+                )}
+                <span className="text-[11px] text-white/40">
+                  Each client is a case workspace
+                </span>
+              </div>
+            </Card>
 
-                <div className="space-y-3">
-                  {upcomingDeadlines.map((deadline) => (
-                    <motion.div
-                      key={deadline.id}
-                      whileHover={{ x: 4 }}
-                      className="p-4 bg-slate-800/30 border border-slate-700/30 rounded-xl hover:bg-slate-800/50 hover:border-slate-600/50 transition-all cursor-pointer group"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant={deadline.status}>{deadline.type}</Badge>
-                            <span className="text-xs text-slate-400">{deadline.client}</span>
-                          </div>
-                          <p className="text-sm font-medium text-slate-200 mb-1">{deadline.title}</p>
-                          <div className="flex items-center gap-2 text-xs text-slate-400">
-                            <Clock className="w-3 h-3" />
-                            <span>Due {deadline.dueDate}</span>
-                          </div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-slate-400 group-hover:text-amber-400 transition-colors" />
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </Card>
+            <Card hover className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-white/50">
+                  Filings due this month
+                </p>
+                <FileText className="h-4 w-4 text-[#FFB547]" />
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                {loading || !stats ? (
+                  <SkeletonLine className="mt-1 h-6 w-12" />
+                ) : (
+                  <p className="text-2xl font-semibold">
+                    {stats.pendingFilingsThisMonth}
+                  </p>
+                )}
+                <span className="text-[11px] text-white/40">
+                  Across GST / ITR / TDS
+                </span>
+              </div>
+            </Card>
 
-              {/* Recent Activity */}
-              <Card className="p-6">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-2 bg-gradient-to-br from-blue-500/20 to-cyan-500/20 rounded-lg">
-                    <TrendingUp className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <h2 className="text-lg font-semibold text-slate-50">Recent Activity</h2>
-                </div>
+            <Card hover className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-white/50">
+                  Hours saved / week (AI)
+                </p>
+                <Clock className="h-4 w-4 text-[#FFB547]" />
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                {loading || !stats ? (
+                  <SkeletonLine className="mt-1 h-6 w-12" />
+                ) : (
+                  <p className="text-2xl font-semibold">
+                    {stats.avgHoursSavedPerWeek.toFixed(1)}
+                  </p>
+                )}
+                <span className="text-[11px] text-white/40">
+                  Reconciliation & working papers
+                </span>
+              </div>
+            </Card>
 
-                <div className="space-y-4">
-                  {recentActivity.map((activity) => (
-                    <div key={activity.id} className="flex gap-3">
-                      <div className="flex-shrink-0 w-2 h-2 mt-2 bg-amber-400 rounded-full" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-200">{activity.type === 'upload' ? 'Document uploaded' : activity.type === 'reconciliation' ? 'Reconciliation completed' : 'AI Insight generated'}</p>
-                        <p className="text-xs text-slate-400 mt-0.5">{activity.client}</p>
-                        <p className="text-xs text-slate-500 mt-0.5">{activity.description}</p>
-                        <p className="text-xs text-slate-500 mt-1">{activity.timestamp}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
-
-            {/* Quick Actions */}
-            <Card className="p-6">
-              <h2 className="text-lg font-semibold text-slate-50 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { icon: Upload, label: 'Upload Documents', color: colors.amber },
-                  { icon: Bot, label: 'Ask AI Assistant', color: colors.blue },
-                  { icon: Users, label: 'Add New Client', color: colors.emerald },
-                  { icon: Download, label: 'Generate Report', color: colors.purple },
-                ].map((action, i) => (
-                  <motion.button
-                    key={i}
-                    whileHover={{ scale: 1.02, y: -2 }}
-                    whileTap={{ scale: 0.98 }}
-                    className={`p-6 bg-gradient-to-br ${action.color} rounded-xl border border-slate-700/30 hover:border-slate-600/50 transition-all text-left group`}
-                  >
-                    <action.icon className="w-8 h-8 mb-3" />
-                    <p className="text-sm font-medium text-slate-200">{action.label}</p>
-                  </motion.button>
-                ))}
+            <Card hover className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-white/50">
+                  Deepvue coverage
+                </p>
+                <Sparkles className="h-4 w-4 text-[#FFB547]" />
+              </div>
+              <div className="mt-2 flex items-baseline justify-between">
+                {loading || !stats ? (
+                  <SkeletonLine className="mt-1 h-6 w-14" />
+                ) : (
+                  <p className="text-2xl font-semibold">
+                    {stats.deepvueCoveragePercent.toFixed(0)}%
+                  </p>
+                )}
+                <span className="text-[11px] text-white/40">
+                  Clients linked to GST / ITR / KYC feeds
+                </span>
               </div>
             </Card>
           </div>
+
+          {/* Middle grid */}
+          <div className="mt-5 grid gap-4 lg:grid-cols-3">
+            {/* Client pipeline */}
+            <Card className="lg:col-span-2" hover>
+              <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                <div>
+                  <p className="text-xs font-medium text-white/80">
+                    Client pipeline
+                  </p>
+                  <p className="text-[11px] text-white/50">
+                    Each client is a case: status, risk, next deadline.
+                  </p>
+                </div>
+                <button className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[11px] text-white/70 hover:border-[#FFB547]/40">
+                  View all
+                </button>
+              </div>
+              <div className="divide-y divide-white/5">
+                {loading && (
+                  <div className="space-y-2 p-4">
+                    {[1, 2, 3].map((i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-between gap-3"
+                      >
+                        <SkeletonLine className="w-32" />
+                        <SkeletonLine className="w-16" />
+                        <SkeletonLine className="w-20" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!loading && data?.clients?.length === 0 && (
+                  <div className="p-4 text-[11px] text-white/50">
+                    No clients yet. Upload your first client’s PAN / GST
+                    documents to create a workspace.
+                  </div>
+                )}
+
+                {!loading &&
+                  data?.clients?.slice(0, 6).map((client) => (
+                    <div
+                      key={client.id}
+                      className="flex items-center gap-3 px-4 py-3 text-xs"
+                    >
+                      <div className="flex-1">
+                        <p className="text-[12px] font-medium text-white">
+                          {client.name}
+                        </p>
+                        <p className="text-[11px] text-white/50">
+                          PAN {client.pan}
+                          {client.gstin && ` • GSTIN ${client.gstin}`}
+                        </p>
+                      </div>
+                      <div className="hidden flex-col items-end text-[11px] text-white/60 sm:flex">
+                        <span className="mb-1 rounded-full bg-white/5 px-2 py-0.5 text-[10px]">
+                          {client.status.replace('-', ' ')}
+                        </span>
+                        <span>{client.nextDeadlineLabel}</span>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 text-[11px]">
+                        <span
+                          className={`
+                            rounded-full px-2 py-0.5 text-[10px]
+                            ${
+                              client.riskLevel === 'high'
+                                ? 'bg-red-500/15 text-red-300'
+                                : client.riskLevel === 'medium'
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : 'bg-emerald-500/15 text-emerald-300'
+                            }
+                          `}
+                        >
+                          {client.riskLevel === 'high'
+                            ? 'High risk'
+                            : client.riskLevel === 'medium'
+                            ? 'Watchlist'
+                            : 'Stable'}
+                        </span>
+                        <span className="text-white/50">
+                          {client.tasksDue} tasks
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </Card>
+
+            {/* Document intake + AI insights */}
+            <div className="space-y-4">
+              {/* Document queue */}
+              <Card hover>
+                <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                  <div>
+                    <p className="text-xs font-medium text-white/80">
+                      Document intake
+                    </p>
+                    <p className="text-[11px] text-white/50">
+                      Upload PAN / GST / bank docs – we OCR & auto-attach to
+                      clients.
+                    </p>
+                  </div>
+                  <button className="flex items-center gap-1 rounded-full border border-[#FF8A00]/60 bg-gradient-to-r from-[#2A190D] to-transparent px-3 py-1 text-[11px] text-[#FFB547]">
+                    <Upload className="h-3.5 w-3.5" />
+                    New upload
+                  </button>
+                </div>
+                <div className="max-h-64 space-y-2 overflow-y-auto p-4 text-[11px]">
+                  {loading && (
+                    <>
+                      <SkeletonLine className="w-40" />
+                      <SkeletonLine className="w-28" />
+                      <SkeletonLine className="w-32" />
+                    </>
+                  )}
+                  {!loading && data?.documentQueue?.length === 0 && (
+                    <p className="text-white/45">
+                      No documents in queue. Drag & drop PDF, image or Excel to
+                      start processing.
+                    </p>
+                  )}
+                  {!loading &&
+                    data?.documentQueue?.map((doc) => (
+                      <div
+                        key={doc.id}
+                        className="flex items-center justify-between rounded-xl border border-white/5 bg-white/5 px-3 py-2"
+                      >
+                        <div className="flex-1">
+                          <p className="truncate text-[11px] font-medium text-white">
+                            {doc.fileName}
+                          </p>
+                          <p className="truncate text-[10px] text-white/50">
+                            {doc.clientName} • {doc.type.toUpperCase()}
+                          </p>
+                        </div>
+                        <div className="ml-3 text-[10px] text-white/60">
+                          {doc.status === 'processing' && (
+                            <span className="rounded-full bg-amber-500/15 px-2 py-0.5 text-amber-200">
+                              Processing…
+                            </span>
+                          )}
+                          {doc.status === 'ready' && (
+                            <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-200">
+                              Attached
+                            </span>
+                          )}
+                          {doc.status === 'failed' && (
+                            <span className="rounded-full bg-red-500/15 px-2 py-0.5 text-red-200">
+                              Failed
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </Card>
+
+              {/* Insights */}
+              <Card hover>
+                <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+                  <div>
+                    <p className="text-xs font-medium text-white/80">
+                      Copilot insights
+                    </p>
+                    <p className="text-[11px] text-white/50">
+                      Suggestions to save hours & reduce risk.
+                    </p>
+                  </div>
+                  <CheckCircle2 className="h-4 w-4 text-[#FFB547]" />
+                </div>
+                <div className="space-y-2 p-4 text-[11px]">
+                  {loading && (
+                    <>
+                      <SkeletonLine className="w-48" />
+                      <SkeletonLine className="w-40" />
+                    </>
+                  )}
+                  {!loading &&
+                    data?.insights?.slice(0, 3).map((insight) => (
+                      <div
+                        key={insight.id}
+                        className="rounded-xl border border-white/10 bg-white/5 p-3"
+                      >
+                        <p className="mb-1 text-[11px] font-medium text-white">
+                          {insight.title}
+                        </p>
+                        <p className="text-[11px] text-white/60">
+                          {insight.summary}
+                        </p>
+                        <p className="mt-1 text-[10px] text-[#FFB547]">
+                          {insight.suggestedAction}
+                        </p>
+                      </div>
+                    ))}
+                </div>
+              </Card>
+            </div>
+          </div>
+
+          {/* Deadlines strip */}
+          <Card className="mt-5" hover>
+            <div className="flex items-center justify-between border-b border-white/5 px-4 py-3">
+              <div>
+                <p className="text-xs font-medium text-white/80">
+                  Compliance calendar
+                </p>
+                <p className="text-[11px] text-white/50">
+                  Upcoming GST, ITR, TDS & audit deadlines across clients.
+                </p>
+              </div>
+              <Calendar className="h-4 w-4 text-[#FFB547]" />
+            </div>
+            <div className="flex flex-wrap gap-2 p-4 text-[11px]">
+              {loading && (
+                <>
+                  <SkeletonLine className="h-5 w-32" />
+                  <SkeletonLine className="h-5 w-40" />
+                </>
+              )}
+              {!loading &&
+                data?.deadlines?.slice(0, 10).map((d) => (
+                  <div
+                    key={d.id}
+                    className={`
+                      rounded-full border px-3 py-1
+                      text-[11px]
+                      ${
+                        d.urgency === 'due-soon'
+                          ? 'border-red-500/40 bg-red-500/10 text-red-100'
+                          : 'border-[#FF8A00]/40 bg-[#2A190D] text-[#FFDC8A]'
+                      }
+                    `}
+                  >
+                    <span className="font-medium">{d.label}</span>
+                    {d.clientName && <span> • {d.clientName}</span>}
+                  </div>
+                ))}
+            </div>
+          </Card>
         </main>
       </div>
 
-      {/* AI Assistant Panel */}
-      <AIAssistantPanel isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} />
+      <AIPanel open={aiOpen} onClose={() => setAiOpen(false)} />
     </div>
   );
-}
+};
+
+export default CaDashboardPage;
