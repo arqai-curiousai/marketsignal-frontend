@@ -1,0 +1,137 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+
+    --radius: 0.75rem;
+
+    /* 🧘 Zen Signal Colors - Soft, not jarring */
+    --signal-growth: 142 71% 45%;      /* Green - Growth/Buy */
+    --signal-peace: 220 14% 96%;       /* White - Neutral/Hold */
+    --signal-caution: 0 72% 51%;       /* Red - Caution/Sell */
+    
+    /* Zen Accent Colors */
+    --zen-void: 240 10% 4%;            /* Deep space background */
+    --zen-mist: 240 6% 10%;            /* Card surface */
+    --zen-stone: 240 5% 18%;           /* Borders */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+.glass-card {
+  @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl;
+}
+
+.gradient-text {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-emerald via-brand-blue to-brand-violet;
+}
+
+.gradient-border {
+  position: relative;
+  border-radius: var(--radius);
+  background: linear-gradient(to right, #6EE7B7, #60A5FA, #7C3AED);
+  padding: 1px;
+}
+
+.gradient-border > * {
+  @apply bg-background rounded-[calc(var(--radius)-1px)];
+}
+
+/* 🧘 Signal Orb - Breathing Animation */
+@keyframes signal-breathe {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+  }
+}
+
+@keyframes signal-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px var(--glow-color), 0 0 40px var(--glow-color);
+  }
+  50% {
+    box-shadow: 0 0 30px var(--glow-color), 0 0 60px var(--glow-color);
+  }
+}
+
+.signal-orb {
+  @apply relative w-4 h-4 rounded-full;
+  animation: signal-breathe 3s ease-in-out infinite;
+}
+
+.signal-orb::after {
+  content: '';
+  @apply absolute inset-0 rounded-full;
+  animation: signal-glow 3s ease-in-out infinite;
+}
+
+.signal-orb--buy {
+  @apply bg-green-400;
+  --glow-color: rgba(74, 222, 128, 0.4);
+}
+
+.signal-orb--hold {
+  @apply bg-slate-200;
+  --glow-color: rgba(226, 232, 240, 0.3);
+}
+
+.signal-orb--sell {
+  @apply bg-red-400;
+  --glow-color: rgba(248, 113, 113, 0.4);
+}
+
+/* Signal Card Accent Borders */
+.signal-card--buy {
+  border-left: 3px solid hsl(var(--signal-growth));
+}
+
+.signal-card--hold {
+  border-left: 3px solid hsl(var(--signal-peace));
+}
+
+.signal-card--sell {
+  border-left: 3px solid hsl(var(--signal-caution));
+}
+

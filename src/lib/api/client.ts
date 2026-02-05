@@ -9,12 +9,14 @@ import { addCSRFHeader } from "../security/csrf";
 import { ApiError } from "../types";
 
 // Forward declaration to avoid circular dependency
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let authServiceInstance: any = null;
 
 /**
  * Set the auth service instance for token management
  * (used mainly for refresh logic / logout redirects)
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function setAuthServiceInstance(instance: any) {
   authServiceInstance = instance;
 }
@@ -32,6 +34,7 @@ function headersInitToPlain(
   if (!h) return out;
 
   // Native Headers
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   if (typeof (globalThis as any).Headers !== "undefined" && h instanceof Headers) {
     h.forEach((value, key) => {
       out[key] = value;
@@ -48,6 +51,7 @@ function headersInitToPlain(
   }
 
   // AxiosHeaders (axios v1) or plain object
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const maybeAxiosHeaders = h as any;
   if (maybeAxiosHeaders && typeof maybeAxiosHeaders.toJSON === "function") {
     const json = maybeAxiosHeaders.toJSON() as Record<string, string>;
@@ -89,15 +93,16 @@ const createApiClient = (): AxiosInstance => {
   // });
 
   const client = axios.create({
-   // Use the backend URL defined in .env (NEXT_PUBLIC_API_URL)
+    // Use the backend URL defined in .env (NEXT_PUBLIC_API_URL)
     baseURL: API_CONFIG.baseURL,
     timeout: API_CONFIG.timeout,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     headers: ensureAxiosHeaders(API_CONFIG.headers as any),
     // Keep credentials if your backend uses HttpOnly cookies
     withCredentials: true,
   });
 
-  
+
 
 
   // Request interceptor: CSRF + normalization
@@ -121,6 +126,7 @@ const createApiClient = (): AxiosInstance => {
   client.interceptors.response.use(
     (response) => response,
     async (error: AxiosError<ApiError>) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const originalRequest = error.config as any;
 
       if (error.response) {
@@ -155,20 +161,20 @@ const createApiClient = (): AxiosInstance => {
         if (status === 401) {
           const isBrowser = typeof window !== "undefined";
           const currentPath = isBrowser ? window.location.pathname : "";
-        
+
           // All routes where user MUST be logged in
           const PROTECTED_PREFIXES = ['/chatbot']; // add more later if needed
           const isProtectedRoute = PROTECTED_PREFIXES.some((p) =>
             currentPath.startsWith(p)
           );
-        
+
           // If we are NOT on a protected route (e.g. "/")
           if (!isProtectedRoute) {
             // Just clear tokens and stay on the same page
             authServiceInstance?.logout?.();
             return Promise.reject(error);
           }
-        
+
           // If we ARE on a protected route, keep your existing refresh+redirect logic:
           if (!originalRequest?._retry && authServiceInstance?.refreshToken) {
             try {
@@ -188,12 +194,12 @@ const createApiClient = (): AxiosInstance => {
             return Promise.reject(error);
           }
         }
-        
-        
+
+
         else if (status === 403) {
           console.error("Access forbidden:", error.response.data);
         } else if (status === 429) {
-          const retryAfter = (error.response.headers as any)?.["retry-after"];
+          const retryAfter = (error.response.headers as Record<string, string | number | undefined>)["retry-after"];
           console.error(
             `Rate limit exceeded. Retry after ${retryAfter ?? "some"} seconds`
           );

@@ -120,7 +120,7 @@ export interface ApiError {
   message: string;
   status: number;
   code?: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
 }
 
 export interface ValidationError extends ApiError {
