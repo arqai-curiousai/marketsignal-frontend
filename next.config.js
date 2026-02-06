@@ -34,6 +34,16 @@ const nextConfig = {
             },
         ];
     },
+    async rewrites() {
+        // When running locally in dev mode, we proxy /api requests to the Python backend
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        return [
+            {
+                source: '/api/:path*',
+                destination: `${API_URL}/api/:path*`,
+            },
+        ];
+    },
 };
 
 module.exports = nextConfig;
