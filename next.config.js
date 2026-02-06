@@ -36,11 +36,16 @@ const nextConfig = {
     },
     async rewrites() {
         // When running locally in dev mode, we proxy /api requests to the Python backend
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        // Use API_ORIGIN if available (usually the domain root), otherwise API_URL or localhost
+        const rawUrl = process.env.NEXT_PUBLIC_API_ORIGIN || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+        
+        // Ensure we don't end up with double /api if the env var includes it
+        const targetUrl = rawUrl.replace(/\/api\/?$/, '');
+
         return [
             {
                 source: '/api/:path*',
-                destination: `${API_URL}/api/:path*`,
+                destination: `${targetUrl}/api/:path*`,
             },
         ];
     },
