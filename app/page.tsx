@@ -22,8 +22,8 @@ export default function LandingPage() {
                             Next-Gen Investment Research
                         </Badge>
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8 leading-[1.1]">
-                            Ask anything about the market. <br />
-                            <span className="gradient-text">Get sourced answers.</span>
+                            Ask anything about the market <br />
+                            <span className="gradient-text">Get sourced answers</span>
                         </h1>
                         <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12 leading-relaxed">
                             Fast, explainable research and continuous automated monitoring.

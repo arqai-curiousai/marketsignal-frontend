@@ -32,12 +32,20 @@ export function Header() {
         <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-brand-slate/80 backdrop-blur-md">
             <div className="container flex h-16 items-center justify-between">
                 <div className="flex items-center gap-8">
-                    <Link href="/" className="flex items-center space-x-3">
-                        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-emerald via-brand-blue to-brand-violet p-1.5">
+                    <Link href="/" className="flex items-center space-x-3 group">
+                        {/* Animated gradient icon */}
+                        <div className="relative h-9 w-9 rounded-xl bg-gradient-to-br from-brand-emerald via-brand-blue to-brand-violet p-1.5 shadow-lg shadow-brand-blue/20 group-hover:shadow-brand-blue/40 transition-shadow duration-300">
                             <Activity className="h-full w-full text-white" />
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-white/20 to-transparent" />
                         </div>
+                        {/* Market Signal text */}
                         <span className="text-xl font-bold tracking-tight gradient-text">Market Signal</span>
-                        <span className="text-xs text-muted-foreground/70 font-medium tracking-wide border-l border-white/10 pl-3">by arQai</span>
+                        {/* Stylized arQai badge */}
+                        <div className="flex items-center gap-1 border-l border-white/10 pl-3">
+                            <span className="text-[11px] font-semibold tracking-wider text-white/50">ar</span>
+                            <span className="text-[13px] font-bold bg-gradient-to-r from-brand-blue to-brand-violet bg-clip-text text-transparent">Q</span>
+                            <span className="text-[11px] font-semibold tracking-wider text-white/50">ai</span>
+                        </div>
                     </Link>
 
                     <nav className="hidden md:flex items-center space-x-1">
