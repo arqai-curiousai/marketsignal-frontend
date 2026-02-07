@@ -3,25 +3,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { Activity } from 'lucide-react';
-import Link from 'next/link';
 
 export default function LoginPage(): React.ReactElement {
     return (
         <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
-            {/* Simple header */}
-            <header className="p-6">
-                <Link href="/" className="flex items-center space-x-3 w-fit">
-                    <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-emerald via-brand-blue to-brand-violet p-1.5">
-                        <Activity className="h-full w-full text-white" />
-                    </div>
-                    <div className="flex flex-col leading-none">
-                        <span className="text-xl font-bold tracking-tight gradient-text">अर्थसारथी</span>
-                        <span className="text-[10px] text-muted-foreground tracking-wide">powered by arQai</span>
-                    </div>
-                </Link>
-            </header>
-
             {/* Main content */}
             <main className="flex-1 flex items-center justify-center px-4 py-12">
                 <div className="relative w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
@@ -58,7 +43,7 @@ export default function LoginPage(): React.ReactElement {
                         <h1 className="text-4xl lg:text-5xl font-bold text-slate-50 leading-tight">
                             Welcome to{' '}
                             <span className="bg-gradient-to-r from-brand-emerald via-brand-blue to-brand-violet bg-clip-text text-transparent">
-                                अर्थसारथी
+                                Market Signal
                             </span>
                         </h1>
                         <p className="text-lg text-slate-300 max-w-md mx-auto lg:mx-0">
