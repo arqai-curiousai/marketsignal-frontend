@@ -23,7 +23,17 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
             );
         }
 
-        return NextResponse.json(data);
+        const res = NextResponse.json(data);
+
+        // Forward Set-Cookie headers from backend response
+        const setCookieHeader = response.headers.get('set-cookie');
+        if (setCookieHeader) {
+            // Need to handle multiple cookies if present, but usually fetches merge them or we need to split
+            // basic forwarding:
+            res.headers.set('Set-Cookie', setCookieHeader);
+        }
+
+        return res;
     } catch (error) {
         console.error('Verify OTP error:', error);
         return NextResponse.json(

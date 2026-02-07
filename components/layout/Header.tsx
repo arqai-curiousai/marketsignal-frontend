@@ -5,17 +5,28 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Activity, MessageSquare, Library, Settings, Shield } from 'lucide-react';
+import { Activity, MessageSquare, Library, Settings, Shield, LogOut, User } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const navItems = [
-    { name: 'Signals', href: '/stocks', icon: Activity },
-    { name: 'Assistant', href: '/assistant', icon: MessageSquare },
-    { name: 'Research', href: '/research', icon: Library },
-    { name: 'Account', href: '/settings', icon: Settings },
+    { name: 'Signals', href: '/stocks', icon: Activity, protected: true },
+    { name: 'Assistant', href: '/assistant', icon: MessageSquare, protected: true },
+    { name: 'Research', href: '/research', icon: Library, protected: true },
+    { name: 'Account', href: '/settings', icon: Settings, protected: true },
 ];
 
 export function Header() {
     const pathname = usePathname();
+    const { user, isAuthenticated, logout } = useAuth();
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-brand-slate/80 backdrop-blur-md">
@@ -33,6 +44,8 @@ export function Header() {
 
                     <nav className="hidden md:flex items-center space-x-1">
                         {navItems.map((item) => {
+                            if (item.protected && !isAuthenticated) return null;
+
                             const Icon = item.icon;
                             const isActive = pathname.startsWith(item.href);
                             return (
@@ -61,11 +74,40 @@ export function Header() {
                             Compliance
                         </Button>
                     </Link>
-                    <Link href="/login">
-                        <Button size="sm" className="bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90 transition-opacity">
-                            Login
-                        </Button>
-                    </Link>
+
+                    {isAuthenticated ? (
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                    <Avatar className="h-8 w-8">
+                                        <AvatarImage src={user?.avatar} alt={user?.name || 'User'} />
+                                        <AvatarFallback>{user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
+                                    </Avatar>
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                                <DropdownMenuLabel className="font-normal">
+                                    <div className="flex flex-col space-y-1">
+                                        <p className="text-sm font-medium leading-none">{user?.name || `${user?.firstName} ${user?.lastName}`}</p>
+                                        <p className="text-xs leading-none text-muted-foreground">
+                                            {user?.email}
+                                        </p>
+                                    </div>
+                                </DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={() => logout()}>
+                                    <LogOut className="mr-2 h-4 w-4" />
+                                    <span>Log out</span>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    ) : (
+                        <Link href="/login">
+                            <Button size="sm" className="bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90 transition-opacity">
+                                Login
+                            </Button>
+                        </Link>
+                    )}
                 </div>
             </div>
         </header>
