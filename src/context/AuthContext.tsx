@@ -1,8 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthState, AuthResponse } from '@/lib/types';
-import { useRouter, usePathname } from 'next/navigation';
+import { User, AuthState } from '@/lib/types';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface AuthContextType extends AuthState {
@@ -22,7 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: null,
     });
     const router = useRouter();
-    const pathname = usePathname();
 
     const checkAuth = async () => {
         try {

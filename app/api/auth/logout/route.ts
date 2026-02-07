@@ -3,7 +3,7 @@ import { cookies } from 'next/headers';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.arthsarthi.arqai.tech/api/v1';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
     try {
         const cookieStore = cookies();
         const accessToken = cookieStore.get('access_token');

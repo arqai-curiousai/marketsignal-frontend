@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Activity, MessageSquare, Library, Settings, Shield, LogOut, User } from 'lucide-react';
+import { Activity, MessageSquare, Library, Settings, Shield, LogOut } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
     DropdownMenu,
