@@ -160,7 +160,7 @@ export function LoginForm(): React.ReactElement {
         <Card className="w-full max-w-md border-slate-800/80 bg-slate-950/85 backdrop-blur-xl shadow-2xl">
             <CardHeader className="space-y-1 pb-4">
                 <CardTitle className="text-2xl font-bold text-slate-50">
-                    {state.step === 'email' ? 'Sign in to ArthSarthi' :
+                    {state.step === 'email' ? 'Sign in to Market Signal' :
                         state.step === 'register' ? 'Complete Profile' : 'Enter OTP'}
                 </CardTitle>
                 <CardDescription className="text-slate-400">

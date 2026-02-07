@@ -8,7 +8,7 @@ import { AuthProvider } from '@/context/AuthContext';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-    title: 'अर्थसारथी | ArthSarthi - Investment Research & Signals',
+    title: 'Market Signal - Investment Research & Signals by arQai',
     description: 'AI-powered investment research and signals platform by arQai. Real-time monitoring and sourced insights.',
 };
 

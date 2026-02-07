@@ -36,10 +36,8 @@ export function Header() {
                         <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-brand-emerald via-brand-blue to-brand-violet p-1.5">
                             <Activity className="h-full w-full text-white" />
                         </div>
-                        <div className="flex flex-col leading-none">
-                            <span className="text-xl font-bold tracking-tight gradient-text">अर्थसारथी</span>
-                            <span className="text-[10px] text-muted-foreground tracking-wide">powered by arQai</span>
-                        </div>
+                        <span className="text-xl font-bold tracking-tight gradient-text">Market Signal</span>
+                        <span className="text-xs text-muted-foreground/70 font-medium tracking-wide border-l border-white/10 pl-3">by arQai</span>
                     </Link>
 
                     <nav className="hidden md:flex items-center space-x-1">

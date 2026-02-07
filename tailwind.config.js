@@ -68,7 +68,7 @@ module.exports = {
                     border: 'hsl(var(--sidebar-border))',
                     ring: 'hsl(var(--sidebar-ring))'
                 },
-                // Custom ArthSarthi brand colors
+                // Custom Market Signal brand colors
                 brand: {
                     slate: '#0F1724',
                     emerald: '#6EE7B7',
