@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 // API key stored securely on server (not in NEXT_PUBLIC_*)
 const API_KEY = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY || '';
-const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const BACKEND_URL = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
