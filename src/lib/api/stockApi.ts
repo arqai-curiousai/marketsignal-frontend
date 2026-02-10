@@ -53,7 +53,7 @@ export async function getStocks(params: StockListParams = {}): Promise<ApiResult
         page: number;
         page_size: number;
         exchange: string;
-    }>('/stocks', {
+    }>('/api/stocks', {
         exchange: params.exchange || 'NASDAQ',
         page: params.page || 1,
         page_size: params.pageSize || 50,
@@ -121,7 +121,7 @@ export async function getOHLCV(params: OHLCVParams): Promise<ApiResult<IOHLCVRes
             vwap?: number;
         }>;
         count: number;
-    }>(`/stocks/${params.ticker}/ohlcv`, {
+    }>(`/api/stocks/${params.ticker}/ohlcv`, {
         exchange: params.exchange || 'NASDAQ',
         period: params.period || '1d',
         from_date: params.fromDate,
@@ -175,7 +175,7 @@ export async function getQuote(
         low: number;
         volume: number;
         timestamp: string;
-    }>(`/stocks/${ticker}/quote`, { exchange });
+    }>(`/api/stocks/${ticker}/quote`, { exchange });
 
     if (!result.success) {
         return result;
@@ -210,7 +210,7 @@ export async function getExchanges(): Promise<ApiResult<IExchange[]>> {
         name: string;
         country: string;
         stock_count: number;
-    }>>('/stocks/exchanges');
+    }>>('/api/stocks/exchanges');
 
     if (!result.success) {
         return result;
@@ -245,7 +245,7 @@ export async function getStockSignal(
         confidence: number;
         algo_name: string;
         generated_at: string;
-    }>(`/stocks/${ticker}/signal`, { exchange });
+    }>(`/api/stocks/${ticker}/signal`, { exchange });
 
     if (!result.success) {
         return result;

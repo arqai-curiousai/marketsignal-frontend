@@ -1,18 +1,12 @@
 /**
  * Type-safe API client for backend communication.
  * 
- * Implements:
- * - Generic fetch wrapper with error handling
- * - Request/response type safety
- * - Automatic JSON parsing
- * - Authentication header injection
+ * All requests use relative URLs so they go through the Next.js server,
+ * which proxies them to the backend via rewrites (next.config.js).
+ * This keeps the API key server-side only — never exposed to the browser.
  */
 
 import { IApiError } from '@/types/stock';
-
-// API configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
-const API_KEY = process.env.NEXT_PUBLIC_API_KEY || '';
 
 /**
  * API response wrapper for type-safe error handling
@@ -32,10 +26,12 @@ interface RequestOptions {
 }
 
 /**
- * Build URL with query parameters
+ * Build URL with query parameters (relative paths for browser security)
  */
 function buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined>): string {
-    const url = new URL(`${API_BASE_URL}${endpoint}`);
+    // Use relative URL — Next.js rewrites will proxy to the backend
+    const base = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+    const url = new URL(endpoint, base);
 
     if (params) {
         Object.entries(params).forEach(([key, value]) => {
@@ -64,11 +60,6 @@ async function request<T>(
         'Accept': 'application/json',
         ...headers,
     };
-
-    // Add API key if configured
-    if (API_KEY) {
-        requestHeaders['X-API-Key'] = API_KEY;
-    }
 
     try {
         const response = await fetch(url, {
