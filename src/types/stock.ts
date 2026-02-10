@@ -19,6 +19,20 @@ export interface IStock {
     lastPrice?: number;
     change?: number;
     changePercent?: number;
+    signal?: ISignal;
+}
+
+// =============================================================================
+// Signal Types
+// =============================================================================
+
+export type SignalAction = 'buy' | 'hold' | 'sell';
+
+export interface ISignal {
+    signal: SignalAction;
+    confidence: number;
+    algoName: string;
+    generatedAt: Date;
 }
 
 export interface IStockListResponse {
@@ -76,6 +90,10 @@ export interface IExchange {
     name: string;
     country: string;
     stockCount: number;
+    timezone?: string;
+    marketOpen?: string;
+    marketClose?: string;
+    isActive?: boolean;
 }
 
 // =============================================================================

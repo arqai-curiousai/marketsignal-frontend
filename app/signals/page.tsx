@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import {
     Star,
-    TrendingUp,
     Search,
     Loader2,
-    RefreshCw
+    RefreshCw,
+    Globe
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
@@ -16,32 +16,37 @@ import { cn } from '@/lib/utils';
 import { useWatchlist } from '@/src/hooks/useWatchlist';
 import { MyPicksList } from '@/components/signals/MyPicksList';
 import { AddToPicksButton } from '@/components/signals/AddToPicksButton';
-import { getStocks } from '@/src/lib/api/stockApi';
-import { IStock } from '@/types/stock';
+import { StockListItem } from '@/components/signals/StockListItem';
+import { getStocks, getExchanges } from '@/src/lib/api/stockApi';
+import { IStock, IExchange } from '@/types/stock';
+import type { SignalType } from '@/components/signals/SignalOrb';
 
-// Exchange tabs ordered per user requirement: NSE, BSE first, then America, then LSE
-const EXCHANGES = [
-    { id: 'NSE', name: 'NSE', flag: '🇮🇳' },
-    { id: 'BSE', name: 'BSE', flag: '🇮🇳' },
-    { id: 'NASDAQ', name: 'NASDAQ', flag: '🇺🇸' },
-    { id: 'NYSE', name: 'NYSE', flag: '🇺🇸' },
-    { id: 'LSE', name: 'LSE', flag: '🇬🇧' },
-];
+// Country code → flag emoji mapping
+const COUNTRY_FLAGS: Record<string, string> = {
+    US: '🇺🇸', IN: '🇮🇳', GB: '🇬🇧', CA: '🇨🇦', DE: '🇩🇪',
+    NL: '🇳🇱', HK: '🇭🇰', JP: '🇯🇵', SG: '🇸🇬', AU: '🇦🇺',
+    CN: '🇨🇳', AE: '🇦🇪',
+};
+
+
 
 /**
- * SignalsHub - Main signals page with My Picks and exchange tabs
+ * SignalsHub - Main signals page with My Picks and dynamic exchange tabs
  * 
  * Features:
  * - "My Picks" as default tab showing user's selected stocks
- * - Exchange tabs for browsing and adding stocks
+ * - Dynamic exchange tabs loaded from backend API (active only)
+ * - Signal orbs (Buy/Hold/Sell) via StockListItem component
+ * - Currency-aware pricing per exchange
  * - Smooth scrolling with 50 stock limit
- * - Modern tab design with gradients
  */
 export default function SignalsHub() {
     const [activeTab, setActiveTab] = useState('my-picks');
     const [searchQuery, setSearchQuery] = useState('');
     const [exchangeStocks, setExchangeStocks] = useState<IStock[]>([]);
     const [isLoadingStocks, setIsLoadingStocks] = useState(false);
+    const [exchanges, setExchanges] = useState<IExchange[]>([]);
+    const [isLoadingExchanges, setIsLoadingExchanges] = useState(true);
 
     const {
         items: watchlistItems,
@@ -53,6 +58,24 @@ export default function SignalsHub() {
         isInWatchlist,
         refresh: refreshWatchlist
     } = useWatchlist();
+
+    // Fetch exchanges from API on mount
+    useEffect(() => {
+        async function loadExchanges() {
+            setIsLoadingExchanges(true);
+            try {
+                const result = await getExchanges();
+                if (result.success) {
+                    setExchanges(result.data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch exchanges:', error);
+            } finally {
+                setIsLoadingExchanges(false);
+            }
+        }
+        loadExchanges();
+    }, []);
 
     // Fetch stocks when exchange tab is selected
     const fetchExchangeStocks = useCallback(async (exchange: string) => {
@@ -114,7 +137,7 @@ export default function SignalsHub() {
                         My Signals
                     </h1>
                     <p className="text-muted-foreground">
-                        Track your favorite stocks and discover new opportunities.
+                        Track your favorite stocks and discover new opportunities across global markets.
                     </p>
                 </div>
 
@@ -154,20 +177,32 @@ export default function SignalsHub() {
                             )}
                         </TabsTrigger>
 
-                        {/* Exchange Tabs */}
-                        {EXCHANGES.map((exchange) => (
-                            <TabsTrigger
-                                key={exchange.id}
-                                value={exchange.id}
-                                className={cn(
-                                    "data-[state=active]:bg-white/10 data-[state=active]:text-white",
-                                    "flex items-center gap-2 px-4 py-2"
-                                )}
-                            >
-                                <span>{exchange.flag}</span>
-                                {exchange.name}
-                            </TabsTrigger>
-                        ))}
+                        {/* Dynamic Exchange Tabs */}
+                        {isLoadingExchanges ? (
+                            <div className="flex items-center gap-2 px-4 py-2 text-muted-foreground">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                <span className="text-xs">Loading exchanges...</span>
+                            </div>
+                        ) : (
+                            exchanges.map((exchange) => (
+                                <TabsTrigger
+                                    key={exchange.code}
+                                    value={exchange.code}
+                                    className={cn(
+                                        "data-[state=active]:bg-white/10 data-[state=active]:text-white",
+                                        "flex items-center gap-2 px-3 py-2"
+                                    )}
+                                >
+                                    <span className="text-sm">{COUNTRY_FLAGS[exchange.country] || '🌐'}</span>
+                                    <span>{exchange.code}</span>
+                                    {exchange.stockCount > 0 && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-muted-foreground">
+                                            {exchange.stockCount}
+                                        </span>
+                                    )}
+                                </TabsTrigger>
+                            ))
+                        )}
                     </TabsList>
 
                     {/* Search - Only show for exchange tabs */}
@@ -190,9 +225,8 @@ export default function SignalsHub() {
                         items={watchlistItems}
                         isLoading={isLoadingWatchlist}
                         onRemove={handleRemoveStock}
-                        onSelectStock={(ticker, exchange) => {
-                            // Could navigate to stock detail page
-                            console.log('Selected stock:', ticker, exchange);
+                        onSelectStock={() => {
+                            // TODO: Navigate to stock detail page
                         }}
                     />
 
@@ -213,8 +247,8 @@ export default function SignalsHub() {
                 </TabsContent>
 
                 {/* Exchange Content */}
-                {EXCHANGES.map((exchange) => (
-                    <TabsContent key={exchange.id} value={exchange.id} className="mt-0">
+                {exchanges.map((exchange) => (
+                    <TabsContent key={exchange.code} value={exchange.code} className="mt-0">
                         {isLoadingStocks ? (
                             <div className="flex flex-col items-center justify-center py-16">
                                 <Loader2 className="h-8 w-8 animate-spin text-brand-blue mb-4" />
@@ -224,66 +258,40 @@ export default function SignalsHub() {
                             </div>
                         ) : exchangeStocks.length === 0 ? (
                             <div className="flex flex-col items-center justify-center py-16 border border-dashed border-white/10 rounded-2xl">
-                                <TrendingUp className="h-12 w-12 text-muted-foreground mb-4" />
+                                <Globe className="h-12 w-12 text-muted-foreground mb-4" />
                                 <h3 className="text-lg font-medium text-white mb-2">
                                     No stocks found
                                 </h3>
                                 <p className="text-muted-foreground">
                                     {searchQuery
                                         ? 'Try a different search term'
-                                        : `No ${exchange.name} stocks available`
+                                        : `No ${exchange.name} stocks available yet`
                                     }
                                 </p>
                             </div>
                         ) : (
-                            <div className="space-y-3 max-h-[600px] overflow-y-auto scroll-smooth pr-2 custom-scrollbar">
+                            <div className="space-y-1 max-h-[600px] overflow-y-auto scroll-smooth pr-2 custom-scrollbar">
                                 <AnimatePresence>
-                                    {exchangeStocks.map((stock, index) => (
-                                        <motion.div
+                                    {exchangeStocks.map((stock) => (
+                                        <div
                                             key={`${stock.ticker}-${stock.exchange}`}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.02 }}
-                                            className={cn(
-                                                "flex items-center justify-between p-4 rounded-xl",
-                                                "bg-white/5 border border-white/10 hover:bg-white/10",
-                                                "transition-colors duration-200"
-                                            )}
+                                            className="flex items-center gap-2"
                                         >
-                                            {/* Stock Info */}
-                                            <div className="flex items-center gap-4 flex-1 min-w-0">
-                                                <div className="p-2 rounded-lg bg-white/10">
-                                                    <TrendingUp className="h-4 w-4 text-brand-emerald" />
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="font-bold text-white text-lg">
-                                                            {stock.ticker}
-                                                        </span>
-                                                        <span className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-muted-foreground">
-                                                            {stock.exchange}
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-sm text-muted-foreground truncate">
-                                                        {stock.name || stock.ticker}
-                                                    </p>
-                                                </div>
+                                            <div className="flex-1">
+                                                <StockListItem
+                                                    ticker={stock.ticker}
+                                                    name={stock.name || stock.ticker}
+                                                    exchange={stock.exchange}
+                                                    signal={(stock.signal?.signal as SignalType) || 'hold'}
+                                                    price={stock.lastPrice}
+                                                    change={stock.change}
+                                                    changePercent={stock.changePercent}
+                                                    confidence={stock.signal?.confidence}
+                                                    onSelect={() => {
+                                                        // TODO: Navigate to stock detail page
+                                                    }}
+                                                />
                                             </div>
-
-                                            {/* Price (if available) */}
-                                            <div className="text-right mx-4">
-                                                {stock.lastPrice !== undefined && stock.lastPrice !== null ? (
-                                                    <div className="text-lg font-semibold text-white">
-                                                        ₹{stock.lastPrice.toLocaleString('en-IN', {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2
-                                                        })}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-muted-foreground">--</span>
-                                                )}
-                                            </div>
-
                                             {/* Add to Picks Button */}
                                             <AddToPicksButton
                                                 ticker={stock.ticker}
@@ -292,7 +300,7 @@ export default function SignalsHub() {
                                                 onAdd={() => handleAddStock(stock.ticker, stock.exchange)}
                                                 onRemove={() => handleRemoveStock(stock.ticker, stock.exchange)}
                                             />
-                                        </motion.div>
+                                        </div>
                                     ))}
                                 </AnimatePresence>
                             </div>
