@@ -6,12 +6,15 @@
 export interface WatchlistItem {
     ticker: string;
     exchange: string;
+    instrument_type: string;
     stock_name: string | null;
     added_at: string;
     notes: string | null;
+    signal_active: boolean;
     last_price: number | null;
     change: number | null;
     change_percent: number | null;
+    currency?: string;
 }
 
 export interface WatchlistResponse {
@@ -48,6 +51,10 @@ export async function getWatchlist(): Promise<WatchlistResponse> {
         credentials: 'include',
     });
 
+    if (response.status === 401) {
+        throw new Error('Unauthorized');
+    }
+
     if (!response.ok) {
         throw new Error('Failed to fetch watchlist');
     }
@@ -61,7 +68,8 @@ export async function getWatchlist(): Promise<WatchlistResponse> {
 export async function addToWatchlist(
     ticker: string,
     exchange: string,
-    notes?: string
+    notes?: string,
+    instrumentType?: string
 ): Promise<WatchlistStatusResponse> {
     const response = await fetch('/api/watchlist', {
         method: 'POST',
@@ -69,7 +77,12 @@ export async function addToWatchlist(
         headers: {
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ticker, exchange, notes }),
+        body: JSON.stringify({
+            ticker,
+            exchange,
+            notes,
+            ...(instrumentType && { instrument_type: instrumentType }),
+        }),
     });
 
     if (!response.ok) {

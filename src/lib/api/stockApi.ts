@@ -266,6 +266,13 @@ export async function getStockSignal(
 // Export all functions
 // =============================================================================
 
+// =============================================================================
+// Instruments (NSE / Currency / Commodity)
+// =============================================================================
+
+export { getInstruments } from './signalApi';
+export { getMarketStatus, activateSignal, deactivateSignal, getActiveSignals } from './signalApi';
+
 export const stockApi = {
     getStocks,
     getOHLCV,

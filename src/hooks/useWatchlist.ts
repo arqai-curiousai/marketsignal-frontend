@@ -31,13 +31,15 @@ interface UseWatchlistReturn {
     /** Error message if any */
     error: string | null;
     /** Add a stock to watchlist */
-    addStock: (ticker: string, exchange: string, notes?: string) => Promise<boolean>;
+    addStock: (ticker: string, exchange: string, notes?: string, instrumentType?: string) => Promise<boolean>;
     /** Remove a stock from watchlist */
     removeStock: (ticker: string, exchange: string) => Promise<boolean>;
     /** Check if stock is in watchlist */
     isInWatchlist: (ticker: string, exchange: string) => boolean;
     /** Refresh watchlist data */
     refresh: () => Promise<void>;
+    /** User authentication status */
+    isAuthenticated: boolean;
 }
 
 export function useWatchlist(): UseWatchlistReturn {
@@ -46,6 +48,7 @@ export function useWatchlist(): UseWatchlistReturn {
     const [maxSize, setMaxSize] = useState(50);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isAuthenticated, setIsAuthenticated] = useState(true);
 
     // Build a Set for O(1) lookup
     const [watchlistSet, setWatchlistSet] = useState<Set<string>>(new Set());
@@ -64,6 +67,7 @@ export function useWatchlist(): UseWatchlistReturn {
             setItems(data.items);
             setCount(data.count);
             setMaxSize(data.max_size);
+            setIsAuthenticated(true);
 
             // Build lookup set
             const set = new Set(
@@ -72,8 +76,15 @@ export function useWatchlist(): UseWatchlistReturn {
             setWatchlistSet(set);
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to load watchlist';
-            setError(message);
-            console.error('Watchlist fetch error:', err);
+            if (message === 'Unauthorized') {
+                setIsAuthenticated(false);
+                setItems([]);
+                setCount(0);
+                setWatchlistSet(new Set());
+            } else {
+                setError(message);
+                console.error('Watchlist fetch error:', err);
+            }
         } finally {
             setIsLoading(false);
         }
@@ -86,7 +97,13 @@ export function useWatchlist(): UseWatchlistReturn {
 
     // Add stock to watchlist
     const addStock = useCallback(
-        async (ticker: string, exchange: string, notes?: string): Promise<boolean> => {
+        async (ticker: string, exchange: string, notes?: string, instrumentType?: string): Promise<boolean> => {
+            if (!isAuthenticated) {
+                // Should be handled by UI, but safety check
+                window.location.href = '/login?from=/signals';
+                return false;
+            }
+
             const key = getStockKey(ticker, exchange);
 
             // Check if already in watchlist
@@ -105,7 +122,7 @@ export function useWatchlist(): UseWatchlistReturn {
             setWatchlistSet((prev) => new Set(prev).add(key));
 
             try {
-                await addToWatchlist(ticker, exchange, notes);
+                await addToWatchlist(ticker, exchange, notes, instrumentType);
                 toast.success(`${ticker} added to your picks`);
                 // Refresh to get full data
                 await fetchWatchlist();
@@ -122,7 +139,7 @@ export function useWatchlist(): UseWatchlistReturn {
                 return false;
             }
         },
-        [watchlistSet, count, maxSize, fetchWatchlist]
+        [watchlistSet, count, maxSize, fetchWatchlist, isAuthenticated]
     );
 
     // Remove stock from watchlist
@@ -176,6 +193,7 @@ export function useWatchlist(): UseWatchlistReturn {
         remaining: maxSize - count,
         isLoading,
         error,
+        isAuthenticated,
         addStock,
         removeStock,
         isInWatchlist,

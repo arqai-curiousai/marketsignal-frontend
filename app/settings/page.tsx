@@ -1,51 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Database, Palette, Bell, Save, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { Database, Palette, Bell } from 'lucide-react';
 
 export default function SettingsPage() {
-    const [sources, setSources] = useState([
-        { id: 'newsapi', name: 'NewsAPI', enabled: true, type: 'NEWS' },
-        { id: 'alphavantage', name: 'Alpha Vantage', enabled: true, type: 'MARKET_DATA' },
-        { id: 'sec', name: 'SEC EDGAR', enabled: false, type: 'FILINGS' },
-        { id: 'twitter', name: 'Sentiment Feed', enabled: true, type: 'SOCIAL' },
-    ]);
-
-    const handleToggle = (id: string) => {
-        setSources(prev => prev.map(s => s.id === id ? { ...s, enabled: !s.enabled } : s));
-    };
-
-    const handleSave = () => {
-        toast.success('Settings saved successfully');
-    };
-
     return (
         <div className="container py-12 px-6 max-w-4xl">
             <div className="mb-12">
                 <h1 className="text-4xl font-bold text-white mb-2">Settings</h1>
-                <p className="text-muted-foreground">Manage your data sources, preferences, and platform configuration.</p>
+                <p className="text-muted-foreground">Platform configuration and preferences.</p>
             </div>
 
             <div className="space-y-8">
-                {/* Data Sources */}
+                {/* Active Data Sources (read-only, reflects actual backend config) */}
                 <section>
                     <div className="flex items-center gap-2 mb-6">
                         <Database className="h-5 w-5 text-brand-blue" />
-                        <h2 className="text-xl font-bold text-white">Data Sources</h2>
+                        <h2 className="text-xl font-bold text-white">Active Data Sources</h2>
                     </div>
                     <Card className="bg-white/5 border-white/10 divide-y divide-white/5">
-                        {sources.map((source) => (
-                            <div key={source.id} className="p-6 flex items-center justify-between">
+                        {[
+                            { name: 'FCSAPI', type: 'MARKET_DATA', desc: 'Forex, commodities, fundamentals, news' },
+                            { name: 'Kite Connect', type: 'NSE', desc: 'NSE live quotes, historical data, F&O' },
+                            { name: 'Qdrant Cloud', type: 'VECTOR_STORE', desc: 'Vector embeddings for RAG search' },
+                        ].map((source) => (
+                            <div key={source.name} className="p-6 flex items-center justify-between">
                                 <div className="flex items-center gap-4">
-                                    <div className="h-10 w-10 rounded-xl bg-white/5 flex items-center justify-center text-white/50">
-                                        <RefreshCw className="h-5 w-5" />
-                                    </div>
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <span className="font-medium text-white">{source.name}</span>
@@ -53,15 +37,12 @@ export default function SettingsPage() {
                                                 {source.type}
                                             </Badge>
                                         </div>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {source.enabled ? 'Connected and syncing' : 'Disconnected'}
-                                        </p>
+                                        <p className="text-xs text-muted-foreground mt-1">{source.desc}</p>
                                     </div>
                                 </div>
-                                <Switch
-                                    checked={source.enabled}
-                                    onCheckedChange={() => handleToggle(source.id)}
-                                />
+                                <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
+                                    Active
+                                </Badge>
                             </div>
                         ))}
                     </Card>
@@ -78,7 +59,7 @@ export default function SettingsPage() {
                             <div>
                                 <span className="font-medium text-white">Dark-First Gradient Theme</span>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Our signature deep slate and emerald/blue/violet accent theme.
+                                    Signature deep slate with emerald/blue/violet accents.
                                 </p>
                             </div>
                             <Badge variant="default" className="bg-brand-blue/20 text-brand-blue border-brand-blue/30">Active</Badge>
@@ -103,13 +84,6 @@ export default function SettingsPage() {
                         </div>
                     </Card>
                 </section>
-
-                <div className="pt-8 flex justify-end">
-                    <Button onClick={handleSave} className="bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90 px-8 h-12">
-                        <Save className="h-4 w-4 mr-2" />
-                        Save Changes
-                    </Button>
-                </div>
             </div>
         </div>
     );

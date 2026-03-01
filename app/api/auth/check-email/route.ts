@@ -7,7 +7,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     try {
         const body = await request.json();
 
-        const response = await fetch(`${API_BASE}/auth/verify-otp`, {
+        const response = await fetch(`${API_BASE}/auth/check-email`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -19,22 +19,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
         if (!response.ok) {
             return NextResponse.json(
-                { error: data.detail || 'Invalid OTP' },
+                { error: data.detail || 'Failed to check email' },
                 { status: response.status }
             );
         }
 
-        const res = NextResponse.json(data);
-
-        // Forward all Set-Cookie headers from backend response
-        const setCookies = response.headers.getSetCookie();
-        for (const cookie of setCookies) {
-            res.headers.append('Set-Cookie', cookie);
-        }
-
-        return res;
+        return NextResponse.json(data);
     } catch (error) {
-        console.error('Verify OTP error:', error);
+        console.error('Check email error:', error);
         return NextResponse.json(
             { error: 'Internal server error' },
             { status: 500 }

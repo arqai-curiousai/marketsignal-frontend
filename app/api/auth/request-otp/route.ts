@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { BACKEND_URL } from '@/lib/api/backendUrl';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://backend.arthsarthi.arqai.tech/api/v1';
+const API_BASE = BACKEND_URL;
 
 export async function POST(request: NextRequest): Promise<NextResponse> {
     try {

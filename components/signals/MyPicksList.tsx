@@ -6,12 +6,16 @@ import { Star, TrendingUp, TrendingDown, Minus, Trash2, Loader2 } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { WatchlistItem } from '@/src/lib/api/watchlistApi';
+import { SignalToggle } from './SignalToggle';
+import type { IAISignal } from '@/types/stock';
 
 interface MyPicksListProps {
     items: WatchlistItem[];
     isLoading: boolean;
     onRemove: (ticker: string, exchange: string) => Promise<boolean>;
     onSelectStock?: (ticker: string, exchange: string) => void;
+    /** Map of "TICKER:EXCHANGE" -> AI signal data */
+    activeSignals?: Record<string, IAISignal>;
 }
 
 /**
@@ -23,7 +27,7 @@ interface MyPicksListProps {
  * - Price change indicators
  * - Remove functionality with confirmation
  */
-export function MyPicksList({ items, isLoading, onRemove, onSelectStock }: MyPicksListProps) {
+export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeSignals = {} }: MyPicksListProps) {
     const [removingStock, setRemovingStock] = React.useState<string | null>(null);
 
     const handleRemove = async (ticker: string, exchange: string) => {
@@ -45,6 +49,16 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock }: MyPic
         if (changePercent > 0) return 'text-green-400';
         if (changePercent < 0) return 'text-red-400';
         return 'text-muted-foreground';
+    };
+
+    const getCurrencySymbol = (curr?: string) => {
+        switch (curr?.toUpperCase()) {
+            case 'INR': return '₹';
+            case 'EUR': return '€';
+            case 'GBP': return '£';
+            case 'JPY': return '¥';
+            default: return '$';
+        }
     };
 
     // Loading state
@@ -124,7 +138,7 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock }: MyPic
                                 {item.last_price !== null ? (
                                     <>
                                         <div className="text-lg font-semibold text-white">
-                                            ₹{item.last_price.toLocaleString('en-IN', {
+                                            {getCurrencySymbol(item.currency)}{item.last_price?.toLocaleString('en-US', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2
                                             })}
@@ -142,6 +156,17 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock }: MyPic
                                 ) : (
                                     <span className="text-muted-foreground">--</span>
                                 )}
+                            </div>
+
+                            {/* Signal Toggle + AI Signal */}
+                            <div onClick={(e) => e.stopPropagation()}>
+                                <SignalToggle
+                                    ticker={item.ticker}
+                                    exchange={item.exchange}
+                                    instrumentType={item.instrument_type}
+                                    isActive={item.signal_active}
+                                    signal={activeSignals[`${item.ticker}:${item.exchange}`] || null}
+                                />
                             </div>
 
                             {/* Right: Remove Button */}

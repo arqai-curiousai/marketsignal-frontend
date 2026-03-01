@@ -1,6 +1,5 @@
 import { IDataSource } from '../datasources/types/IDataSource';
 import { NewsApiAdapter } from '../datasources/adapters/newsApiAdapter';
-import { AlphaVantageAdapter } from '../datasources/adapters/alphaVantageAdapter';
 
 /**
  * Source Registry - Factory pattern for managing data source adapters
@@ -18,7 +17,6 @@ export class SourceRegistry {
    */
   private registerDefaultSources(): void {
     this.register(new NewsApiAdapter(true));
-    this.register(new AlphaVantageAdapter(true));
   }
 
   /**

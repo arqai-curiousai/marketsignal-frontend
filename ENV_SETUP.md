@@ -6,14 +6,14 @@ Create a `.env.local` file in the frontend root directory with the following con
 
 ```env
 # ===========================================
-# Legal AI Assistant Frontend Configuration
+# MarketSignal AI Frontend Configuration
 # ===========================================
 
 # API Configuration
 NEXT_PUBLIC_API_URL="https://api.yourdomain.com/api"
 
 # App Configuration
-NEXT_PUBLIC_APP_NAME="Legal AI Assistant"
+NEXT_PUBLIC_APP_NAME="MarketSignal AI"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 
 # Development Configuration (for local development)
@@ -25,21 +25,21 @@ NEXT_PUBLIC_APP_VERSION="1.0.0"
 ### Production (.env.production)
 ```env
 NEXT_PUBLIC_API_URL="https://api.yourdomain.com/api"
-NEXT_PUBLIC_APP_NAME="Legal AI Assistant"
+NEXT_PUBLIC_APP_NAME="MarketSignal AI"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 ```
 
 ### Development (.env.local)
 ```env
 NEXT_PUBLIC_API_URL="http://localhost:8000/api"
-NEXT_PUBLIC_APP_NAME="Legal AI Assistant"
+NEXT_PUBLIC_APP_NAME="MarketSignal AI"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 ```
 
 ### Testing (.env.test)
 ```env
 NEXT_PUBLIC_API_URL="http://localhost:8000/api"
-NEXT_PUBLIC_APP_NAME="Legal AI Assistant Test"
+NEXT_PUBLIC_APP_NAME="MarketSignal AI Test"
 NEXT_PUBLIC_APP_VERSION="1.0.0"
 ```
 

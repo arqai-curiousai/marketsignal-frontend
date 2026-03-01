@@ -15,6 +15,7 @@ interface StockListItemProps {
     change?: number | null;
     changePercent?: number | null;
     confidence?: number;
+    currency?: string;
     onSelect?: () => void;
     className?: string;
 }
@@ -33,6 +34,7 @@ export function StockListItem({
     change,
     changePercent,
     confidence,
+    currency = 'USD',
     onSelect,
     className,
 }: StockListItemProps) {
@@ -45,6 +47,16 @@ export function StockListItem({
         buy: 'border-l-4 border-l-green-500',
         hold: 'border-l-4 border-l-slate-300',
         sell: 'border-l-4 border-l-red-500',
+    };
+
+    const getCurrencySymbol = (curr: string) => {
+        switch (curr?.toUpperCase()) {
+            case 'INR': return '₹';
+            case 'EUR': return '€';
+            case 'GBP': return '£';
+            case 'JPY': return '¥';
+            default: return '$';
+        }
     };
 
     return (
@@ -105,7 +117,7 @@ export function StockListItem({
                     {price != null ? (
                         <>
                             <div className="font-mono font-medium text-white text-base">
-                                ${price.toFixed(2)}
+                                {getCurrencySymbol(currency)}{price.toFixed(2)}
                             </div>
                             <div className={cn(
                                 "flex items-center justify-end gap-1 text-xs font-medium",
@@ -127,8 +139,7 @@ export function StockListItem({
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            // Navigate to analytics (placeholder for now)
-                            window.location.href = `/stocks/${ticker}`;
+                            onSelect?.();
                         }}
                         className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
                         title="View Analytics"

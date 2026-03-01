@@ -60,7 +60,7 @@
 │                                                                              │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐            │
 │  │ RAG Orchestrator│  │   APScheduler   │  │  Rate Limiter   │            │
-│  │ (OpenAI + FAISS)│  │ (Background Jobs)│  │    (Redis)      │            │
+│  │ (OpenAI+Qdrant) │  │ (Background Jobs)│  │ Content Filter  │            │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘            │
 │                                                                              │
 │  ┌───────────────────────────────────────────────────────────────────────┐  │
@@ -72,17 +72,17 @@
                                   ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           Data Storage                                       │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │
-│  │   MongoDB   │  │    Redis    │  │   S3/MinIO  │  │ Vector Store│        │
-│  │ (Documents) │  │  (Caching)  │  │  (Archives) │  │   (FAISS)   │        │
-│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘        │
+│  ┌─────────────────────┐  ┌─────────────┐  ┌─────────────────┐              │
+│  │  MongoDB (hot data) │  │   S3/MinIO  │  │ Qdrant Cloud    │              │
+│  │  (stocks, signals)  │  │  (archives) │  │ (vector search) │              │
+│  └─────────────────────┘  └─────────────┘  └─────────────────┘              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Directory Structure
 
 ```
-signal_ai/
+si/
 ├── prod/
 │   ├── backend/
 │   │   └── app/
@@ -94,11 +94,11 @@ signal_ai/
 │   │       ├── ai/                  # AI/ML components
 │   │       │   ├── rag.py           # RAG orchestrator
 │   │       │   ├── embeddings.py    # Text embeddings
-│   │       │   └── vector_store.py  # FAISS/Pinecone wrapper
+│   │       │   └── vector_store.py  # Qdrant/FAISS wrapper
 │   │       ├── core/                # Core infrastructure
 │   │       │   ├── config.py        # Pydantic settings
 │   │       │   ├── scheduler.py     # APScheduler jobs
-│   │       │   └── rate_limiter.py  # Redis rate limiting
+│   │       │   └── auth.py          # JWT + API key auth
 │   │       ├── datasources/         # External data integrations
 │   │       │   ├── fcsapi.py        # FCSAPI (stocks, fundamentals)
 │   │       │   ├── newsapi.py       # News aggregation
@@ -141,11 +141,13 @@ signal_ai/
 | Technology | Purpose |
 |------------|---------|
 | **FastAPI** | High-performance async Python web framework |
-| **MongoDB + Beanie** | Document database with async ODM |
-| **Redis** | Rate limiting, caching, session store |
+| **MongoDB + Beanie** | Document database with async ODM (hot data) |
+| **S3/MinIO** | Cold storage for historical archives |
 | **APScheduler** | Background job scheduling |
 | **OpenAI GPT-4** | LLM for research Q&A |
-| **FAISS / Pinecone** | Vector similarity search |
+| **Qdrant Cloud** | Vector similarity search for RAG |
+| **FCSAPI** | Forex, commodities, fundamentals, news |
+| **Kite Connect** | NSE live, historical, F&O data |
 | **Pydantic** | Data validation and settings |
 | **Prometheus** | Application metrics |
 
@@ -168,7 +170,7 @@ signal_ai/
 
 The FastAPI application is created using a factory pattern with:
 
-1. **Lifespan Manager**: Initializes MongoDB, Redis rate limiter, and scheduler on startup
+1. **Lifespan Manager**: Initializes MongoDB and APScheduler on startup
 2. **CORS Middleware**: Configured via environment variables
 3. **Request Logging**: Logs all requests with Prometheus metrics
 4. **Global Exception Handler**: Catches unhandled errors gracefully
@@ -176,7 +178,6 @@ The FastAPI application is created using a factory pattern with:
 ```python
 # Key components initialized at startup
 await init_db()  # MongoDB/Beanie connection
-app.state.rate_limiter = RateLimiter(...)  # Redis-backed
 app.state.scheduler = await start_scheduler()  # APScheduler
 ```
 
@@ -210,6 +211,7 @@ The system uses a passwordless, OTP-based authentication flow secured by JWTs.
 | `/{ticker}/quote` | GET | Real-time price quote |
 | `/exchanges` | GET | List available exchanges with stock counts |
 | `/custom/sync-prices` | POST | Batch sync prices from FCSAPI |
+
 
 #### Signals API (`/api/signals`)
 
@@ -255,7 +257,6 @@ Automated data ingestion runs on a schedule:
 | Job | Schedule | Description |
 |-----|----------|-------------|
 | NSE Bhavcopy | Daily 6:00 PM IST | Indian market EOD data |
-| AMFI NAV | Daily 11:00 PM IST | Mutual fund NAVs |
 | News Fetch | Every 60 minutes | Market news aggregation |
 | Intraday OHLCV | Every 5 minutes | Live price data |
 | Daily OHLCV | EOD | End-of-day candles |
@@ -494,9 +495,6 @@ TIMEZONE=Asia/Kolkata
 MONGODB_URL=mongodb://localhost:27017
 MONGODB_DB_NAME=signal_ai
 
-# Redis
-REDIS_URL=redis://localhost:6379
-
 # External APIs
 FCSAPI_ACCESS_KEY=your_fcsapi_key
 NEWS_API_KEY=your_newsapi_key
@@ -533,7 +531,6 @@ NEXT_PUBLIC_API_KEY=dev-key-123
 - Python 3.11+
 - Node.js 18+
 - MongoDB 6+
-- Redis 7+
 
 ### Backend
 

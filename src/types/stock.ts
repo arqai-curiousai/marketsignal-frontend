@@ -97,6 +97,63 @@ export interface IExchange {
 }
 
 // =============================================================================
+// AI Signal Types (Dual Agent Pipeline)
+// =============================================================================
+
+export interface IAISignal {
+    action: 'BUY' | 'SELL' | 'HOLD';
+    confidence: number;
+    conflictType: 'divergence' | 'alignment' | 'uncertain';
+    marketMakerBias: string;
+    retailBias: string;
+    reasoning: string;
+    priceAtSignal?: number;
+    generatedAt: string;
+    isEod: boolean;
+}
+
+export interface IInstrument {
+    ticker: string;
+    name: string;
+    instrumentType: 'equity' | 'currency' | 'commodity';
+    exchange: string;
+    price?: number;
+    change?: number;
+    changePercent?: number;
+    currency: string;
+}
+
+export interface IMarketStatus {
+    nse: {
+        is_open: boolean;
+        timezone: string;
+        market_open: string;
+        market_close: string;
+        next_open?: string;
+        next_close?: string;
+    };
+    forex: {
+        is_open: boolean;
+        timezone: string;
+    };
+    commodity: {
+        is_open: boolean;
+        timezone: string;
+        market_open: string;
+        market_close: string;
+    };
+}
+
+export interface IActiveSignalItem {
+    ticker: string;
+    exchange: string;
+    instrumentType: string;
+    stockName?: string;
+    signal: IAISignal | null;
+    isEod: boolean;
+}
+
+// =============================================================================
 // API Error Type
 // =============================================================================
 

@@ -75,4 +75,6 @@ __pycache__/
 dist/
 build/
 coverage/
-EOF
+
+# TypeScript build cache
+tsconfig.tsbuildinfo

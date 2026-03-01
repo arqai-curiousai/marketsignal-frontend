@@ -1,16 +1,50 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BarChart2 } from 'lucide-react';
+import { ArrowLeft, BarChart2, Loader2 } from 'lucide-react';
 import NextLink from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { apiClient } from '@/lib/api/client';
+
+interface StockOHLCV {
+    timestamp: string;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+}
 
 export default function StockAnalyticsPage() {
     const params = useParams();
     const ticker = typeof params.ticker === 'string' ? params.ticker.toUpperCase() : '';
+    const [ohlcv, setOhlcv] = useState<StockOHLCV[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (!ticker) return;
+        async function fetchData() {
+            try {
+                const response = await apiClient.get(`/api/stocks/${ticker}/ohlcv`, {
+                    params: { period: '1d', limit: 30 },
+                });
+                setOhlcv(response.data?.bars ?? response.data ?? []);
+            } catch {
+                console.warn(`Failed to fetch OHLCV for ${ticker}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [ticker]);
+
+    const latestBar = ohlcv.length > 0 ? ohlcv[0] : null;
+    const prevBar = ohlcv.length > 1 ? ohlcv[1] : null;
+    const highestHigh = ohlcv.length > 0 ? Math.max(...ohlcv.map(b => b.high)) : null;
+    const lowestLow = ohlcv.length > 0 ? Math.min(...ohlcv.map(b => b.low)) : null;
 
     return (
         <div className="container py-12 px-6 max-w-7xl mx-auto">
@@ -23,7 +57,7 @@ export default function StockAnalyticsPage() {
                 <NextLink href="/stocks">
                     <Button variant="ghost" className="text-muted-foreground hover:text-white pl-0 gap-2">
                         <ArrowLeft className="h-4 w-4" />
-                        Back to Stock Signals
+                        Back to Stocks
                     </Button>
                 </NextLink>
             </motion.div>
@@ -41,51 +75,82 @@ export default function StockAnalyticsPage() {
                         <div className="flex items-center gap-3 mb-2">
                             <h1 className="text-4xl font-bold text-white">{ticker}</h1>
                             <Badge variant="outline" className="border-white/20 text-white/50">
-                                NASDAQ
+                                Stock
                             </Badge>
                         </div>
-                        <p className="text-lg text-muted-foreground">Detailed Analytics & Algo Signals</p>
+                        <p className="text-lg text-muted-foreground">Stock Analytics</p>
                     </div>
                 </div>
 
-                {/* Placeholder Content Area */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Main Chart Placeholder */}
+                    {/* Main Chart Area */}
                     <div className="md:col-span-2 h-[400px] rounded-2xl bg-white/5 border border-white/10 flex flex-col items-center justify-center p-8 text-center">
-                        <BarChart2 className="h-16 w-16 text-brand-blue mb-4 opacity-50" />
-                        <h3 className="text-xl font-medium text-white mb-2">Technical Analysis Chart</h3>
-                        <p className="text-muted-foreground max-w-md">
-                            Interactive charts with algorithm overlays coming in the next phase.
-                        </p>
+                        {loading ? (
+                            <Loader2 className="h-12 w-12 animate-spin text-muted-foreground" />
+                        ) : ohlcv.length === 0 ? (
+                            <>
+                                <BarChart2 className="h-16 w-16 text-brand-blue mb-4 opacity-50" />
+                                <h3 className="text-xl font-medium text-white mb-2">No Data Available</h3>
+                                <p className="text-muted-foreground max-w-md">
+                                    OHLCV data for {ticker} is not yet available. Data will appear once the pipeline syncs this stock.
+                                </p>
+                            </>
+                        ) : (
+                            <>
+                                <BarChart2 className="h-16 w-16 text-brand-blue mb-4 opacity-50" />
+                                <h3 className="text-xl font-medium text-white mb-2">
+                                    {ohlcv.length} Trading Days Loaded
+                                </h3>
+                                <p className="text-muted-foreground max-w-md">
+                                    Latest close: <span className="text-white font-mono">${latestBar?.close.toFixed(2)}</span>
+                                    {prevBar && (
+                                        <span className={latestBar && latestBar.close >= prevBar.close ? ' text-emerald-400' : ' text-red-400'}>
+                                            {' '}({((latestBar!.close - prevBar.close) / prevBar.close * 100).toFixed(2)}%)
+                                        </span>
+                                    )}
+                                </p>
+                            </>
+                        )}
                     </div>
 
-                    {/* Stats / Signals */}
+                    {/* Stats / Key Levels */}
                     <div className="space-y-6">
                         <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-                                Signal Strength
+                                Latest Price
                             </h3>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="h-3 w-3 rounded-full bg-slate-300 animate-pulse" />
-                                <span className="text-2xl font-bold text-white">Neutral</span>
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                                Algorithm is currently watching for a breakout pattern.
-                            </p>
+                            {loading ? (
+                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                            ) : latestBar ? (
+                                <>
+                                    <span className="text-2xl font-bold text-white font-mono">
+                                        ${latestBar.close.toFixed(2)}
+                                    </span>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        Vol: {latestBar.volume.toLocaleString()}
+                                    </p>
+                                </>
+                            ) : (
+                                <span className="text-muted-foreground">--</span>
+                            )}
                         </div>
 
                         <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-                                Key Levels
+                                Key Levels ({ohlcv.length}d Range)
                             </h3>
                             <div className="space-y-3">
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Resistance</span>
-                                    <span className="text-red-400 font-mono">Loading...</span>
+                                    <span className="text-muted-foreground">Resistance (High)</span>
+                                    <span className="text-red-400 font-mono">
+                                        {highestHigh !== null ? `$${highestHigh.toFixed(2)}` : '--'}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
-                                    <span className="text-muted-foreground">Support</span>
-                                    <span className="text-emerald-400 font-mono">Loading...</span>
+                                    <span className="text-muted-foreground">Support (Low)</span>
+                                    <span className="text-emerald-400 font-mono">
+                                        {lowestLow !== null ? `$${lowestLow.toFixed(2)}` : '--'}
+                                    </span>
                                 </div>
                             </div>
                         </div>
