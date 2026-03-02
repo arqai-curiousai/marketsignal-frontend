@@ -128,7 +128,7 @@ function AlgoTab({ data }: { data: IAlgoPerformance[] }) {
 
 export function AlgoPerformanceCard({ performance }: AlgoPerformanceCardProps) {
   // Group performance by algo name
-  const algoNames = [...new Set(performance.map((p) => p.algoName))];
+  const algoNames = Array.from(new Set(performance.map((p) => p.algoName)));
 
   if (algoNames.length === 0) {
     return (

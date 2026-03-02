@@ -51,10 +51,10 @@ export default function LandingPage() {
                         className="mt-24 grid grid-cols-2 md:grid-cols-4 gap-8 border-y border-white/5 py-12"
                     >
                         {[
-                            { label: 'Latency', value: '< 800ms' },
-                            { label: 'Sources per Answer', value: '12+' },
-                            { label: 'Signals Monitored', value: '50k+' },
-                            { label: 'Accuracy Rating', value: '99.4%' },
+                            { label: 'Markets', value: 'NSE, FX, MCX' },
+                            { label: 'AI Agents', value: 'Dual Pipeline' },
+                            { label: 'Coverage', value: 'NIFTY 50+' },
+                            { label: 'Updates', value: 'Every 5 min' },
                         ].map((stat) => (
                             <div key={stat.label}>
                                 <div className="text-3xl font-bold text-white mb-1">{stat.value}</div>

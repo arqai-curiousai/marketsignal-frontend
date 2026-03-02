@@ -28,10 +28,16 @@ export default function StockAnalyticsPage() {
         if (!ticker) return;
         async function fetchData() {
             try {
-                const response = await apiClient.get(`/api/stocks/${ticker}/ohlcv`, {
-                    params: { period: '1d', limit: 30 },
-                });
-                setOhlcv(response.data?.bars ?? response.data ?? []);
+                const response = await apiClient.get<{ bars?: StockOHLCV[] } | StockOHLCV[]>(
+                    `/api/stocks/${ticker}/ohlcv`,
+                    { period: '1d', limit: 30 },
+                );
+                if (response.success) {
+                    const d = response.data;
+                    setOhlcv(
+                        Array.isArray(d) ? d : (d as { bars?: StockOHLCV[] }).bars ?? [],
+                    );
+                }
             } catch {
                 console.warn(`Failed to fetch OHLCV for ${ticker}`);
             } finally {

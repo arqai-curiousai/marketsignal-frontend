@@ -11,7 +11,7 @@ interface StockSignalCardProps {
     ticker: string;
     name: string;
     exchange: string;
-    signal: SignalType;
+    signal: SignalType | null;
     price?: number | null;
     change?: number | null;
     changePercent?: number | null;
@@ -43,7 +43,7 @@ export function StockSignalCard({
 
     const TrendIcon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
 
-    const signalBorderClass = {
+    const signalBorderClass: Record<string, string> = {
         buy: 'signal-card--buy',
         hold: 'signal-card--hold',
         sell: 'signal-card--sell',
@@ -60,7 +60,7 @@ export function StockSignalCard({
                 className={cn(
                     "relative overflow-hidden cursor-pointer transition-all duration-300",
                     "hover:bg-white/5 hover:shadow-lg hover:shadow-white/5",
-                    signalBorderClass[signal],
+                    signal ? signalBorderClass[signal] : '',
                     className
                 )}
                 onClick={onSelect}
@@ -68,7 +68,7 @@ export function StockSignalCard({
                 <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
                     {/* Left: Ticker & Signal */}
                     <div className="flex items-center gap-3">
-                        <SignalOrb signal={signal} size="md" />
+                        {signal && <SignalOrb signal={signal} size="md" />}
                         <div>
                             <h3 className="font-semibold text-lg tracking-tight">{ticker}</h3>
                             <p className="text-xs text-muted-foreground uppercase tracking-wider">
@@ -117,9 +117,9 @@ export function StockSignalCard({
                                 <motion.div
                                     className={cn(
                                         "h-full rounded-full",
-                                        signal === 'buy' && "bg-green-400",
-                                        signal === 'hold' && "bg-slate-300",
-                                        signal === 'sell' && "bg-red-400"
+                                        signal === 'buy' ? "bg-green-400" :
+                                        signal === 'sell' ? "bg-red-400" :
+                                        "bg-slate-300"
                                     )}
                                     initial={{ width: 0 }}
                                     animate={{ width: `${confidence * 100}%` }}

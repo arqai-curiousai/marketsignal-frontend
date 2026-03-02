@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -22,14 +22,21 @@ export default function ResearchLibrary() {
     const [search, setSearch] = useState('');
     const [items, setItems] = useState<ResearchItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
         async function fetchResearch() {
             try {
-                const response = await apiClient.get('/api/research/docs', {
-                    params: { q: search || undefined, limit: 20 },
-                });
-                const docs = response.data?.items ?? response.data ?? [];
+                const response = await apiClient.get<{ items?: Record<string, unknown>[] } | Record<string, unknown>[]>(
+                    '/api/research/docs',
+                    { q: search || undefined, limit: 20 },
+                );
+                if (!response.success) {
+                    setItems([]);
+                    return;
+                }
+                const raw = response.data;
+                const docs = Array.isArray(raw) ? raw : (raw as { items?: Record<string, unknown>[] }).items ?? [];
                 const mapped: ResearchItem[] = docs.map((doc: Record<string, unknown>) => ({
                     id: (doc.id as string) ?? '',
                     type: (doc.type as string) ?? 'GENERAL',
@@ -47,7 +54,14 @@ export default function ResearchLibrary() {
             }
         }
 
-        fetchResearch();
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            fetchResearch();
+        }, search ? 300 : 0);
+        return () => {
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [search]);
 
     return (

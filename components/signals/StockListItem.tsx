@@ -10,7 +10,7 @@ interface StockListItemProps {
     ticker: string;
     name: string;
     exchange: string;
-    signal: SignalType;
+    signal: SignalType | null;
     price?: number | null;
     change?: number | null;
     changePercent?: number | null;
@@ -43,7 +43,7 @@ export function StockListItem({
 
     const TrendIcon = isPositive ? TrendingUp : isNegative ? TrendingDown : Minus;
 
-    const signalBorderClass = {
+    const signalBorderClass: Record<string, string> = {
         buy: 'border-l-4 border-l-green-500',
         hold: 'border-l-4 border-l-slate-300',
         sell: 'border-l-4 border-l-red-500',
@@ -68,13 +68,13 @@ export function StockListItem({
             onClick={onSelect}
             className={cn(
                 "group flex items-center justify-between p-4 mb-2 rounded-lg bg-white/5 border border-white/10 cursor-pointer transition-all",
-                signalBorderClass[signal],
+                signal ? signalBorderClass[signal] : '',
                 className
             )}
         >
             {/* Left: Signal & Info */}
             <div className="flex items-center gap-4 flex-1">
-                <SignalOrb signal={signal} size="sm" />
+                {signal && <SignalOrb signal={signal} size="sm" />}
 
                 <div className="w-16">
                     <span className="font-bold text-white tracking-tight">{ticker}</span>

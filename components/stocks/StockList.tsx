@@ -105,18 +105,14 @@ export function StockList({
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    // Helper to get signal for a stock (Placeholder logic for now)
-    const getSignalForStock = (_stock: IStock): SignalType => {
-        // TODO: Replace with real algo signal logic later
-        return 'hold';
+    // Signal and confidence will come from real backend data when available.
+    // Returning null / 0 so the UI honestly shows "no signal" rather than fakes.
+    const getSignalForStock = (_stock: IStock): SignalType | null => {
+        return null;
     };
 
-    const getConfidenceForStock = (stock: IStock): number => {
-        // TODO: Replace with real confidence from backend when available using [stock.signalConfidence]
-        // For now, generating stable random confidence based on ticker for UI demo
-        const hash = stock.ticker.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        // Normalize to 0.2 - 0.95 range
-        return 0.2 + (hash % 76) / 100;
+    const getConfidenceForStock = (_stock: IStock): number => {
+        return 0;
     };
 
     return (
