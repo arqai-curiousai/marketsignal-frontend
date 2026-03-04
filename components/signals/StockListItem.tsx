@@ -15,6 +15,7 @@ interface StockListItemProps {
     change?: number | null;
     changePercent?: number | null;
     confidence?: number;
+    sector?: string;
     currency?: string;
     onSelect?: () => void;
     className?: string;
@@ -22,19 +23,20 @@ interface StockListItemProps {
 
 /**
  * StockListItem - Zen-styled list row for stock display
- * 
+ *
  * Detailed list view offering more precision and scannability.
  */
 export function StockListItem({
     ticker,
     name,
-    exchange,
+    exchange: _exchange,
     signal,
     price,
     change,
     changePercent,
     confidence,
-    currency = 'USD',
+    sector,
+    currency = 'INR',
     onSelect,
     className,
 }: StockListItemProps) {
@@ -59,65 +61,71 @@ export function StockListItem({
         }
     };
 
+    const formatPrice = (p: number) => {
+        return new Intl.NumberFormat('en-IN', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2,
+        }).format(p);
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
-            whileHover={{ scale: 1.005, backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
-            transition={{ duration: 0.2 }}
+            whileHover={{ scale: 1.002, backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
+            transition={{ duration: 0.15 }}
             onClick={onSelect}
             className={cn(
-                "group flex items-center justify-between p-4 mb-2 rounded-lg bg-white/5 border border-white/10 cursor-pointer transition-all",
-                signal ? signalBorderClass[signal] : '',
+                "group flex items-center justify-between px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06] cursor-pointer transition-all hover:border-white/10",
+                signal ? signalBorderClass[signal] : 'border-l-4 border-l-transparent',
                 className
             )}
         >
-            {/* Left: Signal & Info */}
-            <div className="flex items-center gap-4 flex-1">
+            {/* Left: Ticker, Name, Sector */}
+            <div className="flex items-center gap-3 flex-1 min-w-0">
                 {signal && <SignalOrb signal={signal} size="sm" />}
 
-                <div className="w-16">
-                    <span className="font-bold text-white tracking-tight">{ticker}</span>
+                <div className="min-w-[56px]">
+                    <span className="font-semibold text-white text-sm tracking-tight">{ticker}</span>
                 </div>
 
-                <div className="hidden sm:block flex-1 min-w-0">
-                    <span className="text-sm text-muted-foreground truncate block">{name}</span>
-                </div>
-
-                <div className="w-16">
-                    <span className="text-xs text-muted-foreground bg-white/5 px-2 py-1 rounded">
-                        {exchange}
-                    </span>
+                <div className="hidden sm:flex items-center gap-2 flex-1 min-w-0">
+                    <span className="text-sm text-muted-foreground truncate">{name}</span>
+                    {sector && (
+                        <span className="text-[10px] text-muted-foreground/60 bg-white/5 px-1.5 py-0.5 rounded flex-shrink-0">
+                            {sector}
+                        </span>
+                    )}
                 </div>
             </div>
 
-            {/* Right: Price & Stats */}
-            <div className="flex items-center gap-4 md:gap-8">
+            {/* Right: Price & Change */}
+            <div className="flex items-center gap-3 md:gap-6">
                 {/* Confidence Bar */}
-                {confidence != null && (
-                    <div className="hidden md:flex flex-col w-24 justify-center" title="Signal Strength">
-                        <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                {confidence != null && confidence > 0 && (
+                    <div className="hidden lg:flex flex-col w-20 justify-center" title="Signal Strength">
+                        <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
                             <motion.div
                                 initial={{ width: 0 }}
                                 animate={{ width: `${confidence * 100}%` }}
                                 transition={{ duration: 1, ease: "easeOut" }}
                                 className={cn(
-                                    "h-full rounded-full shadow-[0_0_10px_rgba(0,0,0,0.5)]",
-                                    confidence >= 0.75 ? "bg-emerald-500 shadow-emerald-500/50" :
-                                        confidence >= 0.4 ? "bg-white shadow-white/50" :
-                                            "bg-red-500 shadow-red-500/50"
+                                    "h-full rounded-full",
+                                    confidence >= 0.75 ? "bg-emerald-500" :
+                                        confidence >= 0.4 ? "bg-white/60" :
+                                            "bg-red-500"
                                 )}
                             />
                         </div>
                     </div>
                 )}
 
-                {/* Price Data */}
-                <div className="text-right w-24">
+                {/* Price */}
+                <div className="text-right min-w-[100px]">
                     {price != null ? (
                         <>
-                            <div className="font-mono font-medium text-white text-base">
-                                {getCurrencySymbol(currency)}{price.toFixed(2)}
+                            <div className="font-mono font-medium text-white text-sm">
+                                {getCurrencySymbol(currency)}{formatPrice(price)}
                             </div>
                             <div className={cn(
                                 "flex items-center justify-end gap-1 text-xs font-medium",
@@ -126,25 +134,28 @@ export function StockListItem({
                                 !isPositive && !isNegative && "text-slate-400"
                             )}>
                                 <TrendIcon className="w-3 h-3" />
-                                <span>{changePercent?.toFixed(2) ?? '0.00'}%</span>
+                                <span>
+                                    {isPositive && '+'}
+                                    {changePercent?.toFixed(2) ?? '0.00'}%
+                                </span>
                             </div>
                         </>
                     ) : (
-                        <span className="text-sm text-muted-foreground">--</span>
+                        <span className="text-xs text-muted-foreground">--</span>
                     )}
                 </div>
 
-                {/* Analytics Action */}
-                <div className="pl-4 border-l border-white/10 hidden sm:block">
+                {/* Chart action */}
+                <div className="pl-3 border-l border-white/[0.06] hidden sm:block">
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
                             onSelect?.();
                         }}
-                        className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
-                        title="View Analytics"
+                        className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
+                        title="View Chart"
                     >
-                        <TrendingUp className="h-4 w-4" />
+                        <TrendingUp className="h-3.5 w-3.5" />
                     </button>
                 </div>
             </div>

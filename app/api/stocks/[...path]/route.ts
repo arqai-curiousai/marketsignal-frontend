@@ -10,9 +10,9 @@
  * Security: API key is injected server-side, never exposed to the browser.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { BACKEND_URL } from '@/lib/api/backendUrl';
 
 const API_KEY = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY || '';
-const BACKEND_URL = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
 
 export async function GET(
     request: NextRequest,
@@ -22,7 +22,7 @@ export async function GET(
     const { searchParams } = new URL(request.url);
 
     // Build backend URL
-    const backendUrl = new URL(`${BACKEND_URL}/api/stocks/${subPath}`);
+    const backendUrl = new URL(`${BACKEND_URL}/stocks/${subPath}`);
     searchParams.forEach((value, key) => {
         backendUrl.searchParams.append(key, value);
     });
@@ -33,7 +33,7 @@ export async function GET(
                 'Content-Type': 'application/json',
                 'X-API-Key': API_KEY,
             },
-            next: { revalidate: 30 },
+            cache: 'no-store',
         });
 
         if (!response.ok) {

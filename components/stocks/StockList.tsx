@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { IStock, IExchange } from '@/types/stock';
-import { getStocks, getExchanges } from '@/lib/api/stockApi';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { IStock } from '@/types/stock';
+import { getStocks } from '@/lib/api/stockApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, RefreshCw, AlertCircle } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
+import { Search, RefreshCw, AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
-// New Components
 import { StockSignalCard } from '@/components/signals/StockSignalCard';
 import { StockListItem } from '@/components/signals/StockListItem';
 import { StockChatSheet } from '@/components/stocks/StockChatSheet';
@@ -22,44 +21,33 @@ interface StockListProps {
 }
 
 /**
- * StockList - Grid of stock cards with exchange tabs and search
- * 
+ * StockList - Professional stock list for NSE NIFTY 50
+ *
  * Features:
  * - List/Grid toggle
- * - Zen-themed signal cards/items
- * - Exchange tab navigation
- * - Search by ticker/name
+ * - Search by ticker or company name
+ * - Sector filter badges
+ * - Real-time price data from Kite Connect
  * - Pagination
  * - AI Chat integration
  */
 export function StockList({
-    initialExchange = 'NASDAQ',
-    pageSize = 50
+    initialExchange = 'NSE',
+    pageSize = 50,
 }: StockListProps) {
-    // State
     const [stocks, setStocks] = useState<IStock[]>([]);
-    const [exchanges, setExchanges] = useState<IExchange[]>([]);
-    const [currentExchange, setCurrentExchange] = useState(initialExchange);
+    const [currentExchange] = useState(initialExchange);
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState('');
+    const [activeSector, setActiveSector] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [viewMode, setViewMode] = useState<ViewMode>('list'); // Default to list view as requested
+    const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedStock, setSelectedStock] = useState<IStock | null>(null);
+    const [, setLastUpdated] = useState<Date | null>(null);
 
-    // Fetch exchanges on mount
-    useEffect(() => {
-        const loadExchanges = async () => {
-            const result = await getExchanges();
-            if (result.success) {
-                setExchanges(result.data);
-            }
-        };
-        loadExchanges();
-    }, []);
-
-    // Fetch stocks when exchange, page, or search changes
+    // Fetch stocks
     const loadStocks = useCallback(async () => {
         setIsLoading(true);
         setError(null);
@@ -68,30 +56,34 @@ export function StockList({
             exchange: currentExchange,
             page,
             pageSize,
+            sector: activeSector || undefined,
             search: search || undefined,
         });
 
         if (result.success) {
             setStocks(result.data.items);
             setTotal(result.data.total);
+            setLastUpdated(new Date());
         } else {
             setError(result.error.detail || result.error.message);
             setStocks([]);
         }
 
         setIsLoading(false);
-    }, [currentExchange, page, pageSize, search]);
+    }, [currentExchange, page, pageSize, search, activeSector]);
 
     useEffect(() => {
         loadStocks();
     }, [loadStocks]);
 
-    // Handle exchange change
-    const handleExchangeChange = (exchange: string) => {
-        setCurrentExchange(exchange);
-        setPage(1);
-        setSearch('');
-    };
+    // Sector list extracted from stocks
+    const sectors = React.useMemo(() => {
+        const sectorSet = new Set<string>();
+        stocks.forEach((s) => {
+            if (s.sector) sectorSet.add(s.sector);
+        });
+        return Array.from(sectorSet).sort();
+    }, [stocks]);
 
     // Handle search
     const handleSearch = (e: React.FormEvent) => {
@@ -100,172 +92,225 @@ export function StockList({
         loadStocks();
     };
 
-    // Calculate pagination
+    const handleSectorFilter = (sector: string | null) => {
+        setActiveSector(sector);
+        setPage(1);
+    };
+
+    // Pagination
     const totalPages = Math.ceil(total / pageSize);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
 
-    // Signal and confidence will come from real backend data when available.
-    // Returning null / 0 so the UI honestly shows "no signal" rather than fakes.
-    const getSignalForStock = (_stock: IStock): SignalType | null => {
-        return null;
-    };
+    const getSignalForStock = (_stock: IStock): SignalType | null => null;
+    const getConfidenceForStock = (_stock: IStock): number => 0;
 
-    const getConfidenceForStock = (_stock: IStock): number => {
-        return 0;
-    };
+    const hasAnyPrice = stocks.some((s) => s.lastPrice != null);
 
     return (
-        <div className="space-y-6">
-            {/* Control Bar: Exchange Tabs, Search, View Toggle */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <Tabs
-                    value={currentExchange}
-                    onValueChange={handleExchangeChange}
-                    className="w-full md:w-auto"
-                >
-                    <TabsList className="bg-white/5 border border-white/10 p-1 overflow-x-auto max-w-full">
-                        {exchanges.length > 0 ? (
-                            exchanges.map((exch) => (
-                                <TabsTrigger
-                                    key={exch.code}
-                                    value={exch.code}
-                                    className="data-[state=active]:bg-white/10 whitespace-nowrap"
-                                >
-                                    <span>{exch.code}</span>
-                                    <span className="ml-1.5 text-[10px] text-muted-foreground hidden sm:inline">
-                                        ({exch.stockCount})
-                                    </span>
-                                </TabsTrigger>
-                            ))
-                        ) : (
-                            ['NASDAQ', 'NYSE', 'NSE', 'BSE', 'LSE'].map((code) => (
-                                <TabsTrigger
-                                    key={code}
-                                    value={code}
-                                    className="data-[state=active]:bg-white/10"
-                                >
-                                    {code}
-                                </TabsTrigger>
-                            ))
-                        )}
-                    </TabsList>
-                </Tabs>
-
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                    {/* View Toggle */}
-                    <ViewToggle mode={viewMode} onChange={setViewMode} />
-
-                    {/* Search */}
-                    <form onSubmit={handleSearch} className="flex gap-2 flex-1 md:flex-none">
-                        <div className="relative flex-1 md:w-64">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                type="text"
-                                placeholder="Search..."
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                                className="pl-9 bg-white/5 border-white/10 w-full"
-                            />
-                        </div>
-                        <Button
-                            type="button"
+        <div className="space-y-4">
+            {/* Control Bar */}
+            <div className="flex flex-col gap-3">
+                {/* Top: Search + Actions */}
+                <div className="flex items-center justify-between gap-3">
+                    {/* Exchange Badge */}
+                    <div className="flex items-center gap-2">
+                        <Badge
                             variant="outline"
-                            size="icon"
-                            onClick={loadStocks}
-                            disabled={isLoading}
-                            className="border-white/10 hover:bg-white/5"
+                            className="px-3 py-1.5 border-brand-blue/30 bg-brand-blue/5 text-brand-blue font-mono text-xs"
                         >
-                            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                        </Button>
-                    </form>
+                            NSE
+                        </Badge>
+                        <span className="text-sm text-muted-foreground">
+                            {total > 0 ? `${total} stocks` : 'NIFTY 50'}
+                        </span>
+                        {hasAnyPrice && (
+                            <span className="flex items-center gap-1 text-[10px] text-emerald-400">
+                                <Wifi className="h-3 w-3" />
+                                Live
+                            </span>
+                        )}
+                        {!hasAnyPrice && !isLoading && stocks.length > 0 && (
+                            <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                                <WifiOff className="h-3 w-3" />
+                                Cached
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <ViewToggle mode={viewMode} onChange={setViewMode} />
+
+                        <form onSubmit={handleSearch} className="flex gap-2">
+                            <div className="relative w-48 md:w-64">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search ticker or name..."
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    className="pl-9 h-9 bg-white/5 border-white/10 text-sm"
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={loadStocks}
+                                disabled={isLoading}
+                                className="h-9 w-9 border-white/10 hover:bg-white/5"
+                            >
+                                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                            </Button>
+                        </form>
+                    </div>
                 </div>
+
+                {/* Sector Filter Chips */}
+                {sectors.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                        <button
+                            onClick={() => handleSectorFilter(null)}
+                            className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+                                activeSector === null
+                                    ? 'bg-white/15 text-white'
+                                    : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                            }`}
+                        >
+                            All
+                        </button>
+                        {sectors.map((sector) => (
+                            <button
+                                key={sector}
+                                onClick={() => handleSectorFilter(sector)}
+                                className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
+                                    activeSector === sector
+                                        ? 'bg-white/15 text-white'
+                                        : 'bg-white/5 text-muted-foreground hover:bg-white/10'
+                                }`}
+                            >
+                                {sector}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             {/* Error State */}
             {error && (
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400">
                     <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                    <p>{error}</p>
+                    <p className="text-sm">{error}</p>
                 </div>
             )}
 
             {/* Loading State */}
             {isLoading ? (
                 <div className={viewMode === 'grid'
-                    ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-                    : "space-y-2"
+                    ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3'
+                    : 'space-y-1.5'
                 }>
-                    {Array.from({ length: 8 }).map((_, i) => (
+                    {Array.from({ length: 12 }).map((_, i) => (
                         <div
                             key={i}
                             className={viewMode === 'grid'
-                                ? "h-44 rounded-xl bg-white/5 animate-pulse border border-white/10"
-                                : "h-20 rounded-lg bg-white/5 animate-pulse border border-white/10"
+                                ? 'h-40 rounded-xl bg-white/[0.03] animate-pulse border border-white/[0.06]'
+                                : 'h-16 rounded-lg bg-white/[0.03] animate-pulse border border-white/[0.06]'
                             }
                         />
                     ))}
                 </div>
             ) : (
                 <>
-                    {/* Stocks Display */}
                     {stocks.length > 0 ? (
                         <>
-                            {viewMode === 'grid' ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                    {stocks.map((stock, index) => (
-                                        <motion.div
-                                            key={`${stock.exchange}-${stock.ticker}`}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ delay: index * 0.03 }}
-                                        >
-                                            <StockSignalCard
-                                                ticker={stock.ticker}
-                                                name={stock.name}
-                                                exchange={stock.exchange}
-                                                signal={getSignalForStock(stock)}
-                                                price={stock.lastPrice}
-                                                change={stock.change}
-                                                changePercent={stock.changePercent}
-                                                confidence={getConfidenceForStock(stock)}
-                                            />
-                                        </motion.div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    {stocks.map((stock, index) => (
-                                        <motion.div
-                                            key={`${stock.exchange}-${stock.ticker}`}
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            transition={{ delay: index * 0.03 }}
-                                        >
-                                            <StockListItem
-                                                ticker={stock.ticker}
-                                                name={stock.name}
-                                                exchange={stock.exchange}
-                                                signal={getSignalForStock(stock)}
-                                                price={stock.lastPrice}
-                                                change={stock.change}
-                                                changePercent={stock.changePercent}
-                                                confidence={getConfidenceForStock(stock)}
-                                                onSelect={() => setSelectedStock(stock)}
-                                            />
-                                        </motion.div>
-                                    ))}
+                            {/* Table Header (list view only) */}
+                            {viewMode === 'list' && (
+                                <div className="hidden sm:flex items-center justify-between px-4 py-2 text-[11px] text-muted-foreground/60 uppercase tracking-wider">
+                                    <div className="flex items-center gap-3 flex-1">
+                                        <span className="min-w-[56px]">Ticker</span>
+                                        <span className="flex-1">Company</span>
+                                    </div>
+                                    <div className="flex items-center gap-6">
+                                        <span className="hidden lg:block w-20 text-center">Signal</span>
+                                        <span className="min-w-[100px] text-right">Price</span>
+                                        <span className="w-[44px]" />
+                                    </div>
                                 </div>
                             )}
+
+                            <AnimatePresence mode="wait">
+                                {viewMode === 'grid' ? (
+                                    <motion.div
+                                        key="grid"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3"
+                                    >
+                                        {stocks.map((stock, index) => (
+                                            <motion.div
+                                                key={`${stock.exchange}-${stock.ticker}`}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: index * 0.02 }}
+                                            >
+                                                <StockSignalCard
+                                                    ticker={stock.ticker}
+                                                    name={stock.name}
+                                                    exchange={stock.exchange}
+                                                    signal={getSignalForStock(stock)}
+                                                    price={stock.lastPrice}
+                                                    change={stock.change}
+                                                    changePercent={stock.changePercent}
+                                                    confidence={getConfidenceForStock(stock)}
+                                                    onSelect={() => setSelectedStock(stock)}
+                                                />
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                ) : (
+                                    <motion.div
+                                        key="list"
+                                        initial={{ opacity: 0 }}
+                                        animate={{ opacity: 1 }}
+                                        exit={{ opacity: 0 }}
+                                        className="space-y-1"
+                                    >
+                                        {stocks.map((stock, index) => (
+                                            <motion.div
+                                                key={`${stock.exchange}-${stock.ticker}`}
+                                                initial={{ opacity: 0, x: -5 }}
+                                                animate={{ opacity: 1, x: 0 }}
+                                                transition={{ delay: index * 0.015 }}
+                                            >
+                                                <StockListItem
+                                                    ticker={stock.ticker}
+                                                    name={stock.name}
+                                                    exchange={stock.exchange}
+                                                    signal={getSignalForStock(stock)}
+                                                    price={stock.lastPrice}
+                                                    change={stock.change}
+                                                    changePercent={stock.changePercent}
+                                                    confidence={getConfidenceForStock(stock)}
+                                                    sector={stock.sector}
+                                                    currency={stock.currency || 'INR'}
+                                                    onSelect={() => setSelectedStock(stock)}
+                                                />
+                                            </motion.div>
+                                        ))}
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
                         </>
                     ) : (
-                        <div className="text-center py-24 border border-dashed border-white/10 rounded-2xl">
-                            <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-white mb-2">No stocks found</h3>
-                            <p className="text-muted-foreground">
+                        <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl">
+                            <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                            <h3 className="text-base font-medium text-white mb-1">No stocks found</h3>
+                            <p className="text-sm text-muted-foreground">
                                 {search
-                                    ? `No results for "${search}" on ${currentExchange}`
-                                    : `No stocks available for ${currentExchange}`
+                                    ? `No results for "${search}"`
+                                    : 'Stocks will appear once data is synced from Kite Connect'
                                 }
                             </p>
                         </div>
@@ -273,26 +318,33 @@ export function StockList({
 
                     {/* Pagination */}
                     {total > pageSize && (
-                        <div className="flex items-center justify-center gap-4 pt-6">
-                            <Button
-                                variant="outline"
-                                disabled={!hasPrevPage}
-                                onClick={() => setPage(p => p - 1)}
-                                className="border-white/10"
-                            >
-                                Previous
-                            </Button>
-                            <span className="text-sm text-muted-foreground">
-                                Page {page} of {totalPages} ({total} stocks)
+                        <div className="flex items-center justify-between pt-4">
+                            <span className="text-xs text-muted-foreground">
+                                Showing {(page - 1) * pageSize + 1}-{Math.min(page * pageSize, total)} of {total}
                             </span>
-                            <Button
-                                variant="outline"
-                                disabled={!hasNextPage}
-                                onClick={() => setPage(p => p + 1)}
-                                className="border-white/10"
-                            >
-                                Next
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!hasPrevPage}
+                                    onClick={() => setPage((p) => p - 1)}
+                                    className="border-white/10 h-8"
+                                >
+                                    Previous
+                                </Button>
+                                <span className="text-xs text-muted-foreground px-2">
+                                    {page} / {totalPages}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    disabled={!hasNextPage}
+                                    onClick={() => setPage((p) => p + 1)}
+                                    className="border-white/10 h-8"
+                                >
+                                    Next
+                                </Button>
+                            </div>
                         </div>
                     )}
                 </>

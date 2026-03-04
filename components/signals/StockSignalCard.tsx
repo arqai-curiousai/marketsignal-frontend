@@ -82,7 +82,7 @@ export function StockSignalCard({
                         {price != null ? (
                             <>
                                 <p className="font-mono text-lg font-semibold">
-                                    ${price.toFixed(2)}
+                                    ₹{price.toFixed(2)}
                                 </p>
                                 <div className={cn(
                                     "flex items-center justify-end gap-1 text-xs",

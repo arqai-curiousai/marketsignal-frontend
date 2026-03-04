@@ -23,6 +23,7 @@ import { AddToPicksButton } from '@/components/signals/AddToPicksButton';
 import { StockListItem } from '@/components/signals/StockListItem';
 import { MarketStatusBadge } from '@/components/signals/MarketStatusBadge';
 import { InstrumentList } from '@/components/signals/InstrumentList';
+import { useRealtimePrices } from '@/src/hooks/useRealtimePrices';
 import { getStocks } from '@/src/lib/api/stockApi';
 import { getActiveSignals } from '@/src/lib/api/signalApi';
 import { IStock } from '@/types/stock';
@@ -47,6 +48,9 @@ export default function MarketsHub() {
     const [activeSignalsMap, setActiveSignalsMap] = useState<Record<string, IAISignal>>({});
     const router = useRouter();
 
+    // Real-time price streaming (forex + commodity via WebSocket)
+    const { prices: realtimePrices } = useRealtimePrices(['forex', 'commodity']);
+
     const {
         items: watchlistItems,
         count: watchlistCount,
@@ -59,8 +63,8 @@ export default function MarketsHub() {
         refresh: refreshWatchlist,
     } = useWatchlist();
 
-    const handleStockSelect = (ticker: string) => {
-        router.push(`/stocks/${ticker}`);
+    const handleStockSelect = (ticker: string, exchange: string = 'NSE') => {
+        router.push(`/stocks/${encodeURIComponent(ticker)}?exchange=${exchange}`);
     };
 
     // Fetch NSE stocks
@@ -265,7 +269,7 @@ export default function MarketsHub() {
                                 items={watchlistItems}
                                 isLoading={isLoadingWatchlist}
                                 onRemove={removeStock}
-                                onSelectStock={(ticker) => handleStockSelect(ticker)}
+                                onSelectStock={(ticker, exchange) => handleStockSelect(ticker, exchange)}
                                 activeSignals={activeSignalsMap}
                             />
 
@@ -319,7 +323,7 @@ export default function MarketsHub() {
                                                 changePercent={stock.changePercent}
                                                 confidence={stock.signal?.confidence}
                                                 currency="INR"
-                                                onSelect={() => handleStockSelect(stock.ticker)}
+                                                onSelect={() => handleStockSelect(stock.ticker, 'NSE')}
                                             />
                                         </div>
                                         <AddToPicksButton
@@ -343,6 +347,7 @@ export default function MarketsHub() {
                     <InstrumentList
                         type="currency"
                         onAddToPortfolio={handleAddInstrument}
+                        realtimePrices={realtimePrices}
                     />
                 </TabsContent>
 
@@ -353,6 +358,7 @@ export default function MarketsHub() {
                     <InstrumentList
                         type="commodity"
                         onAddToPortfolio={handleAddInstrument}
+                        realtimePrices={realtimePrices}
                     />
                 </TabsContent>
             </Tabs>

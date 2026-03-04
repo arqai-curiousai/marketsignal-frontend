@@ -138,7 +138,7 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
                                 {item.last_price !== null ? (
                                     <>
                                         <div className="text-lg font-semibold text-white">
-                                            {getCurrencySymbol(item.currency)}{item.last_price?.toLocaleString('en-US', {
+                                            {getCurrencySymbol(item.currency)}{item.last_price?.toLocaleString('en-IN', {
                                                 minimumFractionDigits: 2,
                                                 maximumFractionDigits: 2
                                             })}

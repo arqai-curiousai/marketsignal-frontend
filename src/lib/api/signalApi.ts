@@ -107,6 +107,7 @@ export async function getInstruments(
         name: string;
         instrument_type: string;
         exchange: string;
+        sector?: string;
         price?: number;
         change?: number;
         change_percent?: number;
@@ -122,6 +123,7 @@ export async function getInstruments(
             name: item.name,
             instrumentType: item.instrument_type as IInstrument['instrumentType'],
             exchange: item.exchange,
+            sector: item.sector,
             price: item.price,
             change: item.change,
             changePercent: item.change_percent,

@@ -1,12 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, AuthState } from '@/lib/types';
+import { AuthState } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 interface AuthContextType extends AuthState {
-    login: (user: User) => void;
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
 }
@@ -61,15 +60,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         checkAuth();
     }, []);
 
-    const login = (user: User) => {
-        setState(prev => ({
-            ...prev,
-            user,
-            isAuthenticated: true,
-            error: null,
-        }));
-    };
-
     const logout = async () => {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
@@ -88,7 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ ...state, login, logout, checkAuth }}>
+        <AuthContext.Provider value={{ ...state, logout, checkAuth }}>
             {children}
         </AuthContext.Provider>
     );

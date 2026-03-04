@@ -54,7 +54,7 @@ export function LoginForm(): React.ReactElement {
 
             const checkData = await checkResponse.json();
 
-            if (checkData.user_exists) {
+            if (checkData.userExists) {
                 // User exists, request OTP immediately
                 await requestOtp(state.email);
             } else {

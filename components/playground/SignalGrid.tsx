@@ -100,7 +100,7 @@ export function SignalGrid({ signals }: SignalGridProps) {
                 {formatIndicators(s.indicators)}
               </TableCell>
               <TableCell className="hidden md:table-cell font-mono text-sm">
-                {s.priceAtSignal != null ? `$${s.priceAtSignal.toFixed(2)}` : '—'}
+                {s.priceAtSignal != null ? `₹${s.priceAtSignal.toFixed(2)}` : '—'}
               </TableCell>
               <TableCell className="text-xs text-muted-foreground">
                 {formatTime(s.generatedAt)}

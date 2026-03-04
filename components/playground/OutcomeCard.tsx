@@ -63,7 +63,7 @@ export function OutcomeCard({ signal, index = 0 }: OutcomeCardProps) {
             <span className="text-sm font-semibold text-white">{getSignalLabel(signal.signal)}</span>
           </div>
           <p className="text-xs text-muted-foreground">
-            {signal.priceAtSignal != null ? `$${signal.priceAtSignal.toFixed(2)}` : '—'}
+            {signal.priceAtSignal != null ? `₹${signal.priceAtSignal.toFixed(2)}` : '—'}
           </p>
           <p className="text-[10px] text-muted-foreground mt-0.5">
             {(signal.confidence * 100).toFixed(0)}% confidence
@@ -76,7 +76,7 @@ export function OutcomeCard({ signal, index = 0 }: OutcomeCardProps) {
             Outcome
           </p>
           <p className="text-sm font-semibold text-white mb-1">
-            {signal.outcomePrice != null ? `$${signal.outcomePrice.toFixed(2)}` : 'Pending'}
+            {signal.outcomePrice != null ? `₹${signal.outcomePrice.toFixed(2)}` : 'Pending'}
           </p>
           {signal.pnlPercent != null && (
             <p

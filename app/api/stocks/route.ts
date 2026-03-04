@@ -10,16 +10,16 @@
  * - Easier to implement caching at the edge
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { BACKEND_URL } from '@/lib/api/backendUrl';
 
 // API key stored securely on server (not in NEXT_PUBLIC_*)
 const API_KEY = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY || '';
-const BACKEND_URL = (process.env.BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace(/\/api\/?$/, '');
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
 
     // Build backend URL with query params
-    const backendUrl = new URL(`${BACKEND_URL}/api/stocks`);
+    const backendUrl = new URL(`${BACKEND_URL}/stocks`);
     searchParams.forEach((value, key) => {
         backendUrl.searchParams.append(key, value);
     });
@@ -30,8 +30,7 @@ export async function GET(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'X-API-Key': API_KEY,
             },
-            // Cache for 30 seconds for performance
-            next: { revalidate: 30 },
+            cache: 'no-store',
         });
 
         if (!response.ok) {

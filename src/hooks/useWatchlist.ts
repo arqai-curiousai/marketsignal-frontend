@@ -11,7 +11,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import {
     WatchlistItem,
-    WatchlistResponse,
     getWatchlist,
     addToWatchlist,
     removeFromWatchlist,
@@ -62,8 +61,9 @@ export function useWatchlist(): UseWatchlistReturn {
         setIsLoading(true);
         setError(null);
 
-        try {
-            const data: WatchlistResponse = await getWatchlist();
+        const result = await getWatchlist();
+        if (result.success) {
+            const data = result.data;
             setItems(data.items);
             setCount(data.count);
             setMaxSize(data.max_size);
@@ -74,20 +74,18 @@ export function useWatchlist(): UseWatchlistReturn {
                 data.items.map((item) => getStockKey(item.ticker, item.exchange))
             );
             setWatchlistSet(set);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to load watchlist';
-            if (message === 'Unauthorized') {
+        } else {
+            if (result.error.status === 401) {
                 setIsAuthenticated(false);
                 setItems([]);
                 setCount(0);
                 setWatchlistSet(new Set());
             } else {
-                setError(message);
-                console.error('Watchlist fetch error:', err);
+                setError(result.error.detail || 'Failed to load watchlist');
+                console.error('Watchlist fetch error:', result.error);
             }
-        } finally {
-            setIsLoading(false);
         }
+        setIsLoading(false);
     }, []);
 
     // Load watchlist on mount
@@ -121,21 +119,20 @@ export function useWatchlist(): UseWatchlistReturn {
             // Optimistic update
             setWatchlistSet((prev) => new Set(prev).add(key));
 
-            try {
-                await addToWatchlist(ticker, exchange, notes, instrumentType);
+            const result = await addToWatchlist(ticker, exchange, notes, instrumentType);
+            if (result.success) {
                 toast.success(`${ticker} added to your picks`);
                 // Refresh to get full data
                 await fetchWatchlist();
                 return true;
-            } catch (err) {
+            } else {
                 // Rollback
                 setWatchlistSet((prev) => {
                     const next = new Set(prev);
                     next.delete(key);
                     return next;
                 });
-                const message = err instanceof Error ? err.message : 'Failed to add stock';
-                toast.error(message);
+                toast.error(result.error.detail || 'Failed to add stock');
                 return false;
             }
         },
@@ -161,16 +158,15 @@ export function useWatchlist(): UseWatchlistReturn {
                 )
             );
 
-            try {
-                await removeFromWatchlist(ticker, exchange);
+            const result = await removeFromWatchlist(ticker, exchange);
+            if (result.success) {
                 toast.success(`${ticker} removed from your picks`);
                 setCount((prev) => prev - 1);
                 return true;
-            } catch (err) {
+            } else {
                 // Rollback
                 await fetchWatchlist();
-                const message = err instanceof Error ? err.message : 'Failed to remove stock';
-                toast.error(message);
+                toast.error(result.error.detail || 'Failed to remove stock');
                 return false;
             }
         },

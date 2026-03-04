@@ -7,13 +7,16 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { getInstruments } from '@/src/lib/api/signalApi';
 import type { IInstrument } from '@/types/stock';
+import type { IRealtimePrice } from '@/types/websocket';
 
 interface InstrumentListProps {
     type: 'nse' | 'currency' | 'commodity';
     onAddToPortfolio?: (ticker: string, exchange: string, instrumentType: string) => void;
+    /** Real-time prices keyed by symbol (e.g. "FX:USDINR"). When present, overlays REST data. */
+    realtimePrices?: Record<string, IRealtimePrice>;
 }
 
-export function InstrumentList({ type, onAddToPortfolio }: InstrumentListProps) {
+export function InstrumentList({ type, onAddToPortfolio, realtimePrices }: InstrumentListProps) {
     const [instruments, setInstruments] = useState<IInstrument[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -28,6 +31,31 @@ export function InstrumentList({ type, onAddToPortfolio }: InstrumentListProps) 
         }
         fetch();
     }, [type]);
+
+    /** Build the WS symbol key for an instrument, e.g. FX:USDINR or CMDTY:Gold */
+    const getWsSymbol = (inst: IInstrument): string => {
+        if (inst.instrumentType === 'currency') {
+            return 'FX:' + inst.ticker.replace('/', '');
+        }
+        if (inst.instrumentType === 'commodity') {
+            return 'CMDTY:' + inst.name;
+        }
+        return 'NSE:' + inst.ticker;
+    };
+
+    /** Overlay WS price onto an instrument if available. */
+    const withRealtimePrice = (inst: IInstrument): IInstrument => {
+        if (!realtimePrices) return inst;
+        const wsKey = getWsSymbol(inst);
+        const rt = realtimePrices[wsKey];
+        if (!rt) return inst;
+        return {
+            ...inst,
+            price: rt.price,
+            change: rt.change ?? inst.change,
+            changePercent: rt.changePercent ?? inst.changePercent,
+        };
+    };
 
     const getCurrencySymbol = (curr: string) => {
         switch (curr) {
@@ -65,7 +93,9 @@ export function InstrumentList({ type, onAddToPortfolio }: InstrumentListProps) 
     return (
         <div className="space-y-2 max-h-[600px] overflow-y-auto scroll-smooth pr-2 custom-scrollbar">
             <AnimatePresence>
-                {instruments.map((inst, index) => (
+                {instruments.map((rawInst, index) => {
+                    const inst = withRealtimePrice(rawInst);
+                    return (
                     <motion.div
                         key={inst.ticker}
                         initial={{ opacity: 0, y: 10 }}
@@ -94,7 +124,7 @@ export function InstrumentList({ type, onAddToPortfolio }: InstrumentListProps) 
                                 <>
                                     <div className="text-lg font-semibold text-white">
                                         {getCurrencySymbol(inst.currency)}
-                                        {inst.price.toLocaleString('en-US', {
+                                        {inst.price.toLocaleString('en-IN', {
                                             minimumFractionDigits: 2,
                                             maximumFractionDigits: 2,
                                         })}
@@ -131,7 +161,8 @@ export function InstrumentList({ type, onAddToPortfolio }: InstrumentListProps) 
                             </Button>
                         )}
                     </motion.div>
-                ))}
+                    );
+                })}
             </AnimatePresence>
         </div>
     );

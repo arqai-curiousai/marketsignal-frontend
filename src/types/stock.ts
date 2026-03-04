@@ -117,6 +117,7 @@ export interface IInstrument {
     name: string;
     instrumentType: 'equity' | 'currency' | 'commodity';
     exchange: string;
+    sector?: string;
     price?: number;
     change?: number;
     changePercent?: number;
@@ -188,8 +189,8 @@ export function getPriceChangeClass(change: number): string {
     return 'text-gray-500';
 }
 
-export function formatPrice(price: number, currency: string = 'USD'): string {
-    return new Intl.NumberFormat('en-US', {
+export function formatPrice(price: number, currency: string = 'INR'): string {
+    return new Intl.NumberFormat('en-IN', {
         style: 'currency',
         currency,
         minimumFractionDigits: 2,

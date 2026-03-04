@@ -1,9 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BarChart2, Loader2 } from 'lucide-react';
+import { ArrowLeft, BarChart2, Loader2, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
 import NextLink from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,19 +18,83 @@ interface StockOHLCV {
     volume: number;
 }
 
+interface StockQuote {
+    ticker: string;
+    exchange: string;
+    price: number;
+    change: number;
+    change_percent: number;
+    high: number;
+    low: number;
+    volume: number;
+    timestamp: string;
+}
+
+function getInstrumentType(exchange: string): string {
+    switch (exchange) {
+        case 'FX': return 'Currency';
+        case 'CMDTY': return 'Commodity';
+        default: return 'Stock';
+    }
+}
+
+function getCurrencySymbol(exchange: string): string {
+    switch (exchange) {
+        case 'CMDTY': return '$';
+        default: return '₹';
+    }
+}
+
+function formatPrice(value: number): string {
+    return new Intl.NumberFormat('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(value);
+}
+
 export default function StockAnalyticsPage() {
     const params = useParams();
-    const ticker = typeof params.ticker === 'string' ? params.ticker.toUpperCase() : '';
-    const [ohlcv, setOhlcv] = useState<StockOHLCV[]>([]);
-    const [loading, setLoading] = useState(true);
+    const searchParams = useSearchParams();
+    const ticker = typeof params.ticker === 'string' ? decodeURIComponent(params.ticker).toUpperCase() : '';
+    const exchange = searchParams.get('exchange') || 'NSE';
 
+    const [ohlcv, setOhlcv] = useState<StockOHLCV[]>([]);
+    const [quote, setQuote] = useState<StockQuote | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [quoteLoading, setQuoteLoading] = useState(true);
+
+    const instrumentType = getInstrumentType(exchange);
+    const currencySymbol = getCurrencySymbol(exchange);
+
+    // Fetch quote
+    useEffect(() => {
+        if (!ticker) return;
+        async function fetchQuote() {
+            try {
+                const response = await apiClient.get<StockQuote>(
+                    `/api/stocks/${encodeURIComponent(ticker)}/quote`,
+                    { exchange },
+                );
+                if (response.success && response.data) {
+                    setQuote(response.data);
+                }
+            } catch {
+                console.warn(`Failed to fetch quote for ${ticker}`);
+            } finally {
+                setQuoteLoading(false);
+            }
+        }
+        fetchQuote();
+    }, [ticker, exchange]);
+
+    // Fetch OHLCV
     useEffect(() => {
         if (!ticker) return;
         async function fetchData() {
             try {
                 const response = await apiClient.get<{ bars?: StockOHLCV[] } | StockOHLCV[]>(
-                    `/api/stocks/${ticker}/ohlcv`,
-                    { period: '1d', limit: 30 },
+                    `/api/stocks/${encodeURIComponent(ticker)}/ohlcv`,
+                    { period: '1d', limit: 30, exchange },
                 );
                 if (response.success) {
                     const d = response.data;
@@ -45,12 +109,19 @@ export default function StockAnalyticsPage() {
             }
         }
         fetchData();
-    }, [ticker]);
+    }, [ticker, exchange]);
 
     const latestBar = ohlcv.length > 0 ? ohlcv[0] : null;
-    const prevBar = ohlcv.length > 1 ? ohlcv[1] : null;
     const highestHigh = ohlcv.length > 0 ? Math.max(...ohlcv.map(b => b.high)) : null;
     const lowestLow = ohlcv.length > 0 ? Math.min(...ohlcv.map(b => b.low)) : null;
+
+    // Use quote price if available, else fall back to OHLCV
+    const currentPrice = quote?.price ?? latestBar?.close ?? null;
+    const priceChange = quote?.change ?? null;
+    const priceChangePercent = quote?.change_percent ?? null;
+    const isPositive = (priceChange ?? 0) > 0;
+    const isNegative = (priceChange ?? 0) < 0;
+    const displayName = ticker;
 
     return (
         <div className="container py-12 px-6 max-w-7xl mx-auto">
@@ -60,10 +131,10 @@ export default function StockAnalyticsPage() {
                 animate={{ opacity: 1, x: 0 }}
                 className="mb-8"
             >
-                <NextLink href="/stocks">
+                <NextLink href="/signals">
                     <Button variant="ghost" className="text-muted-foreground hover:text-white pl-0 gap-2">
                         <ArrowLeft className="h-4 w-4" />
-                        Back to Stocks
+                        Back to Markets
                     </Button>
                 </NextLink>
             </motion.div>
@@ -79,13 +150,49 @@ export default function StockAnalyticsPage() {
                 <div className="flex items-start justify-between">
                     <div>
                         <div className="flex items-center gap-3 mb-2">
-                            <h1 className="text-4xl font-bold text-white">{ticker}</h1>
+                            <h1 className="text-4xl font-bold text-white">{displayName}</h1>
                             <Badge variant="outline" className="border-white/20 text-white/50">
-                                Stock
+                                {instrumentType}
+                            </Badge>
+                            <Badge variant="outline" className="border-white/20 text-white/50">
+                                {exchange}
                             </Badge>
                         </div>
-                        <p className="text-lg text-muted-foreground">Stock Analytics</p>
+                        <p className="text-lg text-muted-foreground">{displayName} Analytics</p>
                     </div>
+                </div>
+
+                {/* Price Hero */}
+                <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
+                    {quoteLoading && loading ? (
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                    ) : currentPrice !== null ? (
+                        <div className="flex items-end gap-4">
+                            <span className="text-4xl font-bold text-white font-mono">
+                                {currencySymbol}{formatPrice(currentPrice)}
+                            </span>
+                            {priceChange !== null && priceChangePercent !== null && (
+                                <div className="flex items-center gap-2 pb-1">
+                                    {isPositive ? (
+                                        <TrendingUp className="h-5 w-5 text-emerald-400" />
+                                    ) : isNegative ? (
+                                        <TrendingDown className="h-5 w-5 text-red-400" />
+                                    ) : (
+                                        <Minus className="h-5 w-5 text-muted-foreground" />
+                                    )}
+                                    <span className={
+                                        isPositive ? 'text-emerald-400 font-semibold' :
+                                        isNegative ? 'text-red-400 font-semibold' :
+                                        'text-muted-foreground font-semibold'
+                                    }>
+                                        {isPositive && '+'}{priceChange.toFixed(2)} ({isPositive && '+'}{priceChangePercent.toFixed(2)}%)
+                                    </span>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <span className="text-2xl text-muted-foreground">Price unavailable</span>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -96,9 +203,9 @@ export default function StockAnalyticsPage() {
                         ) : ohlcv.length === 0 ? (
                             <>
                                 <BarChart2 className="h-16 w-16 text-brand-blue mb-4 opacity-50" />
-                                <h3 className="text-xl font-medium text-white mb-2">No Data Available</h3>
+                                <h3 className="text-xl font-medium text-white mb-2">No OHLCV Data</h3>
                                 <p className="text-muted-foreground max-w-md">
-                                    OHLCV data for {ticker} is not yet available. Data will appear once the pipeline syncs this stock.
+                                    Historical data for {ticker} is not yet available. Data will appear once the pipeline syncs this instrument.
                                 </p>
                             </>
                         ) : (
@@ -108,39 +215,60 @@ export default function StockAnalyticsPage() {
                                     {ohlcv.length} Trading Days Loaded
                                 </h3>
                                 <p className="text-muted-foreground max-w-md">
-                                    Latest close: <span className="text-white font-mono">${latestBar?.close.toFixed(2)}</span>
-                                    {prevBar && (
-                                        <span className={latestBar && latestBar.close >= prevBar.close ? ' text-emerald-400' : ' text-red-400'}>
-                                            {' '}({((latestBar!.close - prevBar.close) / prevBar.close * 100).toFixed(2)}%)
-                                        </span>
-                                    )}
+                                    Latest close: <span className="text-white font-mono">{currencySymbol}{latestBar ? formatPrice(latestBar.close) : '--'}</span>
                                 </p>
                             </>
                         )}
                     </div>
 
-                    {/* Stats / Key Levels */}
+                    {/* Stats Sidebar */}
                     <div className="space-y-6">
+                        {/* Quote Stats */}
                         <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-                                Latest Price
+                                Day Stats
                             </h3>
-                            {loading ? (
+                            {quoteLoading && loading ? (
                                 <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                            ) : latestBar ? (
-                                <>
-                                    <span className="text-2xl font-bold text-white font-mono">
-                                        ${latestBar.close.toFixed(2)}
-                                    </span>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        Vol: {latestBar.volume.toLocaleString()}
-                                    </p>
-                                </>
                             ) : (
-                                <span className="text-muted-foreground">--</span>
+                                <div className="space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Open</span>
+                                        <span className="text-white font-mono">
+                                            {latestBar ? `${currencySymbol}${formatPrice(latestBar.open)}` : '--'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">High</span>
+                                        <span className="text-white font-mono">
+                                            {(quote?.high ?? latestBar?.high) != null
+                                                ? `${currencySymbol}${formatPrice(quote?.high ?? latestBar!.high)}`
+                                                : '--'}
+                                        </span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">Low</span>
+                                        <span className="text-white font-mono">
+                                            {(quote?.low ?? latestBar?.low) != null
+                                                ? `${currencySymbol}${formatPrice(quote?.low ?? latestBar!.low)}`
+                                                : '--'}
+                                        </span>
+                                    </div>
+                                    {exchange !== 'FX' && (
+                                        <div className="flex justify-between text-sm">
+                                            <span className="text-muted-foreground">Volume</span>
+                                            <span className="text-white font-mono">
+                                                {(quote?.volume ?? latestBar?.volume) != null
+                                                    ? (quote?.volume ?? latestBar!.volume).toLocaleString('en-IN')
+                                                    : '--'}
+                                            </span>
+                                        </div>
+                                    )}
+                                </div>
                             )}
                         </div>
 
+                        {/* Key Levels */}
                         <div className="p-6 rounded-2xl bg-white/5 border border-white/10">
                             <h3 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
                                 Key Levels ({ohlcv.length}d Range)
@@ -149,17 +277,25 @@ export default function StockAnalyticsPage() {
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Resistance (High)</span>
                                     <span className="text-red-400 font-mono">
-                                        {highestHigh !== null ? `$${highestHigh.toFixed(2)}` : '--'}
+                                        {highestHigh !== null ? `${currencySymbol}${formatPrice(highestHigh)}` : '--'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Support (Low)</span>
                                     <span className="text-emerald-400 font-mono">
-                                        {lowestLow !== null ? `$${lowestLow.toFixed(2)}` : '--'}
+                                        {lowestLow !== null ? `${currencySymbol}${formatPrice(lowestLow)}` : '--'}
                                     </span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* View AI Signal */}
+                        <NextLink href={`/signals/${encodeURIComponent(ticker)}`}>
+                            <Button className="w-full bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90 text-white gap-2">
+                                <Zap className="h-4 w-4" />
+                                View AI Signal
+                            </Button>
+                        </NextLink>
                     </div>
                 </div>
             </motion.div>

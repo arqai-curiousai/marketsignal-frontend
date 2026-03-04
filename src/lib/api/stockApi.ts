@@ -31,6 +31,16 @@ export interface StockListParams {
     search?: string;
 }
 
+export interface ExchangeData {
+    code: string;
+    name: string;
+    country: string;
+    stock_count: number;
+    timezone?: string;
+    market_open?: string;
+    market_close?: string;
+}
+
 /**
  * Fetch list of stocks for an exchange
  */
@@ -54,7 +64,7 @@ export async function getStocks(params: StockListParams = {}): Promise<ApiResult
         page_size: number;
         exchange: string;
     }>('/api/stocks', {
-        exchange: params.exchange || 'NASDAQ',
+        exchange: params.exchange || 'NSE',
         page: params.page || 1,
         page_size: params.pageSize || 50,
         sector: params.sector,
@@ -122,7 +132,7 @@ export async function getOHLCV(params: OHLCVParams): Promise<ApiResult<IOHLCVRes
         }>;
         count: number;
     }>(`/api/stocks/${params.ticker}/ohlcv`, {
-        exchange: params.exchange || 'NASDAQ',
+        exchange: params.exchange || 'NSE',
         period: params.period || '1d',
         from_date: params.fromDate,
         to_date: params.toDate,
@@ -163,7 +173,7 @@ export async function getOHLCV(params: OHLCVParams): Promise<ApiResult<IOHLCVRes
  */
 export async function getQuote(
     ticker: string,
-    exchange: string = 'NASDAQ'
+    exchange: string = 'NSE'
 ): Promise<ApiResult<IStockQuote>> {
     const result = await apiClient.get<{
         ticker: string;
@@ -236,7 +246,7 @@ export async function getExchanges(): Promise<ApiResult<IExchange[]>> {
  */
 export async function getStockSignal(
     ticker: string,
-    exchange: string = 'NASDAQ'
+    exchange: string = 'NSE'
 ): Promise<ApiResult<ISignal>> {
     const result = await apiClient.get<{
         ticker: string;
