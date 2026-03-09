@@ -1,21 +1,24 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { StockList } from '@/components/stocks/StockList';
+import { BubbleCluster } from '@/components/stocks/BubbleCluster';
 import { motion } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
-import { TrendingUp, Activity, BarChart3, Clock } from 'lucide-react';
+import { TrendingUp, Activity, BarChart3, Clock, CircleDot, List } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 /**
  * Stocks Dashboard — NIFTY 50
  *
  * India-first stock dashboard with:
+ * - Bubble cluster visualization (D3-force physics)
+ * - Fallback list view
  * - NIFTY 50 stocks from NSE via Kite Connect
- * - Real-time OHLC prices (market hours) or last-day data (after hours)
- * - Sector filtering and search
- * - Professional list/grid views
  */
 export default function StocksDashboard() {
+    const [view, setView] = useState<'bubble' | 'list'>('bubble');
+
     return (
         <div className="container py-8 md:py-12 px-4 md:px-6 max-w-7xl mx-auto">
             {/* Header */}
@@ -34,14 +37,43 @@ export default function StocksDashboard() {
                     >
                         NSE Live Data
                     </Badge>
+
+                    {/* View Toggle */}
+                    <div className="ml-auto flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+                        <button
+                            onClick={() => setView('bubble')}
+                            className={cn(
+                                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                                view === 'bubble'
+                                    ? 'bg-brand-blue/20 text-brand-blue'
+                                    : 'text-muted-foreground hover:text-white',
+                            )}
+                        >
+                            <CircleDot className="h-3.5 w-3.5" />
+                            Bubble
+                        </button>
+                        <button
+                            onClick={() => setView('list')}
+                            className={cn(
+                                'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                                view === 'list'
+                                    ? 'bg-brand-blue/20 text-brand-blue'
+                                    : 'text-muted-foreground hover:text-white',
+                            )}
+                        >
+                            <List className="h-3.5 w-3.5" />
+                            List
+                        </button>
+                    </div>
                 </div>
 
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
                     NIFTY 50 Stocks
                 </h1>
                 <p className="text-sm md:text-base text-muted-foreground max-w-xl">
-                    Real-time prices and historical data for India&apos;s top 50 stocks,
-                    powered by Kite Connect.
+                    {view === 'bubble'
+                        ? 'Interactive bubble visualization — size by market cap, color by sector, glow by momentum.'
+                        : 'Real-time prices and historical data for India\u2019s top 50 stocks.'}
                 </p>
 
                 {/* Stats Row */}
@@ -69,13 +101,18 @@ export default function StocksDashboard() {
                 </div>
             </motion.div>
 
-            {/* Stock List */}
+            {/* View Content */}
             <motion.div
+                key={view}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
             >
-                <StockList initialExchange="NSE" pageSize={50} />
+                {view === 'bubble' ? (
+                    <BubbleCluster />
+                ) : (
+                    <StockList initialExchange="NSE" pageSize={50} />
+                )}
             </motion.div>
         </div>
     );

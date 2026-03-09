@@ -3,11 +3,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BarChart2, Loader2, TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react';
+import { ArrowLeft, BarChart2, Loader2, TrendingUp, TrendingDown, Minus, Zap, Newspaper, Clock, ExternalLink } from 'lucide-react';
 import NextLink from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/client';
+import { getStockNews } from '@/src/lib/api/analyticsApi';
+import type { INewsArticle } from '@/types/analytics';
 
 interface StockOHLCV {
     timestamp: string;
@@ -62,6 +64,8 @@ export default function StockAnalyticsPage() {
     const [quote, setQuote] = useState<StockQuote | null>(null);
     const [loading, setLoading] = useState(true);
     const [quoteLoading, setQuoteLoading] = useState(true);
+    const [newsArticles, setNewsArticles] = useState<INewsArticle[]>([]);
+    const [newsLoading, setNewsLoading] = useState(true);
 
     const instrumentType = getInstrumentType(exchange);
     const currencySymbol = getCurrencySymbol(exchange);
@@ -85,6 +89,25 @@ export default function StockAnalyticsPage() {
             }
         }
         fetchQuote();
+    }, [ticker, exchange]);
+
+    // Fetch stock news
+    useEffect(() => {
+        if (!ticker || exchange !== 'NSE') return;
+        async function fetchNews() {
+            setNewsLoading(true);
+            try {
+                const result = await getStockNews(ticker, 10);
+                if (result.success && result.data?.items) {
+                    setNewsArticles(result.data.items);
+                }
+            } catch {
+                console.warn(`Failed to fetch news for ${ticker}`);
+            } finally {
+                setNewsLoading(false);
+            }
+        }
+        fetchNews();
     }, [ticker, exchange]);
 
     // Fetch OHLCV
@@ -298,6 +321,80 @@ export default function StockAnalyticsPage() {
                         </NextLink>
                     </div>
                 </div>
+
+                {/* Stock News Section */}
+                {exchange === 'NSE' && (
+                    <div className="mt-8">
+                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                            <Newspaper className="h-5 w-5 text-brand-blue" />
+                            Latest News
+                        </h2>
+                        {newsLoading ? (
+                            <div className="flex items-center justify-center py-12">
+                                <Loader2 className="h-6 w-6 animate-spin text-brand-blue" />
+                            </div>
+                        ) : newsArticles.length === 0 ? (
+                            <div className="text-center py-12 text-muted-foreground rounded-xl border border-white/10 bg-white/[0.02]">
+                                <Newspaper className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                                <p className="text-sm">No recent news found for {ticker}</p>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {newsArticles.map((article, idx) => (
+                                    <motion.a
+                                        key={article.id}
+                                        href={article.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: idx * 0.05 }}
+                                        className="group p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all flex gap-4"
+                                    >
+                                        {article.image_url && (
+                                            <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-white/5">
+                                                <img
+                                                    src={article.image_url}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).style.display = 'none';
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
+                                        <div className="flex-1 min-w-0">
+                                            <h4 className="text-sm font-medium text-white leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors">
+                                                {article.headline}
+                                            </h4>
+                                            {article.summary && (
+                                                <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
+                                                    {article.summary}
+                                                </p>
+                                            )}
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <span className="text-[10px] text-muted-foreground">{article.source}</span>
+                                                {article.published_at && (
+                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
+                                                        <Clock className="h-3 w-3" />
+                                                        {(() => {
+                                                            const diff = Date.now() - new Date(article.published_at).getTime();
+                                                            const hrs = Math.floor(diff / 3600000);
+                                                            if (hrs < 1) return `${Math.floor(diff / 60000)}m ago`;
+                                                            if (hrs < 24) return `${hrs}h ago`;
+                                                            return `${Math.floor(hrs / 24)}d ago`;
+                                                        })()}
+                                                    </span>
+                                                )}
+                                                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-brand-blue ml-auto" />
+                                            </div>
+                                        </div>
+                                    </motion.a>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                )}
             </motion.div>
         </div>
     );

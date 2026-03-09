@@ -1,0 +1,74 @@
+/** Sector dashboard shared constants, colors, and configuration. */
+
+export { SECTOR_COLORS } from '@/types/analytics';
+
+export type SectorViewMode = 'treemap' | 'heatmap' | 'table';
+
+export const TIMEFRAMES = [
+  { label: '1D', value: '1d' as const },
+  { label: '1W', value: '1w' as const },
+  { label: '1M', value: '1m' as const },
+  { label: '3M', value: '3m' as const },
+  { label: '6M', value: '6m' as const },
+  { label: 'YTD', value: 'ytd' as const },
+] as const;
+
+export const SORT_OPTIONS = [
+  { label: 'Performance', value: 'performance' as const },
+  { label: 'Market Cap', value: 'market_cap' as const },
+  { label: 'Momentum', value: 'momentum' as const },
+] as const;
+
+export type SortOption = (typeof SORT_OPTIONS)[number]['value'];
+
+export const RRG_QUADRANT_COLORS: Record<string, string> = {
+  leading: '#10B981',
+  weakening: '#F59E0B',
+  lagging: '#EF4444',
+  improving: '#3B82F6',
+};
+
+export const RRG_QUADRANT_LABELS: Record<string, string> = {
+  leading: 'Leading',
+  weakening: 'Weakening',
+  lagging: 'Lagging',
+  improving: 'Improving',
+};
+
+/** Diverging color scale: red → gray → green for performance values. */
+export function perfColor(pct: number, alpha: number = 1): string {
+  if (pct > 0) {
+    const intensity = Math.min(pct / 3, 1);
+    return `rgba(16, 185, 129, ${(0.15 + intensity * 0.6) * alpha})`;
+  }
+  if (pct < 0) {
+    const intensity = Math.min(Math.abs(pct) / 3, 1);
+    return `rgba(239, 68, 68, ${(0.15 + intensity * 0.6) * alpha})`;
+  }
+  return `rgba(148, 163, 184, ${0.15 * alpha})`;
+}
+
+/** Text color class for performance values. */
+export function perfTextClass(pct: number): string {
+  if (pct > 0.01) return 'text-emerald-400';
+  if (pct < -0.01) return 'text-red-400';
+  return 'text-muted-foreground';
+}
+
+/** Format ₹ values compactly. */
+export function formatMarketCap(val: number | null): string {
+  if (val == null) return '—';
+  if (val >= 1e12) return `₹${(val / 1e12).toFixed(1)}T`;
+  if (val >= 1e9) return `₹${(val / 1e9).toFixed(1)}B`;
+  if (val >= 1e6) return `₹${(val / 1e6).toFixed(0)}M`;
+  return `₹${val.toLocaleString()}`;
+}
+
+/** Format volume compactly. */
+export function formatVolume(val: number | null): string {
+  if (val == null) return '—';
+  if (val >= 1e7) return `${(val / 1e7).toFixed(1)}Cr`;
+  if (val >= 1e5) return `${(val / 1e5).toFixed(1)}L`;
+  if (val >= 1e3) return `${(val / 1e3).toFixed(1)}K`;
+  return val.toLocaleString();
+}

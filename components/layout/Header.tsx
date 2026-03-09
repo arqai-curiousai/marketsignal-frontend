@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu } from 'lucide-react';
+import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu, CircleDot } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
     DropdownMenu,
@@ -25,6 +25,7 @@ import {
 } from '@/components/ui/sheet';
 
 const navItems = [
+    { name: 'Stocks', href: '/stocks', icon: CircleDot, protected: true },
     { name: 'Markets', href: '/signals', icon: Activity, protected: true },
     { name: 'Playground', href: '/playground', icon: FlaskConical, protected: true },
     { name: 'Assistant', href: '/assistant', icon: MessageSquare, protected: true },
