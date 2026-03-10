@@ -24,12 +24,42 @@ import { getActiveSignals } from '@/src/lib/api/signalApi';
 import type { IAISignal } from '@/types/stock';
 import Link from 'next/link';
 
-// Analytics tab components
-import { SectorDashboard } from '@/components/analytics/sectors/SectorDashboard';
-import { CorrelationExplorer } from '@/components/analytics/CorrelationExplorer';
-import { NewsIntelligence } from '@/components/analytics/news/NewsIntelligence';
-import { PatternDashboard } from '@/components/analytics/patterns/PatternDashboard';
-import { FnODashboard } from '@/components/analytics/fno/FnODashboard';
+import dynamic from 'next/dynamic';
+import { Loader2 } from 'lucide-react';
+import { TabErrorBoundary } from '@/components/ui/TabErrorBoundary';
+
+// Loading fallback for lazy-loaded analytics tabs
+const TabLoadingFallback = () => (
+  <div className="flex items-center justify-center py-20">
+    <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
+  </div>
+);
+
+// Lazy-loaded analytics tab components (ssr: false — all use browser APIs)
+const SectorDashboard = dynamic(
+  () => import('@/components/analytics/sectors/SectorDashboard').then(m => ({ default: m.SectorDashboard })),
+  { ssr: false, loading: TabLoadingFallback },
+);
+
+const CorrelationExplorer = dynamic(
+  () => import('@/components/analytics/CorrelationExplorer').then(m => ({ default: m.CorrelationExplorer })),
+  { ssr: false, loading: TabLoadingFallback },
+);
+
+const NewsIntelligence = dynamic(
+  () => import('@/components/analytics/news/NewsIntelligence').then(m => ({ default: m.NewsIntelligence })),
+  { ssr: false, loading: TabLoadingFallback },
+);
+
+const PatternDashboard = dynamic(
+  () => import('@/components/analytics/patterns/PatternDashboard').then(m => ({ default: m.PatternDashboard })),
+  { ssr: false, loading: TabLoadingFallback },
+);
+
+const FnODashboard = dynamic(
+  () => import('@/components/analytics/fno/FnODashboard').then(m => ({ default: m.FnODashboard })),
+  { ssr: false, loading: TabLoadingFallback },
+);
 
 /**
  * Markets Hub — India-first analytics dashboard
@@ -218,35 +248,45 @@ export default function MarketsHub() {
         {/* ─── Tab: Sectors ─── */}
         <TabsContent value="sectors" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <SectorDashboard />
+            <TabErrorBoundary tabName="Sectors">
+              <SectorDashboard />
+            </TabErrorBoundary>
           </motion.div>
         </TabsContent>
 
         {/* ─── Tab: News ─── */}
         <TabsContent value="news" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <NewsIntelligence />
+            <TabErrorBoundary tabName="News">
+              <NewsIntelligence />
+            </TabErrorBoundary>
           </motion.div>
         </TabsContent>
 
         {/* ─── Tab: Correlation Explorer ─── */}
         <TabsContent value="correlation" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <CorrelationExplorer />
+            <TabErrorBoundary tabName="Correlation">
+              <CorrelationExplorer />
+            </TabErrorBoundary>
           </motion.div>
         </TabsContent>
 
         {/* ─── Tab: Statistical Patterns ─── */}
         <TabsContent value="patterns" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <PatternDashboard />
+            <TabErrorBoundary tabName="Statistical Patterns">
+              <PatternDashboard />
+            </TabErrorBoundary>
           </motion.div>
         </TabsContent>
 
         {/* ─── Tab: F&O ─── */}
         <TabsContent value="fno" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <FnODashboard />
+            <TabErrorBoundary tabName="F&amp;O">
+              <FnODashboard />
+            </TabErrorBoundary>
           </motion.div>
         </TabsContent>
       </Tabs>

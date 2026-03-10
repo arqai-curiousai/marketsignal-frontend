@@ -77,6 +77,13 @@ export interface ISectorStockEnriched extends ISectorStock {
   sparkline_7d: number[];
 }
 
+export interface ISectorDispersion {
+  dispersion_1d: number;
+  dispersion_20d: number;
+  hhi: number;
+  hhi_label: 'concentrated' | 'moderate' | 'diversified';
+}
+
 export interface ISectorAnalytics {
   sector: string;
   avg_change_pct: number;
@@ -89,8 +96,78 @@ export interface ISectorAnalytics {
   rrg: ISectorRRG;
   breadth: ISectorBreadth;
   volatility: ISectorVolatility;
+  dispersion: ISectorDispersion;
+  volume_flow_score: number;
+  volume_flow_label: string;
   stocks: ISectorStockEnriched[];
   computed_at: string;
+}
+
+// ─── Sector Detail (on-demand) ─────────────────────────────
+
+export interface ISectorRiskScorecard {
+  sector: string;
+  sharpe_ratio: number;
+  sortino_ratio: number;
+  calmar_ratio: number;
+  max_drawdown: number;
+  max_dd_duration_days: number;
+  ulcer_index: number;
+  benchmark_sharpe: number;
+  benchmark_sortino: number;
+  annualized_return: number;
+  annualized_vol: number;
+}
+
+export interface ISectorHistory {
+  sector: string;
+  dates: string[];
+  sector_cumulative: number[];
+  benchmark_cumulative: number[];
+  sector_drawdown: number[];
+  active_return: number;
+  days: number;
+}
+
+export interface ISectorSeasonality {
+  sector: string;
+  months: Array<{
+    month: number;
+    avg_return: number;
+    hit_rate: number;
+    z_score: number;
+    sample_size: number;
+  }>;
+  overall_stats: {
+    avg_monthly: number;
+    std_monthly: number;
+    best_month: number;
+    worst_month: number;
+  };
+}
+
+export interface ISectorMansfieldRS {
+  sector: string;
+  dates: string[];
+  mansfield_rs: number[];
+  rs_sma: number[];
+  stage: 'Basing' | 'Advancing' | 'Topping' | 'Declining';
+  stage_duration_days: number;
+}
+
+export interface ISectorVolumeFlow {
+  sector: string;
+  dates: string[];
+  flow_scores: number[];
+  current_score: number;
+  current_label: string;
+  stock_flows: Array<{
+    ticker: string;
+    obv_trend: string;
+    mfi: number;
+    flow_score: number;
+  }>;
+  interpretation: string;
 }
 
 // ─── Correlation ────────────────────────────────────────────
@@ -557,6 +634,7 @@ export interface IOptionStrike {
   ce_charm: number | null;
   ce_volga: number | null;
   ce_oi_change: number | null;
+  ce_ltp_change: number | null;
   pe_ltp: number | null;
   pe_oi: number;
   pe_volume: number;
@@ -571,6 +649,7 @@ export interface IOptionStrike {
   pe_charm: number | null;
   pe_volga: number | null;
   pe_oi_change: number | null;
+  pe_ltp_change: number | null;
 }
 
 export interface IFnOSnapshot {

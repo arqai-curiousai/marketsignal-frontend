@@ -39,8 +39,8 @@ const PROTECTED_PREFIXES = [
     '/assistant', '/research', '/settings',
 ];
 
-/** Flag to prevent concurrent refresh attempts */
-let isRefreshing = false;
+/** Shared promise so concurrent 401s all await the same refresh */
+let refreshPromise: Promise<boolean> | null = null;
 
 /**
  * Build URL with query parameters (relative paths for browser security)
@@ -64,11 +64,17 @@ function buildUrl(endpoint: string, params?: Record<string, string | number | bo
 
 /**
  * Attempt to refresh the access token via the backend refresh endpoint.
- * Returns true on success.
+ * If a refresh is already in flight, all callers share the same promise.
  */
 async function tryRefreshToken(): Promise<boolean> {
-    if (isRefreshing) return false;
-    isRefreshing = true;
+    if (refreshPromise) return refreshPromise;
+    refreshPromise = doRefresh().finally(() => {
+        refreshPromise = null;
+    });
+    return refreshPromise;
+}
+
+async function doRefresh(): Promise<boolean> {
     try {
         const res = await fetch('/api/auth/refresh', {
             method: 'POST',
@@ -77,8 +83,6 @@ async function tryRefreshToken(): Promise<boolean> {
         return res.ok;
     } catch {
         return false;
-    } finally {
-        isRefreshing = false;
     }
 }
 

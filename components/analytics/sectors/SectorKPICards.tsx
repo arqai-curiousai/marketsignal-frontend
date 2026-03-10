@@ -2,9 +2,9 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { TrendingUp, BarChart3, Activity, DollarSign } from 'lucide-react';
+import { TrendingUp, BarChart3, Activity, DollarSign, Shuffle, Waves } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatMarketCap, perfTextClass } from './constants';
+import { formatMarketCap, perfTextClass, flowColor } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorKPICardsProps {
@@ -35,6 +35,32 @@ export function SectorKPICards({ sectors, timeframe }: SectorKPICardsProps) {
   // Avg momentum
   const avgMomentum =
     sectors.reduce((sum, s) => sum + s.momentum_score, 0) / sectors.length;
+
+  // Cross-sector dispersion (std of sector performances)
+  const sectorPerfs = sectors.map((s) => s.performance[timeframe] ?? 0);
+  const meanPerf = sectorPerfs.reduce((a, b) => a + b, 0) / sectorPerfs.length;
+  const dispersion = Math.sqrt(
+    sectorPerfs.reduce((sum, p) => sum + (p - meanPerf) ** 2, 0) / sectorPerfs.length,
+  );
+
+  // Avg HHI label across sectors
+  const hhiLabels = sectors
+    .map((s) => s.dispersion?.hhi_label)
+    .filter(Boolean) as string[];
+  const hhiSummary = hhiLabels.length > 0
+    ? hhiLabels.reduce((acc, l) => {
+        acc[l] = (acc[l] ?? 0) + 1;
+        return acc;
+      }, {} as Record<string, number>)
+    : null;
+  const dominantHhi = hhiSummary
+    ? Object.entries(hhiSummary).sort((a, b) => b[1] - a[1])[0][0]
+    : 'n/a';
+
+  // Avg flow score
+  const avgFlow =
+    sectors.reduce((sum, s) => sum + (s.volume_flow_score ?? 0), 0) / sectors.length;
+  const flowLabel = avgFlow > 15 ? 'Accumulation' : avgFlow < -15 ? 'Distribution' : 'Neutral';
 
   const cards = [
     {
@@ -76,10 +102,28 @@ export function SectorKPICards({ sectors, timeframe }: SectorKPICardsProps) {
             ? 'text-yellow-400'
             : 'text-red-400',
     },
+    {
+      label: 'Dispersion',
+      value: `${dispersion.toFixed(2)}%`,
+      sub: dominantHhi,
+      icon: Shuffle,
+      color:
+        dispersion > 2
+          ? 'text-yellow-400'
+          : 'text-blue-400',
+    },
+    {
+      label: 'Volume Flow',
+      value: `${avgFlow > 0 ? '+' : ''}${avgFlow.toFixed(0)}`,
+      sub: flowLabel,
+      subStyle: { color: flowColor(avgFlow) },
+      icon: Waves,
+      color: avgFlow > 15 ? 'text-emerald-400' : avgFlow < -15 ? 'text-red-400' : 'text-slate-400',
+    },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
       {cards.map((card, idx) => (
         <motion.div
           key={card.label}
@@ -98,7 +142,10 @@ export function SectorKPICards({ sectors, timeframe }: SectorKPICardsProps) {
             </span>
           </div>
           <div className="text-lg font-bold text-white">{card.value}</div>
-          <div className={cn('text-xs', card.subClass ?? 'text-muted-foreground')}>
+          <div
+            className={cn('text-xs', card.subClass ?? 'text-muted-foreground')}
+            style={'subStyle' in card ? (card as { subStyle?: React.CSSProperties }).subStyle : undefined}
+          >
             {card.sub}
           </div>
         </motion.div>

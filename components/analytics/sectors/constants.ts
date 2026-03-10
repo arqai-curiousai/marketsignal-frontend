@@ -2,7 +2,7 @@
 
 export { SECTOR_COLORS } from '@/types/analytics';
 
-export type SectorViewMode = 'treemap' | 'heatmap' | 'table';
+export type SectorViewMode = 'treemap' | 'heatmap' | 'table' | 'flow';
 
 export const TIMEFRAMES = [
   { label: '1D', value: '1d' as const },
@@ -72,3 +72,41 @@ export function formatVolume(val: number | null): string {
   if (val >= 1e3) return `${(val / 1e3).toFixed(1)}K`;
   return val.toLocaleString();
 }
+
+/** Mansfield RS stage colors and labels. */
+export const MANSFIELD_STAGE_COLORS: Record<string, string> = {
+  Basing: '#3B82F6',
+  Advancing: '#10B981',
+  Topping: '#F59E0B',
+  Declining: '#EF4444',
+};
+
+export const MANSFIELD_STAGE_LABELS: Record<string, string> = {
+  Basing: 'Stage 1 — Basing',
+  Advancing: 'Stage 2 — Advancing',
+  Topping: 'Stage 3 — Topping',
+  Declining: 'Stage 4 — Declining',
+};
+
+/** Flow gauge color: red (distribution) → gray (neutral) → green (accumulation). */
+export function flowColor(score: number): string {
+  if (score > 30) return '#10B981';
+  if (score < -30) return '#EF4444';
+  return '#94A3B8';
+}
+
+/** Seasonality cell color: diverging red-white-green for monthly returns. */
+export function seasonalityColor(pct: number): string {
+  if (pct > 0) {
+    const intensity = Math.min(Math.abs(pct) / 4, 1);
+    return `rgba(16, 185, 129, ${0.15 + intensity * 0.55})`;
+  }
+  if (pct < 0) {
+    const intensity = Math.min(Math.abs(pct) / 4, 1);
+    return `rgba(239, 68, 68, ${0.15 + intensity * 0.55})`;
+  }
+  return 'rgba(148, 163, 184, 0.1)';
+}
+
+/** Month name abbreviation. */
+export const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];

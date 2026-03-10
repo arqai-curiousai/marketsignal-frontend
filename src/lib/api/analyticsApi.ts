@@ -34,6 +34,11 @@ import type {
   INewsGraph,
   INewsMindMapNode,
   INewsTimeline,
+  ISectorRiskScorecard,
+  ISectorHistory,
+  ISectorSeasonality,
+  ISectorMansfieldRS,
+  ISectorVolumeFlow,
 } from '@/types/analytics';
 
 // =============================================================================
@@ -66,6 +71,38 @@ export async function getSectorStocks(
   }>
 > {
   return apiClient.get(`/api/analytics/sectors/${encodeURIComponent(sector)}/stocks`);
+}
+
+export async function getSectorRisk(
+  sector: string,
+): Promise<ApiResult<ISectorRiskScorecard>> {
+  return apiClient.get(`/api/analytics/sectors/${encodeURIComponent(sector)}/risk`);
+}
+
+export async function getSectorHistory(
+  sector: string,
+  days: number = 252,
+): Promise<ApiResult<ISectorHistory>> {
+  return apiClient.get(`/api/analytics/sectors/${encodeURIComponent(sector)}/history?days=${days}`);
+}
+
+export async function getSectorSeasonality(
+  sector: string,
+): Promise<ApiResult<ISectorSeasonality>> {
+  return apiClient.get(`/api/analytics/sectors/${encodeURIComponent(sector)}/seasonality`);
+}
+
+export async function getSectorMansfield(
+  sector: string,
+  days: number = 252,
+): Promise<ApiResult<ISectorMansfieldRS>> {
+  return apiClient.get(`/api/analytics/sectors/${encodeURIComponent(sector)}/mansfield?days=${days}`);
+}
+
+export async function getSectorFlow(
+  sector: string,
+): Promise<ApiResult<ISectorVolumeFlow>> {
+  return apiClient.get(`/api/analytics/sectors/${encodeURIComponent(sector)}/flow`);
 }
 
 // =============================================================================

@@ -10,9 +10,8 @@ import { SectorKPICards } from './SectorKPICards';
 import { SectorTreemap } from './SectorTreemap';
 import { SectorHeatmapGrid } from './SectorHeatmapGrid';
 import { SectorPerformanceTable } from './SectorPerformanceTable';
-import { SectorRRG } from './SectorRRG';
-import { SectorPerformanceBars } from './SectorPerformanceBars';
-import { SectorBreadthPanel } from './SectorBreadthPanel';
+import { SectorFlowView } from './SectorFlowView';
+import { SectorDetailPanel } from './SectorDetailPanel';
 import { SectorDrillSheet } from './SectorDrillSheet';
 
 export function SectorDashboard() {
@@ -22,6 +21,7 @@ export function SectorDashboard() {
   const [timeframe, setTimeframe] = useState<SectorTimeframe>('1d');
   const [sortBy, setSortBy] = useState<SortOption>('performance');
   const [selectedSector, setSelectedSector] = useState<ISectorAnalytics | null>(null);
+  const [drillSector, setDrillSector] = useState<ISectorAnalytics | null>(null);
   const [drillOpen, setDrillOpen] = useState(false);
 
   useEffect(() => {
@@ -60,6 +60,10 @@ export function SectorDashboard() {
 
   const handleSectorClick = useCallback((sector: ISectorAnalytics) => {
     setSelectedSector(sector);
+  }, []);
+
+  const handleDrillOpen = useCallback((sector: ISectorAnalytics) => {
+    setDrillSector(sector);
     setDrillOpen(true);
   }, []);
 
@@ -94,8 +98,8 @@ export function SectorDashboard() {
         onSortChange={setSortBy}
       />
 
-      {/* Main Content: View + RRG side panel */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4">
+      {/* Main Content: View + Detail Panel */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_420px] gap-4">
         {/* Active View */}
         <div className="min-w-0">
           {viewMode === 'treemap' && (
@@ -119,24 +123,28 @@ export function SectorDashboard() {
               onSectorClick={handleSectorClick}
             />
           )}
+          {viewMode === 'flow' && (
+            <SectorFlowView
+              sectors={sortedSectors}
+              timeframe={timeframe}
+              onSectorClick={handleSectorClick}
+            />
+          )}
         </div>
 
-        {/* Right Side Panel */}
-        <div className="space-y-4">
-          <SectorRRG
-            sectors={sectors}
-            onSectorClick={handleSectorClick}
-          />
-          <SectorBreadthPanel sectors={sortedSectors} />
-        </div>
+        {/* Context-Aware Detail Panel */}
+        <SectorDetailPanel
+          selectedSector={selectedSector}
+          allSectors={sectors}
+          timeframe={timeframe}
+          onSectorSelect={setSelectedSector}
+          onDrillOpen={handleDrillOpen}
+        />
       </div>
-
-      {/* Performance Bars (full width) */}
-      <SectorPerformanceBars sectors={sortedSectors} timeframe={timeframe} />
 
       {/* Drill-down Sheet */}
       <SectorDrillSheet
-        sector={selectedSector}
+        sector={drillSector}
         open={drillOpen}
         onOpenChange={setDrillOpen}
         timeframe={timeframe}

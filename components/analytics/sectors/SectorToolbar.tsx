@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Grid3X3, LayoutGrid, Table as TableIcon } from 'lucide-react';
+import { Grid3X3, LayoutGrid, Table as TableIcon, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIMEFRAMES, SORT_OPTIONS } from './constants';
 import type { SectorViewMode, SortOption } from './constants';
@@ -20,6 +20,7 @@ const VIEW_MODES: { mode: SectorViewMode; icon: React.ElementType; label: string
   { mode: 'treemap', icon: Grid3X3, label: 'Treemap' },
   { mode: 'heatmap', icon: LayoutGrid, label: 'Heatmap' },
   { mode: 'table', icon: TableIcon, label: 'Table' },
+  { mode: 'flow', icon: Zap, label: 'Flow' },
 ];
 
 export function SectorToolbar({
