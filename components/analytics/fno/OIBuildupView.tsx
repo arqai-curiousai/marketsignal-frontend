@@ -92,7 +92,7 @@ function formatOI(val: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────
 
-export function OIBuildupView({ chain, underlyingPrice, atmStrike }: Props) {
+export function OIBuildupView({ chain, underlyingPrice: _underlyingPrice, atmStrike }: Props) {
   // Check if data is available (requires at least 2 snapshots for OI changes)
   const hasOIData = useMemo(
     () => chain.some((s) => s.ce_oi_change != null || s.pe_oi_change != null),
@@ -376,13 +376,13 @@ export function OIBuildupView({ chain, underlyingPrice, atmStrike }: Props) {
           <thead>
             <tr className="text-white/25 border-b border-white/[0.04]">
               <th className="py-1.5 px-1.5 text-left font-medium">CE</th>
-              <th className="py-1.5 px-1 text-right font-medium">LTP Chg</th>
+              <th className="py-1.5 px-1 text-right font-medium hidden sm:table-cell">LTP Chg</th>
               <th className="py-1.5 px-1 text-right font-medium">OI Chg</th>
-              <th className="py-1.5 px-1 text-right font-medium w-[50px]" />
+              <th className="py-1.5 px-1 text-right font-medium w-[50px] hidden sm:table-cell" />
               <th className="py-1.5 px-2 text-center font-semibold text-white/40">Strike</th>
-              <th className="py-1.5 px-1 text-left font-medium w-[50px]" />
+              <th className="py-1.5 px-1 text-left font-medium w-[50px] hidden sm:table-cell" />
               <th className="py-1.5 px-1 text-left font-medium">OI Chg</th>
-              <th className="py-1.5 px-1 text-left font-medium">LTP Chg</th>
+              <th className="py-1.5 px-1 text-left font-medium hidden sm:table-cell">LTP Chg</th>
               <th className="py-1.5 px-1.5 text-right font-medium">PE</th>
             </tr>
           </thead>
@@ -412,9 +412,9 @@ export function OIBuildupView({ chain, underlyingPrice, atmStrike }: Props) {
                     <span className={cn('font-semibold', ceCfg.color)}>{ceCfg.short}</span>
                   </td>
 
-                  {/* CE LTP Change */}
+                  {/* CE LTP Change — hidden on mobile */}
                   <td className={cn(
-                    'py-1 px-1 text-right font-mono',
+                    'py-1 px-1 text-right font-mono hidden sm:table-cell',
                     d.ce_ltp_change != null && d.ce_ltp_change > 0 ? 'text-emerald-400/60' :
                     d.ce_ltp_change != null && d.ce_ltp_change < 0 ? 'text-red-400/60' : 'text-white/15',
                   )}>
@@ -430,8 +430,8 @@ export function OIBuildupView({ chain, underlyingPrice, atmStrike }: Props) {
                     {formatOIChange(d.ce_oi_change)}
                   </td>
 
-                  {/* CE Bar (grows left, color follows buildup) */}
-                  <td className="py-1 px-1">
+                  {/* CE Bar (grows left, color follows buildup) — hidden on mobile */}
+                  <td className="py-1 px-1 hidden sm:table-cell">
                     <div className="flex justify-end">
                       <div
                         className={cn('h-1.5 rounded-full transition-all', ceCfg.barColor)}
@@ -449,8 +449,8 @@ export function OIBuildupView({ chain, underlyingPrice, atmStrike }: Props) {
                     {isATM && <span className="ml-1 text-[7px] text-violet-400/60">ATM</span>}
                   </td>
 
-                  {/* PE Bar (grows right, color follows buildup) */}
-                  <td className="py-1 px-1">
+                  {/* PE Bar (grows right, color follows buildup) — hidden on mobile */}
+                  <td className="py-1 px-1 hidden sm:table-cell">
                     <div className="flex justify-start">
                       <div
                         className={cn('h-1.5 rounded-full transition-all', peCfg.barColor)}
@@ -468,9 +468,9 @@ export function OIBuildupView({ chain, underlyingPrice, atmStrike }: Props) {
                     {formatOIChange(d.pe_oi_change)}
                   </td>
 
-                  {/* PE LTP Change */}
+                  {/* PE LTP Change — hidden on mobile */}
                   <td className={cn(
-                    'py-1 px-1 text-left font-mono',
+                    'py-1 px-1 text-left font-mono hidden sm:table-cell',
                     d.pe_ltp_change != null && d.pe_ltp_change > 0 ? 'text-emerald-400/60' :
                     d.pe_ltp_change != null && d.pe_ltp_change < 0 ? 'text-red-400/60' : 'text-white/15',
                   )}>

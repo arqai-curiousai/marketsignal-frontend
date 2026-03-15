@@ -111,19 +111,19 @@ export const WINDOWS = [
 // ═══════════════════════════════════════════════════════════════
 
 export const TYPE_COLORS: Record<string, string> = {
-  stock: '#60A5FA',
+  stock: '#4ADE80',
   currency: '#6EE7B7',
   commodity: '#FBBF24',
 };
 
 export const TYPE_GLOW: Record<string, string> = {
-  stock: 'rgba(96, 165, 250, 0.6)',
+  stock: 'rgba(74, 222, 128, 0.6)',
   currency: 'rgba(110, 231, 183, 0.6)',
   commodity: 'rgba(251, 191, 36, 0.6)',
 };
 
 export const COMMUNITY_COLORS = [
-  '#60A5FA', '#6EE7B7', '#FBBF24', '#F472B6', '#A78BFA',
+  '#4ADE80', '#6EE7B7', '#FBBF24', '#F472B6', '#A78BFA',
   '#34D399', '#FB923C', '#818CF8', '#F87171', '#22D3EE',
 ];
 
@@ -131,9 +131,10 @@ export const COMMUNITY_COLORS = [
 // Correlation color scale & helpers
 // ═══════════════════════════════════════════════════════════════
 
+// Blue-Orange diverging palette (colorblind-safe: accessible for deuteranopia/protanopia)
 export const corrColorScale = scaleLinear<string>()
-  .domain([-1, -0.3, 0, 0.3, 1])
-  .range(['#EF4444', '#F87171', '#475569', '#6EE7B7', '#10B981'])
+  .domain([-1, -0.5, 0, 0.5, 1])
+  .range(['#2563EB', '#60A5FA', '#475569', '#FB923C', '#EA580C'])
   .clamp(true);
 
 export function corrColor(value: number): string {
@@ -172,5 +173,7 @@ export interface SimLink extends SimulationLinkDatum<GraphNode> {
   correlation: number;
 }
 
-export type CorrelationMethod = 'pearson' | 'spearman';
-export type ViewMode = 'network' | 'heatmap';
+export type CorrelationMethod = 'pearson' | 'spearman' | 'kendall';
+export type ViewMode = 'network' | 'heatmap' | 'explorer';
+
+export type AssetScope = 'equity' | 'cross_asset';

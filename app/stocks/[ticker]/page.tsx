@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowLeft, BarChart2, Loader2, TrendingUp, TrendingDown, Minus, Zap, Newspaper, Clock, ExternalLink } from 'lucide-react';
+import { ArrowLeft, BarChart2, Loader2, TrendingUp, TrendingDown, Minus, Zap, Newspaper } from 'lucide-react';
 import NextLink from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { apiClient } from '@/lib/api/client';
 import { getStockNews } from '@/src/lib/api/analyticsApi';
 import type { INewsArticle } from '@/types/analytics';
+import { ArticleCard } from '@/components/analytics/news/ArticleCard';
 
 interface StockOHLCV {
     timestamp: string;
@@ -341,55 +342,11 @@ export default function StockAnalyticsPage() {
                         ) : (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {newsArticles.map((article, idx) => (
-                                    <motion.a
+                                    <ArticleCard
                                         key={article.id}
-                                        href={article.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: idx * 0.05 }}
-                                        className="group p-4 rounded-xl border border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.04] transition-all flex gap-4"
-                                    >
-                                        {article.image_url && (
-                                            <div className="w-20 h-20 shrink-0 rounded-lg overflow-hidden bg-white/5">
-                                                <img
-                                                    src={article.image_url}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        (e.target as HTMLImageElement).style.display = 'none';
-                                                    }}
-                                                />
-                                            </div>
-                                        )}
-                                        <div className="flex-1 min-w-0">
-                                            <h4 className="text-sm font-medium text-white leading-snug line-clamp-2 group-hover:text-brand-blue transition-colors">
-                                                {article.headline}
-                                            </h4>
-                                            {article.summary && (
-                                                <p className="text-xs text-muted-foreground line-clamp-1 mt-1">
-                                                    {article.summary}
-                                                </p>
-                                            )}
-                                            <div className="flex items-center gap-2 mt-2">
-                                                <span className="text-[10px] text-muted-foreground">{article.source}</span>
-                                                {article.published_at && (
-                                                    <span className="text-[10px] text-muted-foreground flex items-center gap-0.5">
-                                                        <Clock className="h-3 w-3" />
-                                                        {(() => {
-                                                            const diff = Date.now() - new Date(article.published_at).getTime();
-                                                            const hrs = Math.floor(diff / 3600000);
-                                                            if (hrs < 1) return `${Math.floor(diff / 60000)}m ago`;
-                                                            if (hrs < 24) return `${hrs}h ago`;
-                                                            return `${Math.floor(hrs / 24)}d ago`;
-                                                        })()}
-                                                    </span>
-                                                )}
-                                                <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-brand-blue ml-auto" />
-                                            </div>
-                                        </div>
-                                    </motion.a>
+                                        article={article}
+                                        index={idx}
+                                    />
                                 ))}
                             </div>
                         )}

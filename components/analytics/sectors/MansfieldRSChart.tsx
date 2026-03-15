@@ -29,6 +29,8 @@ export function MansfieldRSChart({ data, sectorColor }: MansfieldRSChartProps) {
 
   const stageColor = MANSFIELD_STAGE_COLORS[data.stage] ?? '#94A3B8';
   const stageLabel = MANSFIELD_STAGE_LABELS[data.stage] ?? data.stage;
+  const latestRS = data.mansfield_rs.length > 0 ? data.mansfield_rs[data.mansfield_rs.length - 1] : 0;
+  const areaFill = latestRS >= 0 ? 'url(#mansfield-pos)' : 'url(#mansfield-neg)';
 
   return (
     <div>
@@ -88,7 +90,7 @@ export function MansfieldRSChart({ data, sectorColor }: MansfieldRSChartProps) {
             dataKey="rs"
             stroke={sectorColor}
             strokeWidth={1.5}
-            fill="url(#mansfield-pos)"
+            fill={areaFill}
             name="Mansfield RS"
           />
           <Line

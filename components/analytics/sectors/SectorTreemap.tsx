@@ -4,13 +4,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft } from 'lucide-react';
 import { hierarchy, treemap, treemapSquarify, HierarchyRectangularNode } from 'd3-hierarchy';
-import { cn } from '@/lib/utils';
 import { SECTOR_COLORS, perfColor, formatMarketCap } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorTreemapProps {
   sectors: ISectorAnalytics[];
   timeframe: SectorTimeframe;
+  selectedSector?: string | null;
   onSectorClick: (sector: ISectorAnalytics) => void;
 }
 
@@ -24,11 +24,12 @@ interface TreemapNode {
   sectorData?: ISectorAnalytics;
 }
 
-export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreemapProps) {
+export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClick }: SectorTreemapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 800, height: 500 });
   const [drilledSector, setDrilledSector] = useState<ISectorAnalytics | null>(null);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Responsive sizing
   useEffect(() => {
@@ -44,6 +45,9 @@ export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreem
   // Build hierarchy data
   const treeData = useMemo((): TreemapNode => {
     if (drilledSector) {
+      if (!drilledSector.stocks || drilledSector.stocks.length === 0) {
+        return { name: 'root', value: 0, pct: 0, children: [] };
+      }
       const children: TreemapNode[] = drilledSector.stocks.map((s) => ({
         name: s.ticker,
         value: Math.max(s.market_cap ?? 1, 1),
@@ -81,17 +85,40 @@ export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreem
     return root.leaves() as HierarchyRectangularNode<TreemapNode>[];
   }, [treeData, dims]);
 
+  // Single-click selects sector in detail panel; double-click drills into stocks
   const handleNodeClick = useCallback(
     (node: HierarchyRectangularNode<TreemapNode>) => {
       if (drilledSector) {
+        // Already drilled — clicks on stocks just re-select parent sector
         onSectorClick(drilledSector);
       } else {
         const sd = node.data.sectorData;
-        if (sd) setDrilledSector(sd);
+        if (sd) {
+          onSectorClick(sd);
+        }
       }
     },
     [drilledSector, onSectorClick],
   );
+
+  const handleNodeDoubleClick = useCallback(
+    (node: HierarchyRectangularNode<TreemapNode>) => {
+      if (!drilledSector) {
+        const sd = node.data.sectorData;
+        if (sd) {
+          setDrilledSector(sd);
+          onSectorClick(sd);
+        }
+      }
+    },
+    [drilledSector, onSectorClick],
+  );
+
+  // Find hovered node data for portal tooltip
+  const hoveredNodeData = useMemo(() => {
+    if (!hoveredNode) return null;
+    return nodes.find((n) => n.data.name === hoveredNode) ?? null;
+  }, [hoveredNode, nodes]);
 
   return (
     <div ref={containerRef} className="relative w-full">
@@ -111,10 +138,16 @@ export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreem
         )}
       </AnimatePresence>
 
-      <svg width={dims.width} height={dims.height} className="rounded-xl overflow-hidden">
+      {drilledSector && nodes.length === 0 && (
+        <div className="flex items-center justify-center py-16 text-sm text-muted-foreground">
+          No stock data available for {drilledSector.sector}
+        </div>
+      )}
+
+      <svg width={dims.width} height={dims.height} className="rounded-xl overflow-hidden" style={drilledSector && nodes.length === 0 ? { display: 'none' } : undefined}>
         <rect width={dims.width} height={dims.height} fill="transparent" rx={12} />
 
-        {nodes.map((node, idx) => {
+        {nodes.map((node) => {
           const x = node.x0;
           const y = node.y0;
           const w = node.x1 - x;
@@ -123,6 +156,7 @@ export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreem
 
           const d = node.data;
           const isHovered = hoveredNode === d.name;
+          const isSelected = !drilledSector && selectedSector === d.sector;
           const bgColor = perfColor(d.pct);
           const sectorColor = SECTOR_COLORS[d.sector ?? ''] ?? '#64748B';
           const showLabel = w > 50 && h > 30;
@@ -131,20 +165,43 @@ export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreem
           return (
             <g
               key={d.name}
-              onMouseEnter={() => setHoveredNode(d.name)}
+              onMouseEnter={(e) => {
+                setHoveredNode(d.name);
+                const rect = containerRef.current?.getBoundingClientRect();
+                if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+              }}
+              onMouseMove={(e) => {
+                const rect = containerRef.current?.getBoundingClientRect();
+                if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+              }}
               onMouseLeave={() => setHoveredNode(null)}
               onClick={() => handleNodeClick(node)}
+              onDoubleClick={() => handleNodeDoubleClick(node)}
               className="cursor-pointer"
             >
               <motion.rect
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1, x, y, width: w, height: h }}
-                transition={{ duration: 0.4, delay: idx * 0.02 }}
+                transition={{ duration: 0.3 }}
                 rx={4}
                 fill={bgColor}
-                stroke={isHovered ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}
-                strokeWidth={isHovered ? 1.5 : 0.5}
+                stroke={isSelected ? sectorColor : isHovered ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.08)'}
+                strokeWidth={isSelected ? 2.5 : isHovered ? 1.5 : 0.5}
               />
+              {/* Selected glow effect */}
+              {isSelected && (
+                <rect
+                  x={x + 1}
+                  y={y + 1}
+                  width={w - 2}
+                  height={h - 2}
+                  rx={3}
+                  fill="none"
+                  stroke={sectorColor}
+                  strokeWidth={1}
+                  opacity={0.3}
+                />
+              )}
 
               {/* Sector color accent bar */}
               {!drilledSector && h > 20 && (
@@ -194,37 +251,50 @@ export function SectorTreemap({ sectors, timeframe, onSectorClick }: SectorTreem
                 </text>
               )}
 
-              {/* Hover tooltip overlay */}
-              {isHovered && (
-                <foreignObject x={x} y={y} width={w} height={h} className="pointer-events-none">
-                  <div className="flex h-full w-full items-end p-1.5">
-                    <div className="rounded bg-brand-slate/95 px-2 py-1 text-[10px] text-white shadow-lg border border-white/10">
-                      {drilledSector ? (
-                        <>
-                          <div className="font-semibold">{d.name}</div>
-                          <div className="text-muted-foreground">
-                            {formatMarketCap(node.value ?? null)}
-                          </div>
-                        </>
-                      ) : d.sectorData ? (
-                        <>
-                          <div className="font-semibold">{d.sectorData.sector}</div>
-                          <div className="text-muted-foreground">
-                            {formatMarketCap(d.sectorData.total_market_cap)} | {d.sectorData.stock_count} stocks
-                          </div>
-                          <div className="text-muted-foreground">
-                            Breadth: {d.sectorData.breadth.above_50dma_pct.toFixed(0)}% &gt; 50 DMA
-                          </div>
-                        </>
-                      ) : null}
-                    </div>
-                  </div>
-                </foreignObject>
+              {/* Hover highlight stroke */}
+              {isHovered && !isSelected && (
+                <rect
+                  x={x} y={y} width={w} height={h}
+                  rx={4} fill="none"
+                  stroke="rgba(255,255,255,0.2)" strokeWidth={1}
+                  className="pointer-events-none"
+                />
               )}
             </g>
           );
         })}
       </svg>
+
+      {/* Portal-based tooltip — positioned outside SVG to avoid clipping */}
+      {hoveredNodeData && (
+        <div
+          className="absolute z-50 rounded-lg bg-brand-slate/95 backdrop-blur-sm px-3 py-2 text-[10px] text-white shadow-xl border border-white/10 pointer-events-none"
+          style={{
+            left: tooltipPos.x + 160 > dims.width ? tooltipPos.x - 140 : tooltipPos.x + 12,
+            top: tooltipPos.y + 80 > dims.height ? tooltipPos.y - 70 : tooltipPos.y + 12,
+          }}
+        >
+          {drilledSector ? (
+            <>
+              <div className="font-semibold text-xs">{hoveredNodeData.data.name}</div>
+              <div className="text-muted-foreground">
+                {formatMarketCap(hoveredNodeData.value ?? null)}
+              </div>
+            </>
+          ) : hoveredNodeData.data.sectorData ? (
+            <>
+              <div className="font-semibold text-xs">{hoveredNodeData.data.sectorData.sector}</div>
+              <div className="text-muted-foreground">
+                {formatMarketCap(hoveredNodeData.data.sectorData.total_market_cap)} | {hoveredNodeData.data.sectorData.stock_count} stocks
+              </div>
+              <div className="text-muted-foreground">
+                Breadth: {hoveredNodeData.data.sectorData.breadth.above_50dma_pct.toFixed(0)}% &gt; 50 DMA
+              </div>
+              <div className="text-[9px] text-muted-foreground mt-0.5">Double-click to drill into stocks</div>
+            </>
+          ) : null}
+        </div>
+      )}
     </div>
   );
 }

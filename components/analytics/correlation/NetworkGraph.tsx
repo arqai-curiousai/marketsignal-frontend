@@ -56,6 +56,15 @@ export function NetworkGraph({
   const simulationRef = useRef<ReturnType<typeof forceSimulation<GraphNode>> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [graphSize, setGraphSize] = useState({ width: 700, height: 500 });
+  const [simulating, setSimulating] = useState(false);
+  // Drag threshold: track mousedown position to distinguish click from drag
+  const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
+  const pendingDragNodeRef = useRef<string | null>(null);
+  // Persist node positions across re-renders to avoid jarring restarts
+  const positionCacheRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // Store getCorr in a ref so graphData doesn't depend on it
+  const getCorrRef = useRef(getCorr);
+  getCorrRef.current = getCorr;
 
   // Responsive sizing
   useEffect(() => {
@@ -64,7 +73,7 @@ export function NetworkGraph({
         const rect = containerRef.current.getBoundingClientRect();
         setGraphSize({
           width: Math.max(rect.width, 400),
-          height: Math.max(Math.min(rect.width * 0.65, 600), 350),
+          height: Math.max(Math.min(rect.width * 0.65, 600), rect.width < 640 ? 300 : 350),
         });
       }
     }
@@ -73,26 +82,47 @@ export function NetworkGraph({
     return () => globalThis.removeEventListener('resize', updateSize);
   }, []);
 
-  // Build graph data
-  const graphData = useMemo(() => {
-    const nodes: GraphNode[] = selectedAssets.map((ticker) => {
+  // Build graph nodes (only when assets or size change — NOT on getCorr changes)
+  // Node radius scales with connectivity — hub nodes naturally stand out
+  const graphNodes = useMemo(() => {
+    const cache = positionCacheRef.current;
+    const currentGetCorr = getCorrRef.current;
+    // Count edges per node for radius scaling
+    const edgeCounts = new Map<string, number>();
+    for (let i = 0; i < selectedAssets.length; i++) {
+      for (let j = i + 1; j < selectedAssets.length; j++) {
+        const corr = currentGetCorr(selectedAssets[i], selectedAssets[j]);
+        if (corr !== null && Math.abs(corr) >= 0.2) {
+          edgeCounts.set(selectedAssets[i], (edgeCounts.get(selectedAssets[i]) ?? 0) + 1);
+          edgeCounts.set(selectedAssets[j], (edgeCounts.get(selectedAssets[j]) ?? 0) + 1);
+        }
+      }
+    }
+    return selectedAssets.map((ticker) => {
       const asset = ASSET_MAP.get(ticker);
+      const cached = cache.get(ticker);
+      const baseRadius = asset?.type === 'stock' ? 24 : 28;
+      const edges = edgeCounts.get(ticker) ?? 0;
       return {
         id: ticker,
         type: asset?.type || 'stock',
         name: asset?.name || ticker,
-        radius: asset?.type === 'stock' ? 24 : 28,
-        x: graphSize.width / 2 + (Math.random() - 0.5) * 200,
-        y: graphSize.height / 2 + (Math.random() - 0.5) * 200,
+        radius: baseRadius + Math.min(edges * 1.5, 8),
+        x: cached?.x ?? graphSize.width / 2 + (Math.random() - 0.5) * 200,
+        y: cached?.y ?? graphSize.height / 2 + (Math.random() - 0.5) * 200,
       };
     });
+  }, [selectedAssets, graphSize]);
 
-    const graphLinks: GraphLink[] = [];
+  // Build graph links (updates when correlations or threshold change)
+  const graphLinks = useMemo(() => {
+    const currentGetCorr = getCorrRef.current;
+    const result: GraphLink[] = [];
     for (let i = 0; i < selectedAssets.length; i++) {
       for (let j = i + 1; j < selectedAssets.length; j++) {
-        const corr = getCorr(selectedAssets[i], selectedAssets[j]);
+        const corr = currentGetCorr(selectedAssets[i], selectedAssets[j]);
         if (corr !== null && Math.abs(corr) >= minEdgeCorr) {
-          graphLinks.push({
+          result.push({
             sourceId: selectedAssets[i],
             targetId: selectedAssets[j],
             correlation: corr,
@@ -100,26 +130,37 @@ export function NetworkGraph({
         }
       }
     }
+    return result;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedAssets, minEdgeCorr, getCorr]);
 
-    return { nodes, links: graphLinks };
-  }, [selectedAssets, getCorr, minEdgeCorr, graphSize]);
-
-  // D3 Force Simulation
+  // D3 Force Simulation — only restarts when node set or size changes
   useEffect(() => {
-    if (graphData.nodes.length === 0) return;
+    if (graphNodes.length === 0) return;
 
     if (simulationRef.current) {
       simulationRef.current.stop();
     }
 
-    const nodes: GraphNode[] = graphData.nodes.map((n) => ({ ...n }));
-    const simLinks: SimLink[] = graphData.links.map((l) => ({
-      source: l.sourceId as unknown as GraphNode,
-      target: l.targetId as unknown as GraphNode,
-      sourceId: l.sourceId,
-      targetId: l.targetId,
-      correlation: l.correlation,
-    }));
+    setSimulating(true);
+
+    const nodes: GraphNode[] = graphNodes.map((n) => ({ ...n }));
+    const currentLinks = getCorrRef.current;
+    const simLinks: SimLink[] = [];
+    for (let i = 0; i < nodes.length; i++) {
+      for (let j = i + 1; j < nodes.length; j++) {
+        const corr = currentLinks(nodes[i].id, nodes[j].id);
+        if (corr !== null && Math.abs(corr) >= minEdgeCorr) {
+          simLinks.push({
+            source: nodes[i].id as unknown as GraphNode,
+            target: nodes[j].id as unknown as GraphNode,
+            sourceId: nodes[i].id,
+            targetId: nodes[j].id,
+            correlation: corr,
+          });
+        }
+      }
+    }
 
     const sim = forceSimulation<GraphNode>(nodes)
       .force(
@@ -137,12 +178,18 @@ export function NetworkGraph({
       .alphaDecay(0.02)
       .velocityDecay(0.3);
 
-    sim.on('tick', () => {
+    let tickCount = 0;
+    let rafId: number | null = null;
+
+    const flushToReact = () => {
+      const cache = positionCacheRef.current;
       for (const node of nodes) {
         const nx = node.x ?? 0;
         const ny = node.y ?? 0;
         node.x = Math.max(node.radius + 10, Math.min(graphSize.width - node.radius - 10, nx));
         node.y = Math.max(node.radius + 10, Math.min(graphSize.height - node.radius - 10, ny));
+        // Persist position for reuse
+        cache.set(node.id, { x: node.x, y: node.y });
       }
       setNodePositions([...nodes]);
       setLinks(
@@ -152,31 +199,66 @@ export function NetworkGraph({
           correlation: l.correlation,
         })),
       );
+      rafId = null;
+    };
+
+    sim.on('tick', () => {
+      tickCount++;
+      // Throttle React re-renders: only update every 3rd tick via rAF
+      if (tickCount % 3 === 0 && rafId === null) {
+        rafId = requestAnimationFrame(flushToReact);
+      }
+    });
+
+    sim.on('end', () => {
+      flushToReact();
+      setSimulating(false);
     });
 
     simulationRef.current = sim;
 
     return () => {
       sim.stop();
+      if (rafId !== null) cancelAnimationFrame(rafId);
     };
-  }, [graphData, graphSize]);
+    // Only restart simulation when nodes or graph size change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [graphNodes, graphSize]);
+
+  // Update links without restarting simulation when correlations change
+  useEffect(() => {
+    setLinks(graphLinks);
+  }, [graphLinks]);
 
   // Drag handlers
-  const handleMouseDown = useCallback((nodeId: string) => {
-    setDragging(nodeId);
-    if (simulationRef.current) {
-      simulationRef.current.alphaTarget(0.3).restart();
-    }
+  const handleMouseDown = useCallback((nodeId: string, e: React.MouseEvent) => {
+    mouseDownPosRef.current = { x: e.clientX, y: e.clientY };
+    pendingDragNodeRef.current = nodeId;
   }, []);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<SVGSVGElement>) => {
-      if (!dragging || !svgRef.current) return;
+      // Check if we need to promote a pending drag to an actual drag (threshold = 5px)
+      if (!dragging && pendingDragNodeRef.current && mouseDownPosRef.current) {
+        const dx = e.clientX - mouseDownPosRef.current.x;
+        const dy = e.clientY - mouseDownPosRef.current.y;
+        if (Math.sqrt(dx * dx + dy * dy) > 5) {
+          setDragging(pendingDragNodeRef.current);
+          if (simulationRef.current) {
+            simulationRef.current.alphaTarget(0.3).restart();
+          }
+        } else {
+          return;
+        }
+      }
+      if (!dragging && !pendingDragNodeRef.current) return;
+      const activeNode = dragging || pendingDragNodeRef.current;
+      if (!activeNode || !svgRef.current) return;
       const rect = svgRef.current.getBoundingClientRect();
       const x = (e.clientX - rect.left - pan.x) / zoom;
       const y = (e.clientY - rect.top - pan.y) / zoom;
       if (simulationRef.current) {
-        const node = simulationRef.current.nodes().find((n) => n.id === dragging);
+        const node = simulationRef.current.nodes().find((n) => n.id === activeNode);
         if (node) {
           node.fx = x;
           node.fy = y;
@@ -196,6 +278,8 @@ export function NetworkGraph({
       simulationRef.current.alphaTarget(0);
     }
     setDragging(null);
+    mouseDownPosRef.current = null;
+    pendingDragNodeRef.current = null;
   }, [dragging]);
 
   const handleNodeClick = useCallback(
@@ -303,15 +387,33 @@ export function NetworkGraph({
 
       {/* Color legend */}
       <div className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 px-2 py-1 bg-black/40 rounded-lg backdrop-blur-sm">
-        <span className="text-[9px] text-red-400">-1</span>
+        <span className="text-[9px] text-blue-400">-1</span>
         <div
           className="w-20 h-2 rounded-full"
           style={{
-            background: 'linear-gradient(to right, #EF4444, #F87171, #475569, #6EE7B7, #10B981)',
+            background: 'linear-gradient(to right, #2563EB, #60A5FA, #475569, #FB923C, #EA580C)',
           }}
         />
-        <span className="text-[9px] text-emerald-400">+1</span>
+        <span className="text-[9px] text-orange-400">+1</span>
       </div>
+
+      {/* Simulation loading indicator */}
+      {simulating && (
+        <div className={`absolute z-[5] pointer-events-none ${nodePositions.length === 0 ? 'inset-0 flex items-center justify-center' : 'top-3 left-3'}`}>
+          <span className="text-xs text-muted-foreground animate-pulse px-2 py-1 bg-black/40 rounded-lg backdrop-blur-sm">
+            {nodePositions.length === 0 ? 'Arranging...' : 'Rearranging...'}
+          </span>
+        </div>
+      )}
+
+      {/* Half-pair selection hint */}
+      {selectedPair && selectedPair[0] && selectedPair[1] === '' && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 px-3 py-1.5 bg-blue-500/15 border border-blue-400/30 rounded-full backdrop-blur-sm">
+          <span className="text-xs text-blue-300 font-medium whitespace-nowrap">
+            Selected {selectedPair[0]} &mdash; click another node to compare
+          </span>
+        </div>
+      )}
 
       {/* SVG Canvas */}
       <svg
@@ -321,6 +423,13 @@ export function NetworkGraph({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onWheel={(e) => {
+          e.preventDefault();
+          setZoom((z) => {
+            const delta = e.deltaY > 0 ? -0.2 : 0.2;
+            return Math.min(2.0, Math.max(0.4, z + delta));
+          });
+        }}
         className="cursor-grab active:cursor-grabbing"
         style={{ touchAction: 'none' }}
       >
@@ -387,18 +496,25 @@ export function NetworkGraph({
                     : isHovered || isSelectedEdge ? 0.9
                     : 0.3 + absCorr * 0.4
                   }
-                  strokeDasharray={link.correlation < 0 ? '6 4' : undefined}
+                  strokeDasharray={link.correlation < 0 ? '8 3 4 3' : undefined}
                   className="transition-all duration-200 pointer-events-none"
                 />
                 {(isHovered || isSelectedEdge) && (
-                  <text
-                    x={(sx + tx) / 2} y={(sy + ty) / 2 - 8}
-                    textAnchor="middle"
-                    className="fill-white text-[10px] font-mono font-bold pointer-events-none"
-                    style={{ textShadow: '0 0 8px rgba(0,0,0,0.8)' }}
-                  >
-                    r={link.correlation.toFixed(2)}
-                  </text>
+                  <>
+                    <rect
+                      x={(sx + tx) / 2 - 28} y={(sy + ty) / 2 - 20}
+                      width={56} height={18} rx={4}
+                      fill="rgba(13,17,23,0.85)"
+                      className="pointer-events-none"
+                    />
+                    <text
+                      x={(sx + tx) / 2} y={(sy + ty) / 2 - 7}
+                      textAnchor="middle"
+                      className="fill-white text-[10px] font-mono font-bold pointer-events-none"
+                    >
+                      r={link.correlation.toFixed(2)}
+                    </text>
+                  </>
                 )}
               </g>
             );
@@ -423,7 +539,7 @@ export function NetworkGraph({
               <g
                 key={node.id}
                 transform={`translate(${nx}, ${ny}) scale(${scale})`}
-                onMouseDown={(e) => { e.preventDefault(); handleMouseDown(node.id); }}
+                onMouseDown={(e) => { e.preventDefault(); handleMouseDown(node.id, e); }}
                 onMouseEnter={() => !dragging && setHoveredNode(node.id)}
                 onMouseLeave={() => setHoveredNode(null)}
                 onClick={() => handleNodeClick(node.id)}
@@ -436,7 +552,7 @@ export function NetworkGraph({
                     r={node.radius + 6} fill="none"
                     stroke={nodeColor} strokeWidth={2} strokeOpacity={0.5} strokeDasharray="4 3"
                   >
-                    <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="8s" repeatCount="indefinite" />
+                    <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="8s" repeatCount="3" />
                   </circle>
                 )}
                 {hubNode === node.id && (

@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import type { IOptionStrike } from '@/types/analytics';
+import { greekHeatColor, TOOLTIP_STYLE, fmtCompact, S, T } from './tokens';
 
 // ─── Types ──────────────────────────────────────────────────────────
 
@@ -34,54 +35,6 @@ interface GreeksViewProps {
   gexPredictedRangeLow?: number | null;
   gexPredictedRangeHigh?: number | null;
   netGex?: number | null;
-}
-
-// ─── Format helpers ─────────────────────────────────────────────────
-
-function fmtCompact(val: number): string {
-  const abs = Math.abs(val);
-  if (abs >= 10000000) return `${(val / 10000000).toFixed(1)}Cr`;
-  if (abs >= 100000) return `${(val / 100000).toFixed(1)}L`;
-  if (abs >= 1000) return `${(val / 1000).toFixed(1)}K`;
-  return val.toFixed(1);
-}
-
-// ─── Color helpers ──────────────────────────────────────────────────
-
-function greekToColor(value: number | null, greek: GreekKey): string {
-  if (value == null) return 'rgba(255,255,255,0.03)';
-  let intensity: number;
-  switch (greek) {
-    case 'iv':
-      intensity = Math.min(Math.abs(value) * 100 / 50, 1);
-      break;
-    case 'delta':
-      intensity = Math.abs(value);
-      break;
-    case 'gamma':
-      intensity = Math.min(Math.abs(value) * 1000, 1);
-      break;
-    case 'theta':
-      intensity = Math.min(Math.abs(value) / 50, 1);
-      break;
-    case 'vega':
-      intensity = Math.min(Math.abs(value) / 30, 1);
-      break;
-    case 'vanna':
-      intensity = Math.min(Math.abs(value) * 5, 1);
-      break;
-    case 'charm':
-      intensity = Math.min(Math.abs(value) * 10, 1);
-      break;
-    case 'volga':
-      intensity = Math.min(Math.abs(value) / 20, 1);
-      break;
-    default:
-      intensity = 0;
-  }
-  if (greek === 'iv') return `rgba(96, 165, 250, ${0.05 + intensity * 0.4})`;
-  if (value >= 0) return `rgba(110, 231, 183, ${0.05 + intensity * 0.35})`;
-  return `rgba(248, 113, 113, ${0.05 + intensity * 0.35})`;
 }
 
 // ─── Exposure computation ───────────────────────────────────────────
@@ -148,6 +101,7 @@ function findGammaFlip(data: ExposurePoint[]): number | null {
       const x2 = data[i].strike;
       const y1 = data[i - 1].net;
       const y2 = data[i].net;
+      if (y2 === y1) return Math.round((x1 + x2) / 2);
       return Math.round(x1 + (0 - y1) * (x2 - x1) / (y2 - y1));
     }
   }
@@ -169,7 +123,7 @@ const METRIC_META: Record<ExposureMetric, { label: string; unit: string; desc: s
 // SUB-VIEW 1: Greek Exposure Profile
 // ═══════════════════════════════════════════════════════════════════
 
-function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWallStrike, putWallStrike, dealerRegime, gexPredictedRangeLow, gexPredictedRangeHigh, netGex }: {
+function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWallStrike, putWallStrike, dealerRegime, gexPredictedRangeLow, gexPredictedRangeHigh, netGex: _netGex }: {
   chain: IOptionStrike[];
   underlyingPrice: number;
   lotSize: number;
@@ -181,6 +135,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
   gexPredictedRangeHigh?: number | null;
   netGex?: number | null;
 }) {
+  const gId = React.useId();
   const [metric, setMetric] = useState<ExposureMetric>('gex');
 
   const data = useMemo(
@@ -188,10 +143,12 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
     [chain, underlyingPrice, metric, lotSize],
   );
 
-  const gammaFlip = useMemo(
-    () => metric === 'gex' ? findGammaFlip(data) : null,
-    [data, metric],
+  // Compute gamma flip from GEX data (always, regardless of current metric)
+  const gexData = useMemo(
+    () => computeExposure(chain, underlyingPrice, 'gex', lotSize),
+    [chain, underlyingPrice, lotSize],
   );
+  const gammaFlip = useMemo(() => findGammaFlip(gexData), [gexData]);
 
   // Find key levels
   const { netTotal, callWall, putWall } = useMemo(() => {
@@ -222,16 +179,18 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
     <div>
       {/* Metric toggle + context */}
       <div className="flex items-center justify-between mb-2 px-1">
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1">
           {(Object.keys(METRIC_META) as ExposureMetric[]).map((m) => (
             <button
               key={m}
               onClick={() => setMetric(m)}
+              aria-pressed={metric === m}
+              aria-label={`View ${METRIC_META[m].label} exposure`}
               className={cn(
-                'px-2.5 py-0.5 text-[10px] font-semibold rounded-full transition-all',
+                'px-2.5 md:px-2.5 py-1 md:py-0.5 text-[10px] font-semibold rounded-full transition-all min-h-[32px] md:min-h-0 flex items-center',
                 metric === m
                   ? 'bg-violet-500/15 text-violet-400 border border-violet-500/25'
-                  : 'text-white/30 hover:text-white/50',
+                  : 'text-white/50 hover:text-white/70',
               )}
             >
               {METRIC_META[m].label}
@@ -242,7 +201,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
 
       {/* GEX Levels info bar (when GEX metric is selected and backend data is available) */}
       {metric === 'gex' && dealerRegime && (
-        <div className="flex items-center gap-2 px-2 py-1.5 mb-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
+        <div className="flex flex-wrap items-center gap-2 px-2 py-1.5 mb-2 rounded-lg bg-white/[0.02] border border-white/[0.04]">
           {/* Dealer Regime badge */}
           <span className={cn(
             'px-2 py-0.5 text-[9px] font-bold rounded-full',
@@ -269,7 +228,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
             )}
             {putWallStrike != null && (
               <span>
-                Put Wall: <span className="font-mono text-emerald-400/50">{putWallStrike.toLocaleString('en-IN')}</span>
+                Put Wall: <span className="font-mono text-amber-400/50">{putWallStrike.toLocaleString('en-IN')}</span>
               </span>
             )}
           </div>
@@ -290,7 +249,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
       )}
 
       {/* Context line */}
-      <div className="flex items-center gap-3 px-1 mb-3 text-[9px] text-white/25">
+      <div className="flex flex-wrap items-center gap-2 md:gap-3 px-1 mb-3 text-[9px] text-white/35">
         <span>
           Net: <span className={cn('font-mono font-semibold', netTotal >= 0 ? 'text-emerald-400/60' : 'text-red-400/60')}>
             {netTotal >= 0 ? '+' : ''}{netTotal.toFixed(1)} {meta.unit}
@@ -305,22 +264,23 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
           Call Wall: <span className="font-mono text-blue-400/40">{callWall.toLocaleString('en-IN')}</span>
         </span>
         <span>
-          Put Wall: <span className="font-mono text-emerald-400/40">{putWall.toLocaleString('en-IN')}</span>
+          Put Wall: <span className="font-mono text-amber-400/40">{putWall.toLocaleString('en-IN')}</span>
         </span>
-        <span className="ml-auto text-white/15 italic">{meta.desc}</span>
+        <span className="ml-auto text-white/25 italic hidden md:inline">{meta.desc}</span>
       </div>
 
       {/* Chart */}
-      <ResponsiveContainer width="100%" height={300}>
+      <div className="h-[240px] md:h-[300px]" role="img" aria-label={`${meta.label} exposure chart — Call vs Put per strike`}>
+      <ResponsiveContainer width="100%" height="100%">
         <ComposedChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
           <defs>
-            <linearGradient id="gexCallGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#60A5FA" stopOpacity={0.7} />
-              <stop offset="100%" stopColor="#60A5FA" stopOpacity={0.15} />
+            <linearGradient id={`${gId}-gexCall`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#4ADE80" stopOpacity={0.7} />
+              <stop offset="100%" stopColor="#4ADE80" stopOpacity={0.15} />
             </linearGradient>
-            <linearGradient id="gexPutGrad" x1="0" y1="1" x2="0" y2="0">
-              <stop offset="0%" stopColor="#34D399" stopOpacity={0.7} />
-              <stop offset="100%" stopColor="#34D399" stopOpacity={0.15} />
+            <linearGradient id={`${gId}-gexPut`} x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0%" stopColor="#FBBF24" stopOpacity={0.7} />
+              <stop offset="100%" stopColor="#FBBF24" stopOpacity={0.15} />
             </linearGradient>
           </defs>
 
@@ -336,12 +296,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
             width={50}
           />
           <Tooltip
-            contentStyle={{
-              background: 'rgba(12, 18, 32, 0.95)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '8px',
-              fontSize: '10px',
-            }}
+            contentStyle={TOOLTIP_STYLE}
             labelFormatter={(strike: number) => `Strike: ${strike.toLocaleString('en-IN')}`}
             formatter={(value: number, name: string) => [
               `${value.toFixed(2)} ${meta.unit}`,
@@ -362,7 +317,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
             />
           )}
 
-          {/* Gamma Flip marker (GEX only) */}
+          {/* Gamma Flip marker (shown for all exposure metrics) */}
           {gammaFlip != null && data.length > 0 && (
             <ReferenceLine
               x={data.reduce((c, d) => Math.abs(d.strike - gammaFlip) < Math.abs(c.strike - gammaFlip) ? d : c, data[0])?.strike}
@@ -375,13 +330,13 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
           {/* Bars */}
           <Bar
             dataKey="call"
-            fill="url(#gexCallGrad)"
+            fill={`url(#${gId}-gexCall)`}
             radius={[3, 3, 0, 0]}
             maxBarSize={20}
           />
           <Bar
             dataKey="put"
-            fill="url(#gexPutGrad)"
+            fill={`url(#${gId}-gexPut)`}
             radius={[0, 0, 3, 3]}
             maxBarSize={20}
           />
@@ -398,14 +353,15 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-1 px-1 text-[8px] text-white/20">
+      <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-1 px-1 text-[8px] text-white/30">
         <span className="flex items-center gap-1">
           <span className="h-2 w-2.5 rounded-sm bg-blue-400/50 inline-block" /> Call
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-2 w-2.5 rounded-sm bg-emerald-400/50 inline-block" /> Put
+          <span className="h-2 w-2.5 rounded-sm bg-amber-400/50 inline-block" /> Put
         </span>
         <span className="flex items-center gap-1">
           <span className="h-px w-3 border-t border-dashed border-white/40 inline-block" /> Net
@@ -413,7 +369,7 @@ function ExposureChart({ chain, underlyingPrice, lotSize, zeroGammaLevel, callWa
         <span className="flex items-center gap-1">
           <span className="h-2 w-px bg-violet-500/50 inline-block" /> ATM
         </span>
-        {metric === 'gex' && (
+        {gammaFlip != null && (
           <span className="flex items-center gap-1">
             <span className="h-2 w-px bg-amber-400/50 inline-block" /> Gamma Flip
           </span>
@@ -432,6 +388,7 @@ function IVSmileChart({ chain, underlyingPrice, atmStrike }: {
   underlyingPrice: number;
   atmStrike: number;
 }) {
+  const gId = React.useId();
   const smileData = useMemo(() => {
     return chain
       .filter((s) => s.ce_iv != null || s.pe_iv != null)
@@ -471,10 +428,18 @@ function IVSmileChart({ chain, underlyingPrice, atmStrike }: {
       )?.strike
     : undefined;
 
+  if (smileData.length === 0) {
+    return (
+      <div className={cn(S.inner, 'flex items-center justify-center')} style={{ height: 260 }}>
+        <span className={T.caption}>IV data not available for current chain</span>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Context metrics */}
-      <div className="flex items-center gap-4 px-1 mb-3 text-[9px] text-white/25">
+      <div className="flex items-center gap-4 px-1 mb-3 text-[9px] text-white/35">
         {atmIV != null && (
           <span>
             ATM IV: <span className="font-mono font-semibold text-white/50">{atmIV.toFixed(1)}%</span>
@@ -492,21 +457,22 @@ function IVSmileChart({ chain, underlyingPrice, atmStrike }: {
             Put-Call Spread: <span className="font-mono text-white/35">{spread > 0 ? '+' : ''}{spread.toFixed(1)}%</span>
           </span>
         )}
-        <span className="ml-auto text-white/15 italic">IV across strikes — steeper skew = more downside hedging</span>
+        <span className="ml-auto text-white/25 italic hidden md:inline">IV across strikes — steeper skew = more downside hedging</span>
       </div>
 
-      <ResponsiveContainer width="100%" height={260}>
+      <div className="h-[260px] md:h-[320px]" role="img" aria-label="IV Smile chart — Call IV vs Put IV across strikes">
+      <ResponsiveContainer width="100%" height="100%">
         <LineChart data={smileData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
           <defs>
-            <linearGradient id="ceIVGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#60A5FA" stopOpacity={0.8} />
-              <stop offset="50%" stopColor="#60A5FA" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#60A5FA" stopOpacity={0.8} />
+            <linearGradient id={`${gId}-ceIV`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#4ADE80" stopOpacity={0.8} />
+              <stop offset="50%" stopColor="#4ADE80" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="#4ADE80" stopOpacity={0.8} />
             </linearGradient>
-            <linearGradient id="peIVGrad" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#34D399" stopOpacity={0.8} />
-              <stop offset="50%" stopColor="#34D399" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#34D399" stopOpacity={0.8} />
+            <linearGradient id={`${gId}-peIV`} x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%" stopColor="#FBBF24" stopOpacity={0.8} />
+              <stop offset="50%" stopColor="#FBBF24" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="#FBBF24" stopOpacity={0.8} />
             </linearGradient>
           </defs>
 
@@ -523,12 +489,7 @@ function IVSmileChart({ chain, underlyingPrice, atmStrike }: {
             domain={['auto', 'auto']}
           />
           <Tooltip
-            contentStyle={{
-              background: 'rgba(12, 18, 32, 0.95)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '8px',
-              fontSize: '10px',
-            }}
+            contentStyle={TOOLTIP_STYLE}
             labelFormatter={(strike: number) => `Strike: ${strike.toLocaleString('en-IN')}`}
             formatter={(value: number, name: string) => [
               `${value.toFixed(1)}%`,
@@ -549,31 +510,32 @@ function IVSmileChart({ chain, underlyingPrice, atmStrike }: {
           <Line
             type="monotone"
             dataKey="ceIV"
-            stroke="url(#ceIVGrad)"
+            stroke={`url(#${gId}-ceIV)`}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 3, fill: '#60A5FA', strokeWidth: 0 }}
-            connectNulls
+            activeDot={{ r: 3, fill: '#4ADE80', strokeWidth: 0 }}
+            connectNulls={false}
           />
           <Line
             type="monotone"
             dataKey="peIV"
-            stroke="url(#peIVGrad)"
+            stroke={`url(#${gId}-peIV)`}
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 3, fill: '#34D399', strokeWidth: 0 }}
-            connectNulls
+            activeDot={{ r: 3, fill: '#FBBF24', strokeWidth: 0 }}
+            connectNulls={false}
           />
         </LineChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Legend */}
-      <div className="flex items-center gap-4 mt-1 px-1 text-[8px] text-white/20">
+      <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-1 px-1 text-[8px] text-white/30">
         <span className="flex items-center gap-1">
           <span className="h-px w-3 bg-blue-400/60 inline-block" /> CE IV
         </span>
         <span className="flex items-center gap-1">
-          <span className="h-px w-3 bg-emerald-400/60 inline-block" /> PE IV
+          <span className="h-px w-3 bg-amber-400/60 inline-block" /> PE IV
         </span>
         <span className="flex items-center gap-1">
           <span className="h-2 w-px bg-violet-500/40 inline-block" /> ATM
@@ -592,6 +554,18 @@ function HeatmapGrid({ chain, atmStrike }: {
   atmStrike: number;
 }) {
   const [selectedGreek, setSelectedGreek] = useState<GreekKey>('iv');
+
+  // Cap visible strikes to ±15 around ATM for readability
+  const visibleChain = React.useMemo(() => {
+    if (chain.length <= 30) return chain;
+    const atmIdx = chain.reduce(
+      (closest, s, i) => Math.abs(s.strike - atmStrike) < Math.abs(chain[closest].strike - atmStrike) ? i : closest,
+      0,
+    );
+    const start = Math.max(0, atmIdx - 15);
+    const end = Math.min(chain.length, atmIdx + 16);
+    return chain.slice(start, end);
+  }, [chain, atmStrike]);
 
   const greeks: { key: GreekKey; label: string }[] = [
     { key: 'iv', label: 'IV' },
@@ -633,7 +607,7 @@ function HeatmapGrid({ chain, atmStrike }: {
             key={g.key}
             onClick={() => setSelectedGreek(g.key)}
             className={cn(
-              'px-3 py-1 text-[10px] font-semibold rounded-full transition-all',
+              'px-3 py-1.5 md:py-1 text-[10px] font-semibold rounded-full transition-all min-h-[32px] md:min-h-0',
               selectedGreek === g.key
                 ? 'bg-brand-violet/20 text-brand-violet border border-brand-violet/30'
                 : 'bg-white/5 text-muted-foreground hover:bg-white/10',
@@ -646,19 +620,19 @@ function HeatmapGrid({ chain, atmStrike }: {
 
       {/* Heatmap grid */}
       <div className="overflow-x-auto">
-        <div className="grid" style={{ gridTemplateColumns: `60px repeat(${chain.length}, minmax(32px, 1fr))` }}>
+        <div className="grid" style={{ gridTemplateColumns: `60px repeat(${visibleChain.length}, minmax(36px, 1fr))` }}>
           {/* Header: strike prices */}
           <div className="text-[8px] text-muted-foreground px-1 py-2 flex items-end justify-center font-semibold">
             Strike
           </div>
-          {chain.map((s) => (
+          {visibleChain.map((s) => (
             <div
               key={`h-${s.strike}`}
               className={cn(
                 'text-[8px] px-0.5 py-2 text-center font-mono',
                 s.strike === atmStrike ? 'text-brand-blue font-bold' : 'text-muted-foreground',
               )}
-              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)', minHeight: 40 }}
+              style={{ writingMode: 'vertical-rl', minHeight: 40 }}
             >
               {s.strike >= 1000 ? `${(s.strike / 1000).toFixed(1)}K` : s.strike}
             </div>
@@ -666,16 +640,16 @@ function HeatmapGrid({ chain, atmStrike }: {
 
           {/* CE row */}
           <div className="text-[9px] font-semibold text-blue-400 px-1 py-1 flex items-center">CE</div>
-          {chain.map((s) => {
+          {visibleChain.map((s) => {
             const val = getVal(s, 'ce', selectedGreek);
             return (
               <div
                 key={`ce-${s.strike}`}
                 className={cn(
-                  'text-[9px] font-mono text-center py-1 px-0.5 border border-white/[0.02] transition-all hover:border-white/10',
+                  'text-[9px] font-mono text-center py-1 px-0.5 border border-white/[0.03] transition-all hover:border-white/15',
                   s.strike === atmStrike && 'ring-1 ring-brand-blue/30',
                 )}
-                style={{ backgroundColor: greekToColor(val, selectedGreek) }}
+                style={{ backgroundColor: greekHeatColor(val, selectedGreek) }}
                 title={`CE ${selectedGreek.toUpperCase()}: ${fmtGreek(val, selectedGreek)} @ ${s.strike}`}
               >
                 {fmtGreek(val, selectedGreek)}
@@ -684,17 +658,17 @@ function HeatmapGrid({ chain, atmStrike }: {
           })}
 
           {/* PE row */}
-          <div className="text-[9px] font-semibold text-emerald-400 px-1 py-1 flex items-center">PE</div>
-          {chain.map((s) => {
+          <div className="text-[9px] font-semibold text-amber-400 px-1 py-1 flex items-center">PE</div>
+          {visibleChain.map((s) => {
             const val = getVal(s, 'pe', selectedGreek);
             return (
               <div
                 key={`pe-${s.strike}`}
                 className={cn(
-                  'text-[9px] font-mono text-center py-1 px-0.5 border border-white/[0.02] transition-all hover:border-white/10',
+                  'text-[9px] font-mono text-center py-1 px-0.5 border border-white/[0.03] transition-all hover:border-white/15',
                   s.strike === atmStrike && 'ring-1 ring-brand-blue/30',
                 )}
-                style={{ backgroundColor: greekToColor(val, selectedGreek) }}
+                style={{ backgroundColor: greekHeatColor(val, selectedGreek) }}
                 title={`PE ${selectedGreek.toUpperCase()}: ${fmtGreek(val, selectedGreek)} @ ${s.strike}`}
               >
                 {fmtGreek(val, selectedGreek)}
@@ -706,17 +680,18 @@ function HeatmapGrid({ chain, atmStrike }: {
 
       {/* Color legend */}
       <div className="flex items-center gap-3 px-1 text-[9px] text-muted-foreground">
-        <span>Low</span>
-        <div className="flex h-2 flex-1 rounded-full overflow-hidden">
-          <div className="flex-1 bg-emerald-500/10" />
-          <div className="flex-1 bg-emerald-500/20" />
-          <div className="flex-1 bg-emerald-500/30" />
-          <div className="flex-1 bg-emerald-500/40" />
-          <div className="flex-1 bg-emerald-500/50" />
-        </div>
-        <span>High</span>
-        <span className="ml-2 flex items-center gap-1">
+        <span className="flex items-center gap-1">
           <span className="h-2 w-3 rounded bg-red-400/30 inline-block" /> Negative
+        </span>
+        <div className="flex h-2 flex-1 max-w-[200px] rounded-full overflow-hidden">
+          <div className="flex-1 bg-red-500/30" />
+          <div className="flex-1 bg-white/[0.03]" />
+          <div className="flex-1 bg-emerald-500/15" />
+          <div className="flex-1 bg-emerald-500/30" />
+          <div className="flex-1 bg-emerald-500/45" />
+        </div>
+        <span className="flex items-center gap-1">
+          <span className="h-2 w-3 rounded bg-emerald-400/40 inline-block" /> Positive
         </span>
       </div>
     </div>
@@ -745,10 +720,10 @@ export function GreeksView({ chain, underlyingPrice, atmStrike, lotSize, zeroGam
             key={sv.id}
             onClick={() => setSubView(sv.id)}
             className={cn(
-              'px-2.5 py-0.5 text-[10px] font-medium rounded-full transition-all',
+              'px-2.5 py-1 md:py-0.5 text-[10px] font-medium rounded-full transition-all min-h-[32px] md:min-h-0 flex items-center',
               subView === sv.id
                 ? 'bg-white/10 text-white'
-                : 'text-white/25 hover:text-white/45',
+                : 'text-white/50 hover:text-white/70',
             )}
           >
             {sv.label}

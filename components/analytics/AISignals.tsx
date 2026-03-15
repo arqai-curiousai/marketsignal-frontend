@@ -336,8 +336,8 @@ export function AISignals() {
                         {/* Gradient defs */}
                         <defs>
                           <linearGradient id="forecastBand" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="rgba(124,58,237,0.15)" />
-                            <stop offset="100%" stopColor="rgba(124,58,237,0.02)" />
+                            <stop offset="0%" stopColor="rgba(34,197,94,0.15)" />
+                            <stop offset="100%" stopColor="rgba(34,197,94,0.02)" />
                           </linearGradient>
                         </defs>
 
@@ -349,21 +349,21 @@ export function AISignals() {
                           d={forecast.confidence_upper
                             .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(v)}`)
                             .join(' ')}
-                          fill="none" stroke="rgba(124,58,237,0.3)" strokeWidth="1" strokeDasharray="3 3"
+                          fill="none" stroke="rgba(34,197,94,0.3)" strokeWidth="1" strokeDasharray="3 3"
                         />
                         <path
                           d={forecast.confidence_lower
                             .map((v, i) => `${i === 0 ? 'M' : 'L'} ${xScale(i)} ${yScale(v)}`)
                             .join(' ')}
-                          fill="none" stroke="rgba(124,58,237,0.3)" strokeWidth="1" strokeDasharray="3 3"
+                          fill="none" stroke="rgba(34,197,94,0.3)" strokeWidth="1" strokeDasharray="3 3"
                         />
 
                         {/* Median line */}
-                        <path d={medianPath} fill="none" stroke="#7C3AED" strokeWidth="2" />
+                        <path d={medianPath} fill="none" stroke="#22C55E" strokeWidth="2" />
 
                         {/* Start and end dots */}
-                        <circle cx={xScale(0)} cy={yScale(firstVal)} r="3" fill="#7C3AED" />
-                        <circle cx={xScale(n - 1)} cy={yScale(lastVal)} r="4" fill="#7C3AED" />
+                        <circle cx={xScale(0)} cy={yScale(firstVal)} r="3" fill="#22C55E" />
+                        <circle cx={xScale(n - 1)} cy={yScale(lastVal)} r="4" fill="#22C55E" />
 
                         {/* End price label */}
                         <text

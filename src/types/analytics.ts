@@ -99,7 +99,74 @@ export interface ISectorAnalytics {
   dispersion: ISectorDispersion;
   volume_flow_score: number;
   volume_flow_label: string;
+  valuation?: ISectorValuation;
   stocks: ISectorStockEnriched[];
+  computed_at: string;
+}
+
+// ─── Sector Valuation ───────────────────────────────────────
+
+export interface ISectorValuationMetric {
+  weighted_avg: number;
+  median: number;
+  min: number;
+  max: number;
+  count: number;
+}
+
+export interface ISectorValuation {
+  sector: string;
+  metrics: {
+    pe_ratio: ISectorValuationMetric;
+    price_to_book: ISectorValuationMetric;
+    dividend_yield: ISectorValuationMetric;
+    ev_to_ebitda: ISectorValuationMetric;
+    return_on_equity: ISectorValuationMetric;
+  };
+  stocks: Array<{
+    ticker: string;
+    pe: number | null;
+    pb: number | null;
+    dy: number | null;
+    ev_ebitda: number | null;
+    roe: number | null;
+    market_cap: number | null;
+  }>;
+  computed_at: string;
+}
+
+// ─── Sector FII Flow ───────────────────────────────────────
+
+export interface ISectorFIIFlowQuarter {
+  quarter_end: string;
+  fii_pct: number;
+  dii_pct: number;
+  promoter_pct: number;
+  retail_pct: number;
+}
+
+export interface ISectorFIIFlow {
+  sector: string;
+  quarters: ISectorFIIFlowQuarter[];
+  current: {
+    fii_pct: number;
+    dii_pct: number;
+    promoter_pct: number;
+    retail_pct: number;
+  };
+  qoq_change: {
+    fii_change: number;
+    dii_change: number;
+    promoter_change: number;
+    retail_change: number;
+  };
+  fii_trend: 'increasing' | 'decreasing' | 'stable';
+  stock_breakdown: Array<{
+    ticker: string;
+    fii_pct: number;
+    dii_pct: number;
+    fii_change: number;
+  }>;
   computed_at: string;
 }
 
@@ -170,6 +237,43 @@ export interface ISectorVolumeFlow {
   interpretation: string;
 }
 
+// ─── Sector Financials ────────────────────────────────────────
+
+export interface ISectorFinancialsQuarter {
+  fiscal_year: number;
+  fiscal_quarter: number;
+  label: string;
+  revenue: number;
+  ebitda: number;
+  pat: number;
+  revenue_yoy: number | null;
+  ebitda_yoy: number | null;
+  pat_yoy: number | null;
+}
+
+export interface ISectorFinancials {
+  sector: string;
+  quarters: ISectorFinancialsQuarter[];
+  computed_at: string;
+}
+
+// ─── Sector Earnings Calendar ────────────────────────────────
+
+export interface ISectorEarningsEntry {
+  ticker: string;
+  name: string;
+  earnings_date: string;
+  days_away?: number;
+  days_ago?: number;
+}
+
+export interface ISectorEarningsCalendar {
+  sector: string;
+  upcoming: ISectorEarningsEntry[];
+  recent: ISectorEarningsEntry[];
+  computed_at: string;
+}
+
 // ─── Correlation ────────────────────────────────────────────
 
 export interface ICorrelationPair {
@@ -208,9 +312,13 @@ export interface IRollingCorrelation {
   rolling_20d: (number | null)[];
   rolling_60d: (number | null)[];
   rolling_90d: (number | null)[];
+  rolling_ewma: (number | null)[];
   current_20d: number | null;
   current_60d: number | null;
   current_90d: number | null;
+  current_ewma: number | null;
+  confidence_lower_60d: (number | null)[];
+  confidence_upper_60d: (number | null)[];
   regime_alerts: Array<{
     date: string;
     type: 'breakdown' | 'spike' | 'sign_flip' | 'divergence';
@@ -231,6 +339,7 @@ export interface IEnhancedCorrelation {
   ticker_b: string;
   pearson: { r: number; p_value: number; significant: boolean };
   spearman: { rho: number; p_value: number; significant: boolean };
+  kendall: { tau: number; p_value: number; significant: boolean };
   n_observations: number;
   method_divergence: number;
   divergence_flag: boolean;
@@ -241,7 +350,7 @@ export interface IEnhancedCorrelation {
 export interface IEnhancedMatrix extends ICorrelationMatrix {
   p_values: Record<string, number>;
   significant_pairs: number;
-  method: 'pearson' | 'spearman';
+  method: 'pearson' | 'spearman' | 'kendall';
 }
 
 export interface IScatterData {
@@ -302,6 +411,134 @@ export interface ICommunityDetection {
   node_community: Record<string, number>;
   modularity: number;
   n_communities: number;
+}
+
+// ─── DCC-GARCH ──────────────────────────────────────────────
+
+export interface IDCCGarch {
+  ticker_a: string;
+  ticker_b: string;
+  dates: string[];
+  dcc_correlation: number[];
+  static_correlation: number;
+  current_dcc: number;
+  dcc_params: { a: number; b: number } | null;
+  persistence: number | null;
+  garch_a: { omega: number; alpha: number; beta: number; persistence: number } | null;
+  garch_b: { omega: number; alpha: number; beta: number; persistence: number } | null;
+  error?: string;
+}
+
+// ─── Granger Causality ──────────────────────────────────────
+
+export interface IGrangerLagResult {
+  f_statistic: number;
+  p_value: number;
+  significant: boolean;
+}
+
+export interface IGrangerDirection {
+  per_lag: Record<number, IGrangerLagResult>;
+  best_lag: number;
+  best_p_value: number;
+  significant: boolean;
+  error?: string;
+}
+
+export interface IGrangerCausality {
+  ticker_a: string;
+  ticker_b: string;
+  a_causes_b: IGrangerDirection;
+  b_causes_a: IGrangerDirection;
+  interpretation: string;
+  n_observations: number;
+  max_lag: number;
+  window_days: number;
+  error?: string;
+}
+
+// ─── Cointegration (Pairs Trading) ──────────────────────────
+
+export interface ICointegration {
+  ticker_a: string;
+  ticker_b: string;
+  cointegrated: boolean;
+  test_statistic: number;
+  p_value: number;
+  critical_values: { '1%': number; '5%': number; '10%': number };
+  hedge_ratio: number;
+  spread_adf: { statistic: number; p_value: number; stationary: boolean };
+  half_life_days: number | null;
+  spread_mean: number;
+  spread_std: number;
+  spread_current: number;
+  spread_z_score: number;
+  spread_points: Array<{ date: string; value: number }>;
+  n_observations: number;
+  window_days: number;
+  error?: string;
+}
+
+// ─── Single Asset Explorer ──────────────────────────────────
+
+export interface IAssetCorrelationPeer {
+  peer: string;
+  correlation: number;
+  asset_type: string;
+}
+
+export interface IAssetCorrelations {
+  ticker: string;
+  window: string;
+  method: string;
+  peers: IAssetCorrelationPeer[];
+  total_peers: number;
+  avg_correlation: number;
+  most_correlated: IAssetCorrelationPeer | null;
+  least_correlated: IAssetCorrelationPeer | null;
+}
+
+// ─── Correlation Changes ────────────────────────────────────
+
+export interface ICorrelationMover {
+  pair: [string, string];
+  current: number;
+  previous: number;
+  change: number;
+}
+
+export interface ICorrelationChanges {
+  movers: ICorrelationMover[];
+  window_days: number;
+}
+
+// ─── Regime Correlation ─────────────────────────────────────
+
+export interface IRegimeEntry {
+  regime: string;
+  correlation: number;
+  n_observations: number;
+}
+
+export interface IRegimeCorrelation {
+  ticker_a: string;
+  ticker_b: string;
+  window_days: number;
+  regimes: IRegimeEntry[];
+}
+
+// ─── Autocorrelation ────────────────────────────────────────
+
+export interface IAutocorrelation {
+  ticker: string;
+  window_days: number;
+  n_observations: number;
+  lags: number[];
+  acf: number[];
+  ci_lower: number[];
+  ci_upper: number[];
+  significant_lags: number[];
+  interpretation: string;
 }
 
 // ─── News Impact ────────────────────────────────────────────
@@ -392,14 +629,6 @@ export interface IGlobalEffects {
 
 // ─── Pattern Detection ──────────────────────────────────────
 
-export interface IPattern {
-  type: string;
-  confidence: number;
-  description: string;
-  direction: 'bullish' | 'bearish' | 'neutral';
-  historical_success_rate: number;
-}
-
 export interface IOHLCVBar {
   date: string;
   open: number;
@@ -418,34 +647,6 @@ export interface IOverlayData {
   sma_50: number | null;
 }
 
-export interface IPatternDetection {
-  ticker: string;
-  exchange: string;
-  patterns: IPattern[];
-  indicators: {
-    bollinger_bands: {
-      upper: number | null;
-      middle: number | null;
-      lower: number | null;
-      bandwidth: number | null;
-      position: number | null;
-    };
-    keltner_channel: {
-      upper: number | null;
-      middle: number | null;
-      lower: number | null;
-    };
-    support_levels: number[];
-    resistance_levels: number[];
-    sma_20: number | null;
-    sma_50: number | null;
-    current_price: number;
-  };
-  chart_data: IOHLCVBar[];
-  overlay_data: IOverlayData[];
-  computed_at: string;
-}
-
 // ─── Pattern Detection V2 (Enhanced) ──────────────────────────────────
 
 export interface IQualityScore {
@@ -461,14 +662,27 @@ export interface IQualityScore {
 }
 
 export interface IPatternAnnotation {
-  type: 'marker' | 'line' | 'zone' | 'label';
-  data: Record<string, unknown>;
+  type: 'marker' | 'line' | 'zone' | 'label' | 'target';
+  index?: number;
+  from_index?: number;
+  to_index?: number;
+  price?: number;
+  position?: 'above' | 'below';
+  shape?: 'circle' | 'arrowUp' | 'arrowDown';
+  color?: string;
+  style?: 'solid' | 'dashed' | 'dotted';
+  text?: string;
+  label?: string;
+  opacity?: number;
+  start_index?: number;
+  end_index?: number;
+  data?: Record<string, unknown>;
 }
 
 export interface IPatternV2 {
   id: string;
   type: string;
-  category: 'chart' | 'momentum' | 'volatility' | 'volume' | 'regime' | 'matrix_profile' | 'seasonality';
+  category: 'candlestick' | 'chart' | 'momentum' | 'volatility' | 'volume' | 'regime' | 'matrix_profile';
   direction: 'bullish' | 'bearish' | 'neutral';
   confidence: number;
   historical_win_rate: number;
@@ -519,10 +733,61 @@ export interface IDiscord {
   date: string | null;
 }
 
+export interface ISRLevel {
+  price: number;
+  strength: number;
+  touches: number;
+  type: 'swing' | 'volume' | 'pivot';
+}
+
+export interface IPivotPoints {
+  p: number;
+  s1: number;
+  s2: number;
+  r1: number;
+  r2: number;
+}
+
+export interface ISupertrend {
+  series: (number | null)[];
+  direction: (1 | -1)[];
+  current_direction: 'bullish' | 'bearish' | 'sideways';
+  atr_period: number;
+  multiplier: number;
+}
+
+export interface ITrendline {
+  start_idx: number;
+  end_idx: number;
+  start_price: number;
+  end_price: number;
+  slope: number;
+  touches: number;
+  touch_indices: number[];
+  direction: 'up' | 'down';
+  anchor_a: number;
+  anchor_b: number;
+}
+
+export interface IFibonacciLevel {
+  ratio: number;
+  price: number;
+  label: string;
+}
+
+export interface IFibonacci {
+  swing_high: number;
+  swing_low: number;
+  swing_high_idx: number;
+  swing_low_idx: number;
+  direction: 'up' | 'down';
+  levels: IFibonacciLevel[];
+}
+
 export interface IPatternDetectionV2 {
   ticker: string;
   exchange: string;
-  timeframe: 'daily' | 'weekly';
+  timeframe: string;
   computed_at: string;
 
   overall_signal: 'bullish' | 'bearish' | 'neutral';
@@ -549,6 +814,15 @@ export interface IPatternDetectionV2 {
   chart_data: IOHLCVBar[];
   overlay_data: IOverlayData[];
 
+  supertrend: ISupertrend | null;
+
+  trendlines?: {
+    support: ITrendline[];
+    resistance: ITrendline[];
+  } | null;
+
+  fibonacci?: IFibonacci | null;
+
   matrix_profile: {
     values: number[];
     motifs: IMotifMatch[];
@@ -570,6 +844,9 @@ export interface IPatternDetectionV2 {
     };
     support_levels: number[];
     resistance_levels: number[];
+    support_levels_detail: ISRLevel[];
+    resistance_levels_detail: ISRLevel[];
+    pivot_points: IPivotPoints | null;
     sma_20: number | null;
     sma_50: number | null;
     current_price: number;
@@ -584,6 +861,55 @@ export interface IPatternDetectionV2 {
   };
 
   error?: string;
+}
+
+// ─── Multi-Timeframe Alignment ──────────────────────────────
+
+export interface IMTFTimeframeResult {
+  signal: 'bullish' | 'bearish' | 'neutral' | 'unavailable';
+  pattern_count: number;
+}
+
+export interface IMTFAlignment {
+  ticker: string;
+  exchange: string;
+  alignment: 'full' | 'partial' | 'conflicting' | 'insufficient_data';
+  timeframes: Record<string, IMTFTimeframeResult>;
+  computed_at: string;
+}
+
+// ─── Pattern Scanner ────────────────────────────────────────
+
+export interface IScannerStockResult {
+  ticker: string;
+  name: string;
+  exchange: string;
+  current_price: number | null;
+  pattern_count: number;
+  top_pattern: IPatternV2 | null;
+  overall_signal: 'bullish' | 'bearish' | 'neutral';
+  overall_grade: string;
+  patterns: IPatternV2[];
+}
+
+export interface IScannerResult {
+  scanned_at: string;
+  total_scanned: number;
+  stocks_with_patterns: number;
+  total_patterns: number;
+  results: IScannerStockResult[];
+  summary: {
+    bullish_stocks: number;
+    bearish_stocks: number;
+    neutral_stocks: number;
+    most_common_pattern: string | null;
+    highest_quality_match: IScannerStockResult | null;
+  };
+  filters_applied: {
+    categories: string[] | null;
+    direction: string | null;
+    min_quality: string;
+  };
 }
 
 // ─── Forecast ───────────────────────────────────────────────
@@ -688,6 +1014,14 @@ export interface IFnOSnapshot {
   total_vanna_exposure: number | null;
   total_charm_exposure: number | null;
   total_vex: number | null;
+  // India VIX
+  india_vix?: number | null;
+  india_vix_change?: number | null;
+  // IV Rank / Percentile
+  iv_rank: number | null;
+  iv_percentile: number | null;
+  iv_52w_high: number | null;
+  iv_52w_low: number | null;
   computed_at: string;
 }
 
@@ -697,11 +1031,29 @@ export interface IFnOHistory {
   pcr_volume: number | null;
   atm_iv: number | null;
   futures_basis: number | null;
+  futures_basis_pct: number | null;
   underlying_price: number;
   max_pain_strike: number | null;
   zero_gamma_level: number | null;
   dealer_regime: string | null;
   net_gex: number | null;
+  // Expanded fields
+  net_dex: number | null;
+  total_vanna: number | null;
+  total_charm: number | null;
+  total_vex: number | null;
+  call_wall_strike: number | null;
+  put_wall_strike: number | null;
+  gex_predicted_range_low: number | null;
+  gex_predicted_range_high: number | null;
+  iv_skew: number | null;
+  total_ce_oi: number | null;
+  total_pe_oi: number | null;
+  max_ce_oi_strike: number | null;
+  max_pe_oi_strike: number | null;
+  sentiment: string | null;
+  futures_price: number | null;
+  india_vix: number | null;
 }
 
 export type OIBuildupType = 'long_buildup' | 'short_buildup' | 'short_covering' | 'long_unwinding' | 'neutral';
@@ -741,6 +1093,28 @@ export interface IFnOUnderlying {
 }
 
 export type FnOSentiment = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+
+export interface IIVTermStructure {
+  underlying: string;
+  term_structure: Array<{
+    expiry: string;
+    days_to_expiry: number;
+    atm_iv: number | null;
+  }>;
+  available_expiries: string[];
+  volatility_cone: {
+    current: number | null;
+    median: number;
+    p25: number;
+    p75: number;
+    p10: number;
+    p90: number;
+    min: number;
+    max: number;
+    history: Array<{ date: string; iv: number }>;
+  } | null;
+  error?: string;
+}
 
 // ─── Bubble Chart (for /stocks page) ────────────────────────
 
@@ -810,7 +1184,7 @@ export interface INewsGraphNode {
 export interface INewsGraphEdge {
   source: string;
   target: string;
-  relationship: 'mentions' | 'co_topic' | 'temporal' | 'co_occurrence';
+  relationship: 'mentions' | 'co_topic' | 'co_occurrence';
   weight: number;
 }
 

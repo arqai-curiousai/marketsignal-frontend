@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, TrendingUp, TrendingDown, ChevronRight } from 'lucide-react';
+import { X, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import {
   getSectorRisk,
@@ -25,9 +25,7 @@ import {
   SECTOR_COLORS,
   RRG_QUADRANT_COLORS,
   RRG_QUADRANT_LABELS,
-  MANSFIELD_STAGE_COLORS,
   perfTextClass,
-  formatMarketCap,
 } from './constants';
 import { SectorRRG } from './SectorRRG';
 import { SectorBreadthPanel } from './SectorBreadthPanel';
@@ -36,6 +34,10 @@ import { HistoryChart } from './HistoryChart';
 import { SeasonalityCalendar } from './SeasonalityCalendar';
 import { MansfieldRSChart } from './MansfieldRSChart';
 import { VolumeFlowGauge } from './VolumeFlowGauge';
+import { SectorValuationPanel } from './SectorValuationPanel';
+import { SectorFIIFlowPanel } from './SectorFIIFlowPanel';
+import { SectorFinancialsPanel } from './SectorFinancialsPanel';
+import { SectorEarningsCalendar } from './SectorEarningsCalendar';
 
 interface SectorDetailPanelProps {
   selectedSector: ISectorAnalytics | null;
@@ -43,14 +45,6 @@ interface SectorDetailPanelProps {
   timeframe: SectorTimeframe;
   onSectorSelect: (sector: ISectorAnalytics | null) => void;
   onDrillOpen: (sector: ISectorAnalytics) => void;
-}
-
-function SectionHeader({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">
-      {children}
-    </div>
-  );
 }
 
 function LoadingSpinner() {
@@ -61,6 +55,196 @@ function LoadingSpinner() {
   );
 }
 
+function NoData() {
+  return (
+    <div className="text-[10px] text-muted-foreground text-center py-3">
+      Insufficient data
+    </div>
+  );
+}
+
+/** Lazy accordion section — mounts children on first expand, toggles visibility after. */
+function LazySection({
+  title,
+  description,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  description?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const [hasOpened, setHasOpened] = useState(defaultOpen);
+
+  const toggle = () => {
+    if (!open && !hasOpened) setHasOpened(true);
+    setOpen((o) => !o);
+  };
+
+  return (
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
+      <button
+        onClick={toggle}
+        aria-expanded={open}
+        className="flex items-center justify-between w-full px-3 py-2.5 text-left hover:bg-white/[0.02] transition-colors focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:outline-none"
+      >
+        <div className="min-w-0">
+          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+            {title}
+          </span>
+          {description && (
+            <div className="text-[9px] text-muted-foreground/60 mt-0.5 truncate">{description}</div>
+          )}
+        </div>
+        <ChevronDown
+          className={cn(
+            'h-3 w-3 text-muted-foreground transition-transform duration-200 flex-shrink-0 ml-2',
+            open && 'rotate-180',
+          )}
+        />
+      </button>
+      {hasOpened && (
+        <div
+          className={cn(
+            'px-3 pb-3 transition-all duration-200',
+            !open && 'hidden',
+          )}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Section group header */
+function SectionGroupLabel({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-2 pt-1">
+      <div className="h-px flex-1 bg-white/[0.06]" />
+      <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-medium">{label}</span>
+      <div className="h-px flex-1 bg-white/[0.06]" />
+    </div>
+  );
+}
+
+// ─── Self-fetching lazy sections ──────────────────────────────
+// Each mounts only when its accordion opens, fetches its own data.
+
+function LazyRiskSection({ sector, sectorColor }: { sector: string; sectorColor: string }) {
+  const [data, setData] = useState<ISectorRiskScorecard | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSectorRisk(sector)
+      .then((r) => {
+        if (!cancelled && r.success && r.data) setData(r.data);
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [sector]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <NoData />;
+  return <RiskRadarChart data={data} sectorColor={sectorColor} />;
+}
+
+function LazyHistorySection({ sector, sectorColor }: { sector: string; sectorColor: string }) {
+  const [data, setData] = useState<ISectorHistory | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSectorHistory(sector, 252)
+      .then((r) => {
+        if (!cancelled && r.success && r.data) setData(r.data);
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [sector]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <NoData />;
+  return <HistoryChart data={data} sectorColor={sectorColor} />;
+}
+
+function LazySeasonalitySection({ sector }: { sector: string }) {
+  const [data, setData] = useState<ISectorSeasonality | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSectorSeasonality(sector)
+      .then((r) => {
+        if (!cancelled && r.success && r.data) setData(r.data);
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [sector]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <NoData />;
+  return <SeasonalityCalendar data={data} />;
+}
+
+function LazyMansfieldSection({ sector, sectorColor }: { sector: string; sectorColor: string }) {
+  const [data, setData] = useState<ISectorMansfieldRS | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSectorMansfield(sector, 252)
+      .then((r) => {
+        if (!cancelled && r.success && r.data) setData(r.data);
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [sector]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <NoData />;
+  return <MansfieldRSChart data={data} sectorColor={sectorColor} />;
+}
+
+function LazyFlowSection({ sector }: { sector: string }) {
+  const [data, setData] = useState<ISectorVolumeFlow | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    getSectorFlow(sector)
+      .then((r) => {
+        if (!cancelled && r.success && r.data) setData(r.data);
+        if (!cancelled) setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [sector]);
+
+  if (loading) return <LoadingSpinner />;
+  if (!data) return <NoData />;
+  return <VolumeFlowGauge data={data} />;
+}
+
+// ─── Main Component ──────────────────────────────────────────
+
 export function SectorDetailPanel({
   selectedSector,
   allSectors,
@@ -70,74 +254,12 @@ export function SectorDetailPanel({
 }: SectorDetailPanelProps) {
   const router = useRouter();
 
-  // On-demand data states
-  const [riskData, setRiskData] = useState<ISectorRiskScorecard | null>(null);
-  const [historyData, setHistoryData] = useState<ISectorHistory | null>(null);
-  const [seasonalityData, setSeasonalityData] = useState<ISectorSeasonality | null>(null);
-  const [mansfieldData, setMansfieldData] = useState<ISectorMansfieldRS | null>(null);
-  const [flowData, setFlowData] = useState<ISectorVolumeFlow | null>(null);
-
-  const [riskLoading, setRiskLoading] = useState(false);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [seasonalityLoading, setSeasonalityLoading] = useState(false);
-  const [mansfieldLoading, setMansfieldLoading] = useState(false);
-  const [flowLoading, setFlowLoading] = useState(false);
-
-  // Fetch all on-demand data when sector changes
-  useEffect(() => {
-    if (!selectedSector) {
-      setRiskData(null);
-      setHistoryData(null);
-      setSeasonalityData(null);
-      setMansfieldData(null);
-      setFlowData(null);
-      return;
-    }
-
-    const sectorName = selectedSector.sector;
-    let cancelled = false;
-
-    // Fetch risk
-    setRiskLoading(true);
-    getSectorRisk(sectorName).then((r) => {
-      if (!cancelled && r.success && r.data) setRiskData(r.data);
-      if (!cancelled) setRiskLoading(false);
-    });
-
-    // Fetch history
-    setHistoryLoading(true);
-    getSectorHistory(sectorName, 252).then((r) => {
-      if (!cancelled && r.success && r.data) setHistoryData(r.data);
-      if (!cancelled) setHistoryLoading(false);
-    });
-
-    // Fetch seasonality
-    setSeasonalityLoading(true);
-    getSectorSeasonality(sectorName).then((r) => {
-      if (!cancelled && r.success && r.data) setSeasonalityData(r.data);
-      if (!cancelled) setSeasonalityLoading(false);
-    });
-
-    // Fetch mansfield
-    setMansfieldLoading(true);
-    getSectorMansfield(sectorName, 252).then((r) => {
-      if (!cancelled && r.success && r.data) setMansfieldData(r.data);
-      if (!cancelled) setMansfieldLoading(false);
-    });
-
-    // Fetch flow
-    setFlowLoading(true);
-    getSectorFlow(sectorName).then((r) => {
-      if (!cancelled && r.success && r.data) setFlowData(r.data);
-      if (!cancelled) setFlowLoading(false);
-    });
-
-    return () => { cancelled = true; };
-  }, [selectedSector]);
-
-  const handleStockClick = useCallback((ticker: string) => {
-    router.push(`/stocks/${ticker}`);
-  }, [router]);
+  const handleStockClick = useCallback(
+    (ticker: string) => {
+      router.push(`/stocks/${ticker}`);
+    },
+    [router],
+  );
 
   // Sort sectors for top/bottom lists
   const sortedByPerf = [...allSectors].sort(
@@ -148,15 +270,13 @@ export function SectorDetailPanel({
   if (!selectedSector) {
     return (
       <div className="space-y-4">
-        {/* Compact RRG */}
         <SectorRRG sectors={allSectors} onSectorClick={onSectorSelect} />
-
-        {/* Compact Breadth */}
         <SectorBreadthPanel sectors={allSectors} />
 
-        {/* Top / Bottom performers */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Top Performers ({timeframe})</SectionHeader>
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">
+            Top Performers ({timeframe})
+          </div>
           <div className="space-y-1.5">
             {sortedByPerf.slice(0, 3).map((s) => {
               const perf = s.performance[timeframe] ?? 0;
@@ -167,11 +287,20 @@ export function SectorDetailPanel({
                   className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors text-left"
                 >
                   <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full" style={{ backgroundColor: SECTOR_COLORS[s.sector] ?? '#64748B' }} />
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: SECTOR_COLORS[s.sector] ?? '#64748B' }}
+                    />
                     <span className="text-xs font-medium text-white">{s.sector}</span>
                   </div>
-                  <span className={cn('text-xs font-semibold tabular-nums', perfTextClass(perf))}>
-                    {perf >= 0 ? '+' : ''}{perf.toFixed(2)}%
+                  <span
+                    className={cn(
+                      'text-xs font-semibold tabular-nums',
+                      perfTextClass(perf),
+                    )}
+                  >
+                    {perf >= 0 ? '+' : ''}
+                    {perf.toFixed(2)}%
                   </span>
                 </button>
               );
@@ -179,26 +308,40 @@ export function SectorDetailPanel({
           </div>
 
           <div className="border-t border-white/5 mt-2 pt-2">
-            <SectionHeader>Bottom Performers</SectionHeader>
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">
+              Bottom Performers
+            </div>
             <div className="space-y-1.5">
-              {sortedByPerf.slice(-3).reverse().map((s) => {
-                const perf = s.performance[timeframe] ?? 0;
-                return (
-                  <button
-                    key={s.sector}
-                    onClick={() => onSectorSelect(s)}
-                    className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div className="h-2 w-2 rounded-full" style={{ backgroundColor: SECTOR_COLORS[s.sector] ?? '#64748B' }} />
-                      <span className="text-xs font-medium text-white">{s.sector}</span>
-                    </div>
-                    <span className={cn('text-xs font-semibold tabular-nums', perfTextClass(perf))}>
-                      {perf >= 0 ? '+' : ''}{perf.toFixed(2)}%
-                    </span>
-                  </button>
-                );
-              })}
+              {sortedByPerf
+                .slice(-3)
+                .reverse()
+                .map((s) => {
+                  const perf = s.performance[timeframe] ?? 0;
+                  return (
+                    <button
+                      key={s.sector}
+                      onClick={() => onSectorSelect(s)}
+                      className="flex items-center justify-between w-full px-2 py-1.5 rounded-lg hover:bg-white/[0.04] transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: SECTOR_COLORS[s.sector] ?? '#64748B' }}
+                        />
+                        <span className="text-xs font-medium text-white">{s.sector}</span>
+                      </div>
+                      <span
+                        className={cn(
+                          'text-xs font-semibold tabular-nums',
+                          perfTextClass(perf),
+                        )}
+                      >
+                        {perf >= 0 ? '+' : ''}
+                        {perf.toFixed(2)}%
+                      </span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </div>
@@ -206,7 +349,7 @@ export function SectorDetailPanel({
     );
   }
 
-  // ─── SELECTED MODE ─── (sector selected — deep analytics)
+  // ─── SELECTED MODE ─── (sector selected — lazy accordion)
   const sectorColor = SECTOR_COLORS[selectedSector.sector] ?? '#64748B';
   const rrg = selectedSector.rrg;
   const perf = selectedSector.performance;
@@ -218,10 +361,10 @@ export function SectorDetailPanel({
         initial={{ opacity: 0, x: 10 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -10 }}
-        className="space-y-3 overflow-y-auto"
+        className="space-y-2 overflow-y-auto"
       >
-        {/* ─── Header ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
+        {/* ─── Header (always visible) ─── */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <div className="h-3 w-3 rounded-full" style={{ backgroundColor: sectorColor }} />
@@ -229,7 +372,8 @@ export function SectorDetailPanel({
             </div>
             <button
               onClick={() => onSectorSelect(null)}
-              className="p-1 rounded-md hover:bg-white/10 transition-colors"
+              aria-label="Close sector detail"
+              className="p-1 rounded-md hover:bg-white/10 transition-colors focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:outline-none"
             >
               <X className="h-3.5 w-3.5 text-muted-foreground" />
             </button>
@@ -257,17 +401,6 @@ export function SectorDetailPanel({
             >
               {RRG_QUADRANT_LABELS[rrg.quadrant]}
             </span>
-            {mansfieldData && (
-              <span
-                className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                style={{
-                  backgroundColor: `${MANSFIELD_STAGE_COLORS[mansfieldData.stage] ?? '#94A3B8'}20`,
-                  color: MANSFIELD_STAGE_COLORS[mansfieldData.stage] ?? '#94A3B8',
-                }}
-              >
-                {mansfieldData.stage}
-              </span>
-            )}
             <span className="text-[9px] text-muted-foreground">
               Mom: {selectedSector.momentum_score.toFixed(0)}/100
             </span>
@@ -287,9 +420,15 @@ export function SectorDetailPanel({
                       : 'border-white/5 bg-white/[0.02]',
                   )}
                 >
-                  <div className="text-[8px] text-muted-foreground uppercase">{tf}</div>
-                  <div className={cn('text-[10px] font-semibold tabular-nums', perfTextClass(val))}>
-                    {val >= 0 ? '+' : ''}{val.toFixed(1)}%
+                  <div className="text-[9px] text-muted-foreground uppercase">{tf}</div>
+                  <div
+                    className={cn(
+                      'text-[10px] font-semibold tabular-nums',
+                      perfTextClass(val),
+                    )}
+                  >
+                    {val >= 0 ? '+' : ''}
+                    {val.toFixed(1)}%
                   </div>
                 </div>
               );
@@ -297,59 +436,8 @@ export function SectorDetailPanel({
           </div>
         </div>
 
-        {/* ─── Risk Radar ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Risk Scorecard</SectionHeader>
-          {riskLoading ? <LoadingSpinner /> : riskData ? (
-            <RiskRadarChart data={riskData} sectorColor={sectorColor} />
-          ) : (
-            <div className="text-[10px] text-muted-foreground text-center py-3">Insufficient data</div>
-          )}
-        </div>
-
-        {/* ─── History Chart ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Performance vs NIFTY 50</SectionHeader>
-          {historyLoading ? <LoadingSpinner /> : historyData ? (
-            <HistoryChart data={historyData} sectorColor={sectorColor} />
-          ) : (
-            <div className="text-[10px] text-muted-foreground text-center py-3">Insufficient data</div>
-          )}
-        </div>
-
-        {/* ─── Seasonality ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Seasonality Calendar</SectionHeader>
-          {seasonalityLoading ? <LoadingSpinner /> : seasonalityData ? (
-            <SeasonalityCalendar data={seasonalityData} />
-          ) : (
-            <div className="text-[10px] text-muted-foreground text-center py-3">Insufficient data</div>
-          )}
-        </div>
-
-        {/* ─── Mansfield RS ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Mansfield Relative Strength</SectionHeader>
-          {mansfieldLoading ? <LoadingSpinner /> : mansfieldData ? (
-            <MansfieldRSChart data={mansfieldData} sectorColor={sectorColor} />
-          ) : (
-            <div className="text-[10px] text-muted-foreground text-center py-3">Insufficient data</div>
-          )}
-        </div>
-
-        {/* ─── Volume Flow ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Volume Flow (OBV)</SectionHeader>
-          {flowLoading ? <LoadingSpinner /> : flowData ? (
-            <VolumeFlowGauge data={flowData} />
-          ) : (
-            <div className="text-[10px] text-muted-foreground text-center py-3">Insufficient data</div>
-          )}
-        </div>
-
-        {/* ─── Breadth gauges ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Breadth</SectionHeader>
+        {/* ─── Breadth (always visible) ─── */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
           <div className="grid grid-cols-3 gap-2">
             {[
               { label: '> 200 DMA', val: selectedSector.breadth.above_200dma_pct },
@@ -360,9 +448,19 @@ export function SectorDetailPanel({
                 <div className="text-[9px] text-muted-foreground mb-1">{label}</div>
                 <div className="relative h-10 w-10 mx-auto">
                   <svg viewBox="0 0 48 48" className="h-full w-full -rotate-90">
-                    <circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
                     <circle
-                      cx="24" cy="24" r="20" fill="none"
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      fill="none"
+                      stroke="rgba(255,255,255,0.05)"
+                      strokeWidth="4"
+                    />
+                    <circle
+                      cx="24"
+                      cy="24"
+                      r="20"
+                      fill="none"
                       stroke={val > 70 ? '#10B981' : val > 40 ? '#F59E0B' : '#EF4444'}
                       strokeWidth="4"
                       strokeDasharray={`${(val / 100) * 125.6} 125.6`}
@@ -377,15 +475,23 @@ export function SectorDetailPanel({
             ))}
           </div>
           <div className="flex items-center justify-center gap-3 mt-2 text-[9px] text-muted-foreground">
-            <span>Adv: <span className="text-emerald-400">{selectedSector.breadth.advancing}</span></span>
-            <span>Dec: <span className="text-red-400">{selectedSector.breadth.declining}</span></span>
-            <span>A/D: <span className="text-white">{selectedSector.breadth.ad_ratio.toFixed(2)}</span></span>
+            <span>
+              Adv: <span className="text-emerald-400">{selectedSector.breadth.advancing}</span>
+            </span>
+            <span>
+              Dec: <span className="text-red-400">{selectedSector.breadth.declining}</span>
+            </span>
+            <span>
+              A/D: <span className="text-white">{selectedSector.breadth.ad_ratio.toFixed(2)}</span>
+            </span>
           </div>
         </div>
 
-        {/* ─── Top Stocks ─── */}
-        <div className="rounded-xl border border-white/10 bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
-          <SectionHeader>Top Movers ({selectedSector.stock_count} stocks)</SectionHeader>
+        {/* ─── Top Movers (always visible) ─── */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1.5">
+            Top Movers ({selectedSector.stock_count} stocks)
+          </div>
           <div className="space-y-1">
             {selectedSector.stocks.slice(0, 5).map((stock) => (
               <button
@@ -403,28 +509,80 @@ export function SectorDetailPanel({
                 </div>
                 <div className="flex items-center gap-2">
                   {stock.volume_ratio != null && (
-                    <span className={cn(
-                      'text-[9px] tabular-nums',
-                      stock.volume_ratio > 1.5 ? 'text-emerald-400' : 'text-muted-foreground',
-                    )}>
+                    <span
+                      className={cn(
+                        'text-[9px] tabular-nums',
+                        stock.volume_ratio > 1.5 ? 'text-emerald-400' : 'text-muted-foreground',
+                      )}
+                    >
                       {stock.volume_ratio.toFixed(1)}x
                     </span>
                   )}
-                  <span className={cn('text-[11px] font-medium tabular-nums', perfTextClass(stock.change_pct))}>
-                    {stock.change_pct >= 0 ? '+' : ''}{stock.change_pct.toFixed(2)}%
+                  <span
+                    className={cn(
+                      'text-[11px] font-medium tabular-nums',
+                      perfTextClass(stock.change_pct),
+                    )}
+                  >
+                    {stock.change_pct >= 0 ? '+' : ''}
+                    {stock.change_pct.toFixed(2)}%
                   </span>
                 </div>
               </button>
             ))}
           </div>
-
           <button
             onClick={() => onDrillOpen(selectedSector)}
-            className="flex items-center justify-center gap-1 w-full mt-2 py-2 rounded-lg border border-white/10 text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
+            className="flex items-center justify-center gap-1 w-full mt-2 py-2 rounded-lg border border-white/[0.06] text-xs font-medium text-muted-foreground hover:text-white hover:bg-white/[0.04] transition-colors"
           >
             View All Stocks <ChevronRight className="h-3 w-3" />
           </button>
         </div>
+
+        {/* ─── Fundamentals ─── */}
+        <SectionGroupLabel label="Fundamentals" />
+
+        <LazySection title="Valuation" description="PE, PB, DY, EV/EBITDA, ROE — market-cap weighted">
+          <SectorValuationPanel sector={selectedSector.sector} />
+        </LazySection>
+
+        <LazySection title="Financials" description="Revenue, EBITDA, PAT with YoY growth">
+          <SectorFinancialsPanel sector={selectedSector.sector} />
+        </LazySection>
+
+        <LazySection title="Earnings Calendar" description="Upcoming and recent earnings dates">
+          <SectorEarningsCalendar sector={selectedSector.sector} />
+        </LazySection>
+
+        {/* ─── Institutional ─── */}
+        <SectionGroupLabel label="Institutional" />
+
+        <LazySection title="FII / FPI Sector Flow" description="Quarterly ownership trends across investor categories">
+          <SectorFIIFlowPanel sector={selectedSector.sector} />
+        </LazySection>
+
+        <LazySection title="Performance vs NIFTY 50" description="Cumulative returns and drawdown vs benchmark">
+          <LazyHistorySection sector={selectedSector.sector} sectorColor={sectorColor} />
+        </LazySection>
+
+        {/* ─── Technical ─── */}
+        <SectionGroupLabel label="Technical" />
+
+        <LazySection title="Risk Scorecard" description="Sharpe, Sortino, Calmar ratios and max drawdown">
+          <LazyRiskSection sector={selectedSector.sector} sectorColor={sectorColor} />
+        </LazySection>
+
+        <LazySection title="Mansfield RS" description="Relative strength stage analysis vs NIFTY 50">
+          <LazyMansfieldSection sector={selectedSector.sector} sectorColor={sectorColor} />
+        </LazySection>
+
+        <LazySection title="Seasonality" description="Monthly return patterns and hit rates">
+          <LazySeasonalitySection sector={selectedSector.sector} />
+        </LazySection>
+
+        <LazySection title="Volume Flow" description="OBV-based accumulation/distribution analysis">
+          <LazyFlowSection sector={selectedSector.sector} />
+        </LazySection>
       </motion.div>
     </AnimatePresence>
   );

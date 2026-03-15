@@ -14,19 +14,14 @@ import {
 } from 'recharts';
 import { Shield } from 'lucide-react';
 import type { IOptionStrike } from '@/types/analytics';
+import { cn } from '@/lib/utils';
+import { T, S, C, L, TOOLTIP_STYLE, AXIS_STYLE, fmtOI, fmtStrike } from './tokens';
 
 interface Props {
   chain: IOptionStrike[];
   underlyingPrice: number;
   maxCeOiStrike: number | null;
   maxPeOiStrike: number | null;
-}
-
-function formatOI(val: number): string {
-  if (val >= 10000000) return `${(val / 10000000).toFixed(1)}Cr`;
-  if (val >= 100000) return `${(val / 100000).toFixed(1)}L`;
-  if (val >= 1000) return `${(val / 1000).toFixed(1)}K`;
-  return val.toString();
 }
 
 export function OISupportResistance({ chain, underlyingPrice, maxCeOiStrike, maxPeOiStrike }: Props) {
@@ -56,28 +51,29 @@ export function OISupportResistance({ chain, underlyingPrice, maxCeOiStrike, max
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.3 }}
-      className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+      className={cn(S.card, 'p-4')}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <Shield className="h-4 w-4 text-brand-blue" />
-          <span className="text-sm font-semibold text-white">OI Support & Resistance</span>
+          <span className={T.heading}>OI Support & Resistance</span>
         </div>
-        <div className="flex items-center gap-3 text-[10px] text-muted-foreground">
+        <div className={cn('flex items-center gap-3', T.caption)}>
           {maxPeOiStrike && (
             <span>
-              Support: <span className="text-emerald-400 font-mono">{maxPeOiStrike.toLocaleString('en-IN')}</span>
+              Support: <span className={cn(C.put.text, 'font-mono')}>{fmtStrike(maxPeOiStrike)}</span>
             </span>
           )}
           {maxCeOiStrike && (
             <span>
-              Resistance: <span className="text-blue-400 font-mono">{maxCeOiStrike.toLocaleString('en-IN')}</span>
+              Resistance: <span className={cn(C.call.text, 'font-mono')}>{fmtStrike(maxCeOiStrike)}</span>
             </span>
           )}
         </div>
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <div className={L.chartMd}>
+      <ResponsiveContainer width="100%" height="100%">
         <BarChart
           data={chartData}
           margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
@@ -86,25 +82,20 @@ export function OISupportResistance({ chain, underlyingPrice, maxCeOiStrike, max
         >
           <XAxis
             dataKey="strike"
-            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+            tick={AXIS_STYLE}
             tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v.toString()}
             interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
-            tickFormatter={formatOI}
+            tick={AXIS_STYLE}
+            tickFormatter={fmtOI}
             width={50}
           />
           <Tooltip
-            contentStyle={{
-              background: 'rgba(15, 23, 36, 0.95)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              fontSize: '11px',
-            }}
+            contentStyle={TOOLTIP_STYLE}
             labelFormatter={(strike: number) => `Strike: ${strike.toLocaleString('en-IN')}`}
             formatter={(value: number, name: string) => [
-              formatOI(value),
+              fmtOI(value),
               name === 'ce_oi' ? 'CE OI (Resistance)' : 'PE OI (Support)',
             ]}
           />
@@ -114,11 +105,11 @@ export function OISupportResistance({ chain, underlyingPrice, maxCeOiStrike, max
                 Math.abs(s.strike - underlyingPrice) < Math.abs(closest.strike - underlyingPrice) ? s : closest,
                 chartData[0]
               )?.strike}
-              stroke="rgba(96, 165, 250, 0.5)"
+              stroke="rgba(74, 222, 128, 0.5)"
               strokeDasharray="4 4"
               label={{
                 value: 'Spot',
-                fill: 'rgba(96, 165, 250, 0.7)',
+                fill: 'rgba(74, 222, 128, 0.7)',
                 fontSize: 9,
                 position: 'top',
               }}
@@ -128,7 +119,7 @@ export function OISupportResistance({ chain, underlyingPrice, maxCeOiStrike, max
             {chartData.map((entry) => (
               <Cell
                 key={`ce-${entry.strike}`}
-                fill={entry.strike === maxCeOiStrike ? 'rgba(96, 165, 250, 0.6)' : 'rgba(96, 165, 250, 0.25)'}
+                fill={entry.strike === maxCeOiStrike ? 'rgba(74, 222, 128, 0.6)' : 'rgba(74, 222, 128, 0.25)'}
               />
             ))}
           </Bar>
@@ -142,8 +133,9 @@ export function OISupportResistance({ chain, underlyingPrice, maxCeOiStrike, max
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
 
-      <div className="flex items-center gap-4 mt-2 text-[9px] text-muted-foreground">
+      <div className={cn('flex flex-wrap items-center gap-2 md:gap-4 mt-2', T.legend)}>
         <span className="flex items-center gap-1">
           <span className="h-2 w-3 rounded bg-blue-500/40 inline-block" /> CE OI (Resistance)
         </span>

@@ -1,41 +1,60 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SECTOR_COLORS, perfColor, formatMarketCap } from './constants';
+import { SECTOR_COLORS, formatMarketCap } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorHeatmapGridProps {
   sectors: ISectorAnalytics[];
   timeframe: SectorTimeframe;
+  selectedSector?: string | null;
   onSectorClick: (sector: ISectorAnalytics) => void;
 }
 
 export function SectorHeatmapGrid({
   sectors,
   timeframe,
+  selectedSector,
   onSectorClick,
 }: SectorHeatmapGridProps) {
-  const [hoveredStock, setHoveredStock] = useState<string | null>(null);
+  const router = useRouter();
+  const gridRef = useRef<HTMLDivElement>(null);
+  const [hoveredStock, setHoveredStock] = useState<{
+    ticker: string;
+    name: string;
+    price: number | null;
+    pos52w: number | null;
+  } | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-      {sectors.map((sector, idx) => {
+    <div ref={gridRef} className="relative grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+      {sectors.map((sector) => {
         const perf = sector.performance[timeframe] ?? 0;
+        const isSelected = selectedSector === sector.sector;
+        const sectorColor = SECTOR_COLORS[sector.sector] ?? '#64748B';
         return (
           <motion.div
             key={sector.sector}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: idx * 0.03 }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.15 }}
             onClick={() => onSectorClick(sector)}
             className={cn(
-              'rounded-xl border border-white/10 p-4 backdrop-blur-sm cursor-pointer',
+              'rounded-xl border p-4 backdrop-blur-sm cursor-pointer',
               'bg-gradient-to-br from-white/[0.03] to-white/[0.01]',
               'hover:border-white/20 transition-all duration-200',
+              isSelected ? 'ring-1 ring-offset-0' : 'border-white/10',
             )}
+            style={isSelected ? {
+              borderColor: sectorColor,
+              // @ts-expect-error -- CSS custom property for ring color
+              '--tw-ring-color': `${sectorColor}40`,
+            } : undefined}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
@@ -59,8 +78,9 @@ export function SectorHeatmapGrid({
               </span>
             </div>
 
-            {/* Momentum + Breadth bar */}
+            {/* Momentum bar */}
             <div className="flex items-center gap-2 mb-2">
+              <span className="text-[9px] text-muted-foreground">Mom</span>
               <div className="flex-1 h-1 rounded-full bg-white/5 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-500"
@@ -90,10 +110,23 @@ export function SectorHeatmapGrid({
                 return (
                   <div
                     key={stock.ticker}
-                    onMouseEnter={() => setHoveredStock(stock.ticker)}
+                    onMouseEnter={(e) => {
+                      setHoveredStock({
+                        ticker: stock.ticker,
+                        name: stock.name,
+                        price: stock.last_price ?? null,
+                        pos52w: stock.pos_52w ?? null,
+                      });
+                      const rect = gridRef.current?.getBoundingClientRect();
+                      if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                    }}
+                    onMouseMove={(e) => {
+                      const rect = gridRef.current?.getBoundingClientRect();
+                      if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+                    }}
                     onMouseLeave={() => setHoveredStock(null)}
                     className={cn(
-                      'relative rounded-lg p-2 text-center transition-all duration-200',
+                      'rounded-lg p-2 text-center transition-all duration-200 cursor-pointer',
                       'border border-transparent hover:border-white/20',
                     )}
                     style={{
@@ -101,7 +134,10 @@ export function SectorHeatmapGrid({
                         ? `rgba(16, 185, 129, ${0.05 + intensity * 0.15})`
                         : `rgba(239, 68, 68, ${0.05 + intensity * 0.15})`,
                     }}
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      router.push(`/stocks/${stock.ticker}`);
+                    }}
                   >
                     <div className="text-[10px] font-bold text-white truncate">
                       {stock.ticker}
@@ -115,36 +151,16 @@ export function SectorHeatmapGrid({
                       {isPositive ? '+' : ''}
                       {changePct.toFixed(1)}%
                     </div>
-
-                    {hoveredStock === stock.ticker && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="absolute z-50 -translate-x-1/2 left-1/2 mt-1 px-3 py-2 rounded-lg bg-brand-slate/95 border border-white/10 shadow-xl"
-                        style={{ pointerEvents: 'none' }}
-                      >
-                        <div className="text-xs font-semibold text-white whitespace-nowrap">
-                          {stock.name}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {stock.last_price != null
-                            ? `₹${stock.last_price.toLocaleString()}`
-                            : '—'}
-                        </div>
-                        {stock.pos_52w != null && (
-                          <div className="mt-1 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-blue-400 rounded-full"
-                              style={{ width: `${stock.pos_52w * 100}%` }}
-                            />
-                          </div>
-                        )}
-                      </motion.div>
-                    )}
                   </div>
                 );
               })}
             </div>
+            {/* +N more indicator */}
+            {sector.stock_count > 6 && (
+              <div className="text-[9px] text-muted-foreground text-center mt-1">
+                +{sector.stock_count - 6} more
+              </div>
+            )}
 
             {/* Footer */}
             <div className="flex items-center justify-between mt-3 pt-2 border-t border-white/5">
@@ -169,6 +185,32 @@ export function SectorHeatmapGrid({
           </motion.div>
         );
       })}
+
+      {/* Portal tooltip for stock hover */}
+      {hoveredStock && (
+        <div
+          className="absolute z-50 rounded-lg bg-brand-slate/95 backdrop-blur-sm px-3 py-2 border border-white/10 shadow-xl pointer-events-none"
+          style={{
+            left: tooltipPos.x + 12,
+            top: tooltipPos.y - 50,
+          }}
+        >
+          <div className="text-xs font-semibold text-white whitespace-nowrap">
+            {hoveredStock.name}
+          </div>
+          <div className="text-[10px] text-muted-foreground">
+            {hoveredStock.price != null ? `₹${hoveredStock.price.toLocaleString()}` : '—'}
+          </div>
+          {hoveredStock.pos52w != null && (
+            <div className="mt-1 h-1 w-16 bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-400 rounded-full"
+                style={{ width: `${hoveredStock.pos52w * 100}%` }}
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,13 +1,13 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
 import { cn } from '@/lib/utils';
 import { SentimentBadge } from './SentimentBadge';
 import { TickerPill } from './TickerPill';
-import { formatTimeAgo, getSentimentColor, PRIMARY_SOURCES } from './constants';
+import { formatTimeAgo, getSentimentColor, getSourceDisplayName, PRIMARY_SOURCES } from './constants';
 
 interface ArticleCardProps {
   article: INewsArticle;
@@ -16,6 +16,24 @@ interface ArticleCardProps {
   onTickerClick?: (ticker: string) => void;
   onSelect?: (article: INewsArticle) => void;
   selected?: boolean;
+  highlightTerms?: string[];
+}
+
+function highlightText(text: string, terms: string[]): React.ReactNode {
+  if (!terms.length) return text;
+  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  const splitRegex = new RegExp(`(${escaped.join('|')})`, 'gi');
+  const testRegex = new RegExp(`^(${escaped.join('|')})$`, 'i');
+  const parts = text.split(splitRegex);
+  return parts.map((part, i) =>
+    testRegex.test(part) ? (
+      <mark key={i} className="bg-yellow-500/20 text-inherit rounded-sm px-0.5">
+        {part}
+      </mark>
+    ) : (
+      part
+    )
+  );
 }
 
 export function ArticleCard({
@@ -25,9 +43,12 @@ export function ArticleCard({
   onTickerClick,
   onSelect,
   selected,
+  highlightTerms,
 }: ArticleCardProps) {
+  const [imgError, setImgError] = useState(false);
   const sentimentColor = getSentimentColor(article.sentiment, article.sentiment_score);
-  const isPrimary = PRIMARY_SOURCES.has(article.source);
+  const displaySource = getSourceDisplayName(article.source);
+  const isPrimary = PRIMARY_SOURCES.has(article.source) || PRIMARY_SOURCES.has(displaySource);
 
   return (
     <motion.div
@@ -45,15 +66,13 @@ export function ArticleCard({
       style={{ borderLeftWidth: 3, borderLeftColor: sentimentColor }}
     >
       {/* Image (non-compact mode only) */}
-      {!compact && article.image_url && (
+      {!compact && article.image_url && !imgError && (
         <div className="w-full h-32 rounded-t-xl overflow-hidden bg-white/5">
           <img
             src={article.image_url}
             alt=""
             className="w-full h-full object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = 'none';
-            }}
+            onError={() => setImgError(true)}
           />
         </div>
       )}
@@ -66,12 +85,14 @@ export function ArticleCard({
             compact ? 'text-xs line-clamp-2' : 'text-sm line-clamp-3'
           )}
         >
-          {article.headline}
+          {highlightTerms?.length ? highlightText(article.headline, highlightTerms) : article.headline}
         </h3>
 
         {/* Summary (non-compact) */}
         {!compact && article.summary && (
-          <p className="text-xs text-muted-foreground line-clamp-2">{article.summary}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2">
+            {highlightTerms?.length ? highlightText(article.summary, highlightTerms) : article.summary}
+          </p>
         )}
 
         {/* Ticker pills */}
@@ -101,7 +122,7 @@ export function ArticleCard({
                 isPrimary ? 'text-white/70 font-medium' : 'text-muted-foreground'
               )}
             >
-              {article.source}
+              {displaySource}
             </span>
             <span className="text-[10px] text-muted-foreground">
               {formatTimeAgo(article.published_at)}

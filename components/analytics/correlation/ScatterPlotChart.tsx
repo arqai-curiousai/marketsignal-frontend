@@ -153,7 +153,7 @@ export function ScatterPlotChart({
           {/* Scatter dots */}
           <Scatter
             data={chartData}
-            fill="#60A5FA"
+            fill="#4ADE80"
             fillOpacity={0.6}
             r={3}
           />

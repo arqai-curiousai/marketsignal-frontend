@@ -21,6 +21,7 @@ interface RegimeData {
 interface RegimeTimelineProps {
   regime: RegimeData;
   totalBars: number;
+  chartDates?: string[];
 }
 
 const REGIME_COLORS: Record<string, { bg: string; text: string; dot: string; label: string }> = {
@@ -202,7 +203,7 @@ function HurstGauge({ value, classification }: { value: number; classification: 
   );
 }
 
-export function RegimeTimeline({ regime, totalBars }: RegimeTimelineProps) {
+export function RegimeTimeline({ regime, totalBars, chartDates }: RegimeTimelineProps) {
   const currentStyle = getRegimeStyle(regime.current);
 
   const segments = useMemo(() => {
@@ -232,7 +233,7 @@ export function RegimeTimeline({ regime, totalBars }: RegimeTimelineProps) {
   return (
     <div className="p-4 rounded-xl border border-white/[0.06] bg-[#111827]">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-white">Market Regime</h3>
           <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/[0.04]">
@@ -260,7 +261,7 @@ export function RegimeTimeline({ regime, totalBars }: RegimeTimelineProps) {
       </div>
 
       {/* Timeline Ribbon */}
-      <div className="relative mb-6">
+      <div className="relative mb-8">
         <div className="flex h-3 rounded-full overflow-hidden bg-white/[0.03]">
           {segments.map((seg, i) => {
             const style = getRegimeStyle(seg.regime);
@@ -286,11 +287,17 @@ export function RegimeTimeline({ regime, totalBars }: RegimeTimelineProps) {
         {changepointPositions.map((cp, i) => (
           <div
             key={i}
-            className="absolute top-0 w-px h-5 bg-white/50"
-            style={{ left: `${cp.pct}%` }}
+            className="absolute top-0 flex flex-col items-center"
+            style={{ left: `${cp.pct}%`, transform: 'translateX(-50%)' }}
             title={`Changepoint at bar ${cp.idx}`}
           >
-            <div className="absolute -top-0.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-white/70" />
+            <div className="w-px h-5 bg-white/50" />
+            <div className="w-1.5 h-1.5 rounded-full bg-white/70 -mt-0.5" />
+            {chartDates?.[cp.idx] && (
+              <span className="text-[7px] text-gray-500 mt-1 whitespace-nowrap">
+                {new Date(chartDates[cp.idx]).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}
+              </span>
+            )}
           </div>
         ))}
 
@@ -307,7 +314,7 @@ export function RegimeTimeline({ regime, totalBars }: RegimeTimelineProps) {
       </div>
 
       {/* Hurst Exponent Section */}
-      <div className="flex items-start gap-6">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6">
         <div className="flex-shrink-0">
           <div className="text-[10px] text-slate-500 font-medium mb-2 uppercase tracking-wider text-center">
             Hurst Exponent
@@ -351,7 +358,7 @@ export function RegimeTimeline({ regime, totalBars }: RegimeTimelineProps) {
             </div>
 
             {/* Zone key */}
-            <div className="flex items-center gap-4 pt-1">
+            <div className="flex flex-wrap items-center gap-3 md:gap-4 pt-1">
               <div className="flex items-center gap-1">
                 <div className="w-3 h-1.5 rounded-full bg-blue-500/50" />
                 <span className="text-[9px] text-slate-500">0-0.45 Mean-reverting</span>

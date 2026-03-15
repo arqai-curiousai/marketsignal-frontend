@@ -34,16 +34,16 @@ function normalizeValue(val: number, key: string, invert?: boolean): number {
   switch (key) {
     case 'sharpe_ratio':
     case 'sortino_ratio':
-      normalized = (val + 1) / 4; // range roughly -1 to 3
+      normalized = (val + 2) / 7; // range roughly -2 to 5
       break;
     case 'calmar_ratio':
-      normalized = val / 3; // range roughly 0 to 3
+      normalized = (val + 1) / 6; // range roughly -1 to 5
       break;
     case 'max_drawdown':
-      normalized = Math.abs(val) / 30; // range 0 to -30%
+      normalized = Math.abs(val) / 50; // range 0 to -50%
       break;
     case 'ulcer_index':
-      normalized = val / 10; // range 0 to 10%
+      normalized = val / 20; // range 0 to 20%
       break;
     default:
       normalized = val / 2;
@@ -193,7 +193,14 @@ export function RiskRadarChart({ data, sectorColor }: RiskRadarChartProps) {
         ].map((m) => (
           <div key={m.label} className="text-center p-1 rounded bg-white/[0.02]">
             <div className="text-[9px] text-muted-foreground">{m.label}</div>
-            <div className={cn('text-[11px] font-semibold tabular-nums', m.val > 0 ? 'text-white' : 'text-red-400')}>
+            <div className={cn(
+              'text-[11px] font-semibold tabular-nums',
+              m.label === 'Max DD' || m.label === 'Ulcer'
+                ? (Math.abs(m.val) < 10 ? 'text-white' : 'text-red-400')
+                : m.label === 'DD Days'
+                  ? 'text-white'
+                  : (m.val > 0 ? 'text-white' : 'text-red-400'),
+            )}>
               {typeof m.val === 'number' ? m.val.toFixed(m.label === 'DD Days' ? 0 : 2) : '—'}
               {m.suffix ?? ''}
             </div>

@@ -2,15 +2,14 @@
 
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ExternalLink, GitBranch, Newspaper, X } from 'lucide-react';
+import { ExternalLink, GitBranch, X } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
 import { SentimentBadge } from './SentimentBadge';
 import { TickerPill } from './TickerPill';
-import { formatTimeAgo, THEME_LABELS, THEME_COLORS } from './constants';
+import { formatTimeAgo, getSourceDisplayName, THEME_LABELS, THEME_COLORS } from './constants';
 
 interface NewsDetailPanelProps {
   selectedArticle: INewsArticle | null;
-  selectedTicker: string | null;
   onClose: () => void;
   onTickerClick: (ticker: string) => void;
   onViewMindMap: (ticker: string) => void;
@@ -19,27 +18,29 @@ interface NewsDetailPanelProps {
     themes: string[];
     key_facts: string[];
   } | null;
+  /** null = still loading, undefined = not fetching */
+  entityLoading?: boolean;
   impactData?: Record<string, { price_change_1h: number | null; price_change_4h: number | null; price_change_1d: number | null }> | null;
 }
 
 export function NewsDetailPanel({
   selectedArticle,
-  selectedTicker,
   onClose,
   onTickerClick,
   onViewMindMap,
   entityData,
+  entityLoading,
   impactData,
 }: NewsDetailPanelProps) {
   return (
-    <div className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden h-full">
+    <div className="overflow-y-auto">
       <AnimatePresence mode="wait">
         {selectedArticle ? (
           <motion.div
             key={selectedArticle.id}
-            initial={{ opacity: 0, x: 10 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -10 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
             className="p-4 space-y-4"
           >
             {/* Header */}
@@ -54,7 +55,7 @@ export function NewsDetailPanel({
 
             {/* Meta */}
             <div className="flex items-center gap-2 text-[11px]">
-              <span className="text-white/70">{selectedArticle.source}</span>
+              <span className="text-white/70">{getSourceDisplayName(selectedArticle.source)}</span>
               <span className="text-muted-foreground">{formatTimeAgo(selectedArticle.published_at)}</span>
               <SentimentBadge sentiment={selectedArticle.sentiment} score={selectedArticle.sentiment_score} size="md" />
             </div>
@@ -77,6 +78,16 @@ export function NewsDetailPanel({
             )}
 
             {/* Themes */}
+            {entityLoading && !entityData && (
+              <div>
+                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Themes</h4>
+                <div className="flex gap-1">
+                  <div className="h-5 w-20 bg-white/10 rounded animate-pulse" />
+                  <div className="h-5 w-16 bg-white/10 rounded animate-pulse" />
+                  <div className="h-5 w-24 bg-white/10 rounded animate-pulse" />
+                </div>
+              </div>
+            )}
             {entityData && entityData.themes.length > 0 && (
               <div>
                 <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Themes</h4>
@@ -98,6 +109,15 @@ export function NewsDetailPanel({
             )}
 
             {/* Key Facts */}
+            {entityLoading && !entityData && (
+              <div>
+                <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Key Facts</h4>
+                <div className="space-y-1.5">
+                  <div className="h-3 w-full bg-white/10 rounded animate-pulse" />
+                  <div className="h-3 w-3/4 bg-white/10 rounded animate-pulse" />
+                </div>
+              </div>
+            )}
             {entityData && entityData.key_facts.length > 0 && (
               <div>
                 <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5">Key Facts</h4>
@@ -156,56 +176,19 @@ export function NewsDetailPanel({
                 <ExternalLink className="h-3 w-3" />
                 Read Article
               </a>
-              {selectedArticle.symbols.length > 0 && (
+              {selectedArticle.symbols.length > 0 && selectedArticle.symbols.slice(0, 3).map((sym) => (
                 <button
-                  onClick={() => onViewMindMap(selectedArticle.symbols[0])}
+                  key={sym}
+                  onClick={() => onViewMindMap(sym)}
                   className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-blue/10 border border-brand-blue/20 text-brand-blue hover:bg-brand-blue/20 transition-colors"
                 >
                   <GitBranch className="h-3 w-3" />
-                  Mind Map
+                  {selectedArticle.symbols.length > 1 ? sym : 'Mind Map'}
                 </button>
-              )}
+              ))}
             </div>
           </motion.div>
-        ) : selectedTicker ? (
-          <motion.div
-            key={`ticker-${selectedTicker}`}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="p-4 space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-white font-mono">{selectedTicker}</h3>
-              <button onClick={onClose} className="text-muted-foreground hover:text-white">
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select a news article to see details, or explore the mind map for this stock.
-            </p>
-            <button
-              onClick={() => onViewMindMap(selectedTicker)}
-              className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-lg bg-brand-blue/10 border border-brand-blue/20 text-brand-blue hover:bg-brand-blue/20 transition-colors"
-            >
-              <GitBranch className="h-3 w-3" />
-              View Mind Map
-            </button>
-          </motion.div>
-        ) : (
-          <motion.div
-            key="empty"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="p-4 flex flex-col items-center justify-center text-center h-64"
-          >
-            <div className="text-muted-foreground/50 mb-2">
-              <Newspaper className="h-10 w-10 mx-auto" />
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Select a news article from any view to see details here.
-            </p>
-          </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </div>
   );

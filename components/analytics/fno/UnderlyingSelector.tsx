@@ -14,7 +14,7 @@ interface Props {
   onSelectExpiry: (expiry: string) => void;
 }
 
-const QUICK_PICKS = ['NIFTY', 'BANKNIFTY'];
+const FALLBACK_INDICES = ['NIFTY', 'BANKNIFTY'];
 
 export function UnderlyingSelector({
   underlyings,
@@ -24,12 +24,14 @@ export function UnderlyingSelector({
   onSelectUnderlying,
   onSelectExpiry,
 }: Props) {
+  const indices = underlyings.filter((u) => u.type === 'index').map((u) => u.symbol);
+  const quickPicks = indices.length > 0 ? indices : FALLBACK_INDICES;
   const stocks = underlyings.filter((u) => u.type === 'stock');
 
   return (
     <div className="flex flex-wrap items-center gap-2">
       {/* Index quick-pick buttons */}
-      {QUICK_PICKS.map((symbol) => (
+      {quickPicks.map((symbol) => (
         <button
           key={symbol}
           onClick={() => onSelectUnderlying(symbol)}
@@ -48,14 +50,15 @@ export function UnderlyingSelector({
       {stocks.length > 0 && (
         <div className="relative">
           <select
-            value={QUICK_PICKS.includes(selected) ? '' : selected}
+            aria-label="Select stock underlying"
+            value={quickPicks.includes(selected) ? '' : selected}
             onChange={(e) => {
               if (e.target.value) onSelectUnderlying(e.target.value);
             }}
             className={cn(
               'appearance-none pl-3 pr-7 py-1.5 text-xs font-medium rounded-full transition-all cursor-pointer',
               'bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10',
-              !QUICK_PICKS.includes(selected) && 'bg-brand-violet/20 text-brand-violet border-brand-violet/40',
+              !quickPicks.includes(selected) && 'bg-brand-violet/20 text-brand-violet border-brand-violet/40',
             )}
           >
             <option value="" className="bg-slate-900">Stocks...</option>
@@ -76,10 +79,14 @@ export function UnderlyingSelector({
       {availableExpiries.length > 0 && (
         <div className="relative">
           <select
-            value={selectedExpiry ?? availableExpiries[0]}
-            onChange={(e) => onSelectExpiry(e.target.value)}
+            aria-label="Select F&O expiry date"
+            value={selectedExpiry ?? ''}
+            onChange={(e) => { if (e.target.value) onSelectExpiry(e.target.value); }}
             className="appearance-none pl-3 pr-7 py-1.5 text-xs font-medium rounded-full bg-white/5 border border-white/10 text-muted-foreground hover:bg-white/10 transition-all cursor-pointer"
           >
+            {!selectedExpiry && (
+              <option value="" disabled className="bg-slate-900">Expiry...</option>
+            )}
             {availableExpiries.map((exp) => (
               <option key={exp} value={exp} className="bg-slate-900">
                 {new Date(exp + 'T00:00:00').toLocaleDateString('en-IN', {

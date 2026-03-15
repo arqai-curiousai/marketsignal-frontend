@@ -2,7 +2,7 @@
 
 export { SECTOR_COLORS } from '@/types/analytics';
 
-export type SectorViewMode = 'treemap' | 'heatmap' | 'table' | 'flow';
+export type SectorViewMode = 'treemap' | 'heatmap' | 'table' | 'flow' | 'pyramid';
 
 export const TIMEFRAMES = [
   { label: '1D', value: '1d' as const },

@@ -129,7 +129,7 @@ export function MatrixProfilePanel({ matrixProfile, chartData }: MatrixProfilePa
       </div>
 
       {/* Sparklines Row */}
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5 min-w-0 overflow-hidden">
         {/* Current Pattern Sparkline */}
         <div className="flex-1 min-w-0">
           <div className="text-[10px] text-slate-500 font-medium mb-1.5 uppercase tracking-wider">
@@ -172,15 +172,15 @@ export function MatrixProfilePanel({ matrixProfile, chartData }: MatrixProfilePa
         </div>
 
         {/* Similarity Badge */}
-        <div className="flex flex-col items-center justify-center shrink-0 pt-5">
-          <div className="w-px h-4 bg-cyan-500/30" />
+        <div className="flex sm:flex-col items-center justify-center shrink-0 sm:pt-5 gap-2 sm:gap-0">
+          <div className="hidden sm:block w-px h-4 bg-cyan-500/30" />
           <div className="px-2.5 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/30">
             <span className="text-[11px] font-bold text-cyan-400 font-mono">
               &#8776; {similarityPct}%
             </span>
           </div>
-          <div className="text-[9px] text-slate-600 mt-1">similar</div>
-          <div className="w-px h-4 bg-cyan-500/30" />
+          <div className="text-[9px] text-slate-600 sm:mt-1">similar</div>
+          <div className="hidden sm:block w-px h-4 bg-cyan-500/30" />
         </div>
 
         {/* Historical Match Sparkline */}
@@ -266,7 +266,7 @@ export function MatrixProfilePanel({ matrixProfile, chartData }: MatrixProfilePa
 
       {/* Matrix Profile Distance Chart */}
       <div>
-        <div className="flex items-center justify-between mb-2 px-1">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2 px-1">
           <div className="text-[10px] text-slate-500 font-medium uppercase tracking-wider">
             Matrix Profile Distance
           </div>

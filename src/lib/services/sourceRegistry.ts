@@ -1,5 +1,4 @@
 import { IDataSource } from '../datasources/types/IDataSource';
-import { NewsApiAdapter } from '../datasources/adapters/newsApiAdapter';
 
 /**
  * Source Registry - Factory pattern for managing data source adapters
@@ -7,17 +6,6 @@ import { NewsApiAdapter } from '../datasources/adapters/newsApiAdapter';
  */
 export class SourceRegistry {
   private sources: Map<string, IDataSource> = new Map();
-
-  constructor() {
-    this.registerDefaultSources();
-  }
-
-  /**
-   * Register default data sources
-   */
-  private registerDefaultSources(): void {
-    this.register(new NewsApiAdapter(true));
-  }
 
   /**
    * Register a new data source adapter

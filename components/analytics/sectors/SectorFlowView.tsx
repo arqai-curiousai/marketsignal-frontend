@@ -6,19 +6,19 @@ import 'd3-transition';
 import { scaleLinear, scaleSqrt } from 'd3-scale';
 import { axisBottom, axisLeft } from 'd3-axis';
 import { max as d3Max } from 'd3-array';
-import { cn } from '@/lib/utils';
 import { SECTOR_COLORS, perfColor, perfTextClass, flowColor, formatMarketCap } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorFlowViewProps {
   sectors: ISectorAnalytics[];
   timeframe: SectorTimeframe;
+  selectedSector?: string | null;
   onSectorClick: (sector: ISectorAnalytics) => void;
 }
 
 const MARGIN = { top: 30, right: 30, bottom: 45, left: 55 };
 
-export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlowViewProps) {
+export function SectorFlowView({ sectors, timeframe, selectedSector, onSectorClick }: SectorFlowViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -37,10 +37,20 @@ export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlow
     const innerH = height - MARGIN.top - MARGIN.bottom;
 
     const d3svg = select(svg);
-    d3svg.selectAll('*').remove();
     d3svg.attr('width', width).attr('height', height);
 
-    const g = d3svg.append('g').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+    // Only recreate static elements (quadrants, axes) if dimensions changed
+    const prevWidth = d3svg.attr('data-w');
+    const dimensionsChanged = prevWidth !== String(width);
+    let g = d3svg.select<SVGGElement>('.flow-root');
+    if (g.empty() || dimensionsChanged) {
+      d3svg.selectAll('*').remove();
+      d3svg.attr('data-w', width);
+      g = d3svg.append('g').attr('class', 'flow-root').attr('transform', `translate(${MARGIN.left},${MARGIN.top})`);
+    } else {
+      // Remove only data-driven elements (bubbles), keep axes/quadrants
+      g.selectAll('.sector-bubble').remove();
+    }
 
     // Scales
     const xScale = scaleLinear().domain([0, 100]).range([0, innerW]);
@@ -49,7 +59,10 @@ export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlow
     const mcaps = sectors.map((s) => s.total_market_cap ?? 1);
     const rScale = scaleSqrt().domain([0, d3Max(mcaps) ?? 1]).range([8, 40]);
 
-    // Quadrant backgrounds
+    // Quadrant backgrounds (only draw once, skip if already present)
+    const hasStatics = !g.select('.quadrant-bg').empty();
+    if (!hasStatics) {
+
     const quadrants = [
       { x: 0, y: 0, w: innerW / 2, h: innerH / 2, label: 'Weak + Accumulating', color: 'rgba(59,130,246,0.04)' },
       { x: innerW / 2, y: 0, w: innerW / 2, h: innerH / 2, label: 'Strong + Accumulating', color: 'rgba(16,185,129,0.06)' },
@@ -59,6 +72,7 @@ export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlow
 
     quadrants.forEach((q) => {
       g.append('rect')
+        .attr('class', 'quadrant-bg')
         .attr('x', q.x)
         .attr('y', q.y)
         .attr('width', q.w)
@@ -127,6 +141,8 @@ export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlow
       .attr('font-size', '11px')
       .text('Volume Flow Score');
 
+    } // end hasStatics check
+
     // Bubbles
     const bubbles = g.selectAll<SVGGElement, ISectorAnalytics>('.sector-bubble')
       .data(sectors)
@@ -147,8 +163,18 @@ export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlow
         return perfColor(perf, 0.7);
       })
       .attr('stroke', (d: ISectorAnalytics) => SECTOR_COLORS[d.sector] ?? '#64748B')
-      .attr('stroke-width', 2)
-      .attr('opacity', 0.85);
+      .attr('stroke-width', (d: ISectorAnalytics) => d.sector === selectedSector ? 3.5 : 2)
+      .attr('opacity', (d: ISectorAnalytics) => d.sector === selectedSector ? 1 : 0.85);
+
+    // Selected pulsing ring
+    bubbles.filter((d: ISectorAnalytics) => d.sector === selectedSector)
+      .append('circle')
+      .attr('r', (d: ISectorAnalytics) => rScale(d.total_market_cap ?? 1) + 5)
+      .attr('fill', 'none')
+      .attr('stroke', (d: ISectorAnalytics) => SECTOR_COLORS[d.sector] ?? '#64748B')
+      .attr('stroke-width', 1.5)
+      .attr('opacity', 0.4)
+      .attr('stroke-dasharray', '4 3');
 
     // Sector labels on bubbles
     bubbles.append('text')
@@ -228,7 +254,7 @@ export function SectorFlowView({ sectors, timeframe, onSectorClick }: SectorFlow
       .on('click', function (_event: MouseEvent, d: ISectorAnalytics) {
         onSectorClick(d);
       });
-  }, [sectors, timeframe, onSectorClick]);
+  }, [sectors, timeframe, selectedSector, onSectorClick]);
 
   useEffect(() => {
     render();

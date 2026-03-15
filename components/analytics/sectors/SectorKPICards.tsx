@@ -23,10 +23,6 @@ export function SectorKPICards({ sectors, timeframe }: SectorKPICardsProps) {
   const bestSector = sectors.reduce((best, s) =>
     (s.performance[timeframe] ?? 0) > (best.performance[timeframe] ?? 0) ? s : best,
   );
-  const worstSector = sectors.reduce((worst, s) =>
-    (s.performance[timeframe] ?? 0) < (worst.performance[timeframe] ?? 0) ? s : worst,
-  );
-
   // Overall breadth: average of all sectors' above_50dma_pct
   const avgBreadth =
     sectors.reduce((sum, s) => sum + (s.breadth.above_50dma_pct ?? 0), 0) /

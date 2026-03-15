@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useCallback, useMemo, useState } from 'react';
-import { Search } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { ChevronDown, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { ASSET_MAP, corrColor, corrStrength } from './constants';
@@ -25,6 +25,39 @@ export function HeatmapMatrix({
   const [hoveredCell, setHoveredCell] = useState<{ row: string; col: string } | null>(null);
   const [sortMode, setSortMode] = useState<SortMode>('sector');
   const [sortTarget, setSortTarget] = useState<string | null>(null);
+  const [halfMatrix, setHalfMatrix] = useState(false);
+  const [showSectors, setShowSectors] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevMatrixRef = useRef(matrix);
+
+  // SSR-safe responsive check
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  // Reset sort target when matrix changes (prevents stale sort on missing ticker)
+  useEffect(() => {
+    if (matrix !== prevMatrixRef.current) {
+      prevMatrixRef.current = matrix;
+      if (sortTarget && matrix && !matrix.tickers.includes(sortTarget)) {
+        setSortTarget(null);
+        setSortMode('sector');
+      }
+    }
+  }, [matrix, sortTarget]);
+
+  // Track mouse position relative to container for floating tooltip
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    }
+  }, []);
 
   const getCorr = useCallback((a: string, b: string): number | null => {
     if (a === b) return 1;
@@ -86,13 +119,15 @@ export function HeatmapMatrix({
     );
   }
 
-  const cellSize = tickers.length > 15 ? 28 : 36;
-  const headerSize = 60;
+  // Mobile: minimum 44px cells (WCAG touch targets), Desktop: compact for larger matrices
+  const cellSize = isMobile ? 44 : tickers.length > 15 ? 28 : 36;
+  const headerSize = isMobile ? 50 : 60;
+  const showValues = tickers.length <= 15 && cellSize >= 36;
   const isHighlightedRow = hoveredCell?.row;
   const isHighlightedCol = hoveredCell?.col;
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-[#0d1117] overflow-hidden" style={{ minHeight: 400 }}>
+    <div ref={containerRef} className="relative rounded-2xl border border-white/10 bg-[#0d1117] overflow-hidden" style={{ minHeight: 400 }} onMouseMove={handleMouseMove}>
       {/* Sort controls */}
       <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5">
         <span className="text-[10px] text-muted-foreground">Sort:</span>
@@ -113,6 +148,27 @@ export function HeatmapMatrix({
             {mode}
           </button>
         ))}
+
+        {/* Half-matrix toggle */}
+        <button
+          onClick={() => setHalfMatrix(!halfMatrix)}
+          className={cn(
+            'px-2 py-1 text-[10px] rounded border transition-colors ml-1',
+            halfMatrix
+              ? 'bg-brand-blue/20 border-brand-blue/30 text-white'
+              : 'border-white/10 text-muted-foreground hover:text-white',
+          )}
+        >
+          Half
+        </button>
+
+        {/* Sort target badge */}
+        {sortMode === 'correlation' && sortTarget && (
+          <span className="px-1.5 py-0.5 text-[10px] rounded bg-brand-blue/10 text-brand-blue border border-brand-blue/20 ml-1">
+            Sorted by: {sortTarget}
+          </span>
+        )}
+
         {matrix.p_values && (
           <span className="ml-auto text-[10px] text-muted-foreground">
             {matrix.significant_pairs} significant pairs (FDR 5%)
@@ -124,46 +180,55 @@ export function HeatmapMatrix({
         <div className="p-3">
           <div
             className="inline-grid gap-px"
+            role="grid"
             style={{
               gridTemplateColumns: `${headerSize}px repeat(${tickers.length}, ${cellSize}px)`,
-              gridTemplateRows: `${headerSize / 2}px repeat(${tickers.length}, ${cellSize}px)`,
+              gridTemplateRows: `${headerSize}px repeat(${tickers.length}, ${cellSize}px)`,
             }}
           >
             {/* Corner cell */}
             <div />
 
             {/* Column headers */}
-            {tickers.map((col) => (
-              <div
-                key={`col-${col}`}
-                className={cn(
-                  'flex items-end justify-center pb-1 cursor-pointer transition-opacity',
-                  isHighlightedCol === col ? 'opacity-100' : isHighlightedCol ? 'opacity-40' : 'opacity-100',
-                )}
-                onClick={() => {
-                  setSortMode('correlation');
-                  setSortTarget(col);
-                }}
-                title={ASSET_MAP.get(col)?.name || col}
-              >
-                <span
-                  className="text-[8px] font-medium text-muted-foreground whitespace-nowrap origin-bottom-left"
-                  style={{
-                    transform: 'rotate(-45deg)',
-                    display: 'inline-block',
-                    width: cellSize,
+            {tickers.map((col) => {
+              const isSortTarget = sortMode === 'correlation' && sortTarget === col;
+              return (
+                <div
+                  key={`col-${col}`}
+                  className={cn(
+                    'flex items-end justify-center pb-1 cursor-pointer transition-opacity',
+                    isHighlightedCol === col ? 'opacity-100' : isHighlightedCol ? 'opacity-40' : 'opacity-100',
+                    isSortTarget && 'border-b-2 border-brand-blue',
+                  )}
+                  onClick={() => {
+                    setSortMode('correlation');
+                    setSortTarget(col);
                   }}
+                  title={ASSET_MAP.get(col)?.name || col}
                 >
-                  {col.length > 6 ? col.slice(0, 5) + '..' : col}
-                </span>
-              </div>
-            ))}
+                  <span
+                    className={cn(
+                      'text-[9px] font-medium text-muted-foreground whitespace-nowrap origin-bottom-left',
+                      isSortTarget && 'text-brand-blue',
+                    )}
+                    style={{
+                      transform: 'rotate(-45deg)',
+                      display: 'inline-block',
+                      width: cellSize,
+                    }}
+                  >
+                    {isSortTarget && '↓ '}{col.length > 7 ? col.slice(0, 6) + '..' : col}
+                  </span>
+                </div>
+              );
+            })}
 
             {/* Rows */}
-            {tickers.map((row) => (
-              <React.Fragment key={`row-${row}`}>
+            {tickers.map((row, rowIdx) => (
+              <div key={`row-${row}`} role="row" className="contents">
                 {/* Row header */}
                 <div
+                  role="rowheader"
                   className={cn(
                     'flex items-center pr-2 transition-opacity',
                     isHighlightedRow === row ? 'opacity-100' : isHighlightedRow ? 'opacity-40' : 'opacity-100',
@@ -175,11 +240,23 @@ export function HeatmapMatrix({
                 </div>
 
                 {/* Data cells */}
-                {tickers.map((col) => {
+                {tickers.map((col, colIdx) => {
+                  const isDiagonal = row === col;
+                  const isLowerTriangle = halfMatrix && rowIdx < colIdx;
+
+                  // In half-matrix mode, hide upper triangle (above diagonal)
+                  if (isLowerTriangle) {
+                    return (
+                      <div
+                        key={`${row}-${col}`}
+                        role="gridcell"
+                        style={{ width: cellSize, height: cellSize }}
+                      />
+                    );
+                  }
+
                   const corr = getCorr(row, col);
                   const pVal = getPValue(row, col);
-                  const isDiagonal = row === col;
-                  const isHovered = hoveredCell?.row === row && hoveredCell?.col === col;
                   const isSelected =
                     selectedPair &&
                     ((selectedPair[0] === row && selectedPair[1] === col) ||
@@ -187,9 +264,17 @@ export function HeatmapMatrix({
                   const isRowOrColHighlight = isHighlightedRow === row || isHighlightedCol === col;
                   const isInsignificant = pVal !== null && pVal > 0.05 && !isDiagonal;
 
+                  // Format short correlation value for cell display
+                  const cellLabel = isDiagonal
+                    ? '1.0'
+                    : corr !== null
+                      ? (corr >= 0 ? '+' : '') + corr.toFixed(2).replace(/^-?0/, (m) => m.replace('0', ''))
+                      : '';
+
                   return (
                     <div
                       key={`${row}-${col}`}
+                      role="gridcell"
                       className={cn(
                         'relative flex items-center justify-center cursor-pointer transition-all duration-100',
                         isSelected && 'ring-2 ring-brand-blue ring-offset-1 ring-offset-[#0d1117]',
@@ -203,7 +288,7 @@ export function HeatmapMatrix({
                           : corr !== null
                             ? corrColor(corr)
                             : 'rgba(255,255,255,0.02)',
-                        opacity: isDiagonal ? 1 : corr !== null ? 0.15 + Math.abs(corr) * 0.85 : 0.3,
+                        opacity: isDiagonal ? 1 : corr !== null ? 0.3 + Math.abs(corr) * 0.7 : 0.3,
                       }}
                       onMouseEnter={() => setHoveredCell({ row, col })}
                       onMouseLeave={() => setHoveredCell(null)}
@@ -223,16 +308,185 @@ export function HeatmapMatrix({
                         />
                       )}
 
-                      {/* Show value on hover */}
-                      {isHovered && corr !== null && !isDiagonal && (
-                        <span className="absolute z-10 text-[9px] font-mono font-bold text-white" style={{ textShadow: '0 0 4px rgba(0,0,0,0.9)' }}>
-                          {corr >= 0 ? '+' : ''}{corr.toFixed(2)}
+                      {showValues && cellLabel && (
+                        <span className="text-[8px] font-mono text-white/70 pointer-events-none select-none">
+                          {cellLabel}
                         </span>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+        <ScrollBar orientation="horizontal" />
+      </ScrollArea>
 
-                      {isDiagonal && (
-                        <span className="text-[8px] text-muted-foreground font-mono">1.0</span>
-                      )}
+      {/* Floating tooltip near cursor */}
+      {hoveredCell && hoveredCell.row !== hoveredCell.col && (() => {
+        const corr = getCorr(hoveredCell.row, hoveredCell.col);
+        if (corr === null) return null;
+        const pVal = getPValue(hoveredCell.row, hoveredCell.col);
+        return (
+          <div
+            className="absolute z-20 pointer-events-none bg-[#1a1f2e] border border-white/10 rounded-lg px-3 py-2 shadow-xl"
+            style={{
+              left: Math.min(mousePos.x + 12, (containerRef.current?.clientWidth ?? 400) - 220),
+              top: Math.max(8, mousePos.y - 48),
+            }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-white font-medium whitespace-nowrap">
+                {hoveredCell.row} ↔ {hoveredCell.col}
+              </span>
+              <span className="text-sm font-mono font-bold" style={{ color: corrColor(corr) }}>
+                {corr >= 0 ? '+' : ''}{corr.toFixed(3)}
+              </span>
+              <span className="text-[10px] text-muted-foreground">{corrStrength(corr)}</span>
+              {pVal !== null && (
+                <span className={cn('text-[10px]', pVal < 0.05 ? 'text-emerald-400' : 'text-yellow-400')}>
+                  p={pVal < 0.001 ? '<0.001' : pVal.toFixed(3)}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* Legend */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 border-t border-white/5">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[9px] text-blue-400">-1</span>
+          <div className="w-24 h-2 rounded-full" style={{ background: 'linear-gradient(to right, #2563EB, #60A5FA, #475569, #FB923C, #EA580C)' }} />
+          <span className="text-[9px] text-orange-400">+1</span>
+        </div>
+        <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-3 border border-white/10" style={{ background: 'linear-gradient(135deg, transparent 45%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.15) 55%, transparent 55%)' }} />
+            Not significant
+          </span>
+          <span className="hidden sm:inline">Method: {matrix.method}</span>
+        </div>
+      </div>
+
+      {/* Sector Aggregation */}
+      <SectorAggregation tickers={tickers} getCorr={getCorr} show={showSectors} setShow={setShowSectors} />
+    </div>
+  );
+}
+
+// ─── Sector Cross-Correlation Summary ───────────────────────
+
+function SectorAggregation({
+  tickers,
+  getCorr,
+  show,
+  setShow,
+}: {
+  tickers: string[];
+  getCorr: (a: string, b: string) => number | null;
+  show: boolean;
+  setShow: (v: boolean) => void;
+}) {
+  const sectorData = useMemo(() => {
+    // Group tickers by sector
+    const sectorTickers = new Map<string, string[]>();
+    for (const t of tickers) {
+      const sector = ASSET_MAP.get(t)?.sector;
+      if (!sector) continue;
+      const list = sectorTickers.get(sector) ?? [];
+      list.push(t);
+      sectorTickers.set(sector, list);
+    }
+
+    // Need at least 2 sectors
+    const sectors = Array.from(sectorTickers.keys()).sort();
+    if (sectors.length < 2) return null;
+
+    // Compute average correlation between each sector pair
+    const grid: Record<string, Record<string, number | null>> = {};
+    for (const sa of sectors) {
+      grid[sa] = {};
+      for (const sb of sectors) {
+        const tickersA = sectorTickers.get(sa)!;
+        const tickersB = sectorTickers.get(sb)!;
+        let sum = 0;
+        let count = 0;
+        for (const a of tickersA) {
+          for (const b of tickersB) {
+            if (a === b) continue;
+            const c = getCorr(a, b);
+            if (c !== null) {
+              sum += c;
+              count++;
+            }
+          }
+        }
+        grid[sa][sb] = count > 0 ? sum / count : null;
+      }
+    }
+
+    return { sectors, grid };
+  }, [tickers, getCorr]);
+
+  if (!sectorData) return null;
+
+  const { sectors, grid } = sectorData;
+
+  return (
+    <div className="border-t border-white/5">
+      <button
+        onClick={() => setShow(!show)}
+        className="flex items-center gap-1.5 w-full px-3 py-1.5 text-[10px] text-muted-foreground hover:text-white transition-colors"
+      >
+        <ChevronDown className={cn('h-3 w-3 transition-transform', show && 'rotate-180')} />
+        Sector Cross-Correlation
+      </button>
+
+      {show && (
+        <div className="px-3 pb-3 overflow-x-auto">
+          <div
+            className="inline-grid gap-px"
+            style={{
+              gridTemplateColumns: `80px repeat(${sectors.length}, 56px)`,
+            }}
+          >
+            {/* Corner */}
+            <div />
+            {/* Column headers */}
+            {sectors.map((s) => (
+              <div key={`sh-${s}`} className="text-[8px] text-muted-foreground text-center truncate px-0.5" title={s}>
+                {s.length > 8 ? s.slice(0, 7) + '..' : s}
+              </div>
+            ))}
+
+            {/* Rows */}
+            {sectors.map((rowSector, ri) => (
+              <React.Fragment key={`sr-${rowSector}`}>
+                <div className="text-[9px] text-muted-foreground truncate pr-1 flex items-center" title={rowSector}>
+                  {rowSector.length > 10 ? rowSector.slice(0, 9) + '..' : rowSector}
+                </div>
+                {sectors.map((colSector, ci) => {
+                  const val = grid[rowSector][colSector];
+                  const isDiag = ri === ci;
+                  return (
+                    <div
+                      key={`sc-${rowSector}-${colSector}`}
+                      className="flex items-center justify-center rounded-sm"
+                      style={{
+                        height: 24,
+                        backgroundColor: isDiag
+                          ? 'rgba(255,255,255,0.03)'
+                          : val !== null
+                            ? corrColor(val)
+                            : 'rgba(255,255,255,0.02)',
+                        opacity: isDiag ? 1 : val !== null ? 0.25 + Math.abs(val) * 0.75 : 0.3,
+                      }}
+                    >
+                      <span className="text-[8px] font-mono text-white/80">
+                        {isDiag ? '—' : val !== null ? (val >= 0 ? '+' : '') + val.toFixed(2) : ''}
+                      </span>
                     </div>
                   );
                 })}
@@ -240,64 +494,6 @@ export function HeatmapMatrix({
             ))}
           </div>
         </div>
-        <ScrollBar orientation="horizontal" />
-      </ScrollArea>
-
-      {/* Tooltip area */}
-      {hoveredCell && hoveredCell.row !== hoveredCell.col && (
-        <div className="px-3 py-2 border-t border-white/5">
-          <CellTooltip row={hoveredCell.row} col={hoveredCell.col} getCorr={getCorr} getPValue={getPValue} />
-        </div>
-      )}
-
-      {/* Legend */}
-      <div className="flex items-center justify-between px-3 py-2 border-t border-white/5">
-        <div className="flex items-center gap-1.5">
-          <span className="text-[9px] text-red-400">-1</span>
-          <div className="w-24 h-2 rounded-full" style={{ background: 'linear-gradient(to right, #EF4444, #F87171, #475569, #6EE7B7, #10B981)' }} />
-          <span className="text-[9px] text-emerald-400">+1</span>
-        </div>
-        <div className="flex items-center gap-3 text-[9px] text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <div className="w-3 h-3 border border-white/10" style={{ background: 'linear-gradient(135deg, transparent 45%, rgba(255,255,255,0.15) 45%, rgba(255,255,255,0.15) 55%, transparent 55%)' }} />
-            Not significant
-          </span>
-          <span>Method: {matrix.method}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CellTooltip({
-  row,
-  col,
-  getCorr,
-  getPValue,
-}: {
-  row: string;
-  col: string;
-  getCorr: (a: string, b: string) => number | null;
-  getPValue: (a: string, b: string) => number | null;
-}) {
-  if (row === col) return null;
-  const corr = getCorr(row, col);
-  if (corr === null) return null;
-  const pVal = getPValue(row, col);
-
-  return (
-    <div className="flex items-center gap-4">
-      <span className="text-xs text-white font-medium">
-        {row} ↔ {col}
-      </span>
-      <span className="text-sm font-mono font-bold" style={{ color: corrColor(corr) }}>
-        {corr >= 0 ? '+' : ''}{corr.toFixed(3)}
-      </span>
-      <span className="text-[10px] text-muted-foreground">{corrStrength(corr)}</span>
-      {pVal !== null && (
-        <span className={cn('text-[10px]', pVal < 0.05 ? 'text-emerald-400' : 'text-yellow-400')}>
-          p={pVal < 0.001 ? '<0.001' : pVal.toFixed(3)}
-        </span>
       )}
     </div>
   );

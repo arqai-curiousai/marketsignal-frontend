@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -37,9 +37,23 @@ export function Header() {
     const pathname = usePathname();
     const { user, isAuthenticated, logout } = useAuth();
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const isLanding = pathname === '/';
+
+    useEffect(() => {
+        if (!isLanding) return;
+        const handleScroll = () => setScrolled(window.scrollY > 80);
+        handleScroll();
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [isLanding]);
+
+    const headerBg = isLanding && !scrolled
+        ? 'bg-transparent border-transparent'
+        : 'bg-brand-slate/80 backdrop-blur-md border-white/10';
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-brand-slate/80 backdrop-blur-md">
+        <header className={cn("sticky top-0 z-50 w-full border-b transition-all duration-300", headerBg)}>
             <div className="container flex h-16 items-center justify-between">
                 <div className="flex items-center gap-8">
                     {/* Mobile hamburger menu */}

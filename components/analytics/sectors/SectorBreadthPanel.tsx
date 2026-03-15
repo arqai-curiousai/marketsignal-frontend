@@ -66,7 +66,7 @@ export function SectorBreadthPanel({ sectors }: SectorBreadthPanelProps) {
 
       {/* Per-sector breadth stacked bars */}
       <div className="space-y-2">
-        {sectors
+        {[...sectors]
           .sort((a, b) => (b.breadth.above_50dma_pct ?? 0) - (a.breadth.above_50dma_pct ?? 0))
           .map((sector) => {
             const b = sector.breadth;

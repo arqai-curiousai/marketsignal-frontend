@@ -3,11 +3,13 @@
 import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { hierarchy, pack, type HierarchyCircularNode } from 'd3-hierarchy';
 import { getStocks } from '@/src/lib/api/stockApi';
 import type { IStock } from '@/types/stock';
 import { SECTOR_COLORS } from '@/types/analytics';
 import { BubbleTooltip } from './BubbleTooltip';
 import { SectorLegend } from './SectorLegend';
+
 // Relative market cap weights for NIFTY 50 (approximate, used for bubble sizing)
 const MARKET_CAP_WEIGHTS: Record<string, number> = {
   RELIANCE: 18, HDFCBANK: 12, TCS: 13, ICICIBANK: 8, INFY: 7,
@@ -22,22 +24,13 @@ const MARKET_CAP_WEIGHTS: Record<string, number> = {
   HEROMOTOCO: 1.5, UPL: 1, BRITANNIA: 1.5, HINDALCO: 1.5, SHRIRAMFIN: 1,
 };
 
-interface BubbleNode {
-  id: string;
-  ticker: string;
+interface HierarchyDatum {
   name: string;
-  sector: string;
-  lastPrice: number | null;
-  change: number | null;
-  changePercent: number | null;
-  radius: number;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  targetX: number;
-  targetY: number;
-  color: string;
+  sector?: string;
+  ticker?: string;
+  stock?: IStock;
+  weight?: number;
+  children?: HierarchyDatum[];
 }
 
 interface TooltipState {
@@ -54,7 +47,6 @@ interface TooltipState {
 export function BubbleCluster() {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>(0);
   const [stocks, setStocks] = useState<IStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -64,8 +56,8 @@ export function BubbleCluster() {
     visible: false, ticker: '', name: '', sector: '',
     lastPrice: null, changePercent: null, x: 0, y: 0,
   });
-  const [nodes, setNodes] = useState<BubbleNode[]>([]);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
+  const [mounted, setMounted] = useState(false);
 
   // Fetch stocks
   useEffect(() => {
@@ -92,172 +84,117 @@ export function BubbleCluster() {
     return () => observer.disconnect();
   }, []);
 
+  // Trigger entrance animation after pack layout is computed
+  useEffect(() => {
+    if (stocks.length > 0) {
+      const timer = setTimeout(() => setMounted(true), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [stocks.length]);
+
   // Unique sectors
   const sectors = useMemo(() => {
     const s = new Set(stocks.map((st) => st.sector).filter(Boolean) as string[]);
     return Array.from(s).sort();
   }, [stocks]);
 
-  // Compute sector centroids (radial layout)
-  const sectorCentroids = useMemo(() => {
-    const { width, height } = dimensions;
-    const cx = width / 2;
-    const cy = height / 2;
-    const radius = Math.min(width, height) * 0.28;
-    const centroids: Record<string, { x: number; y: number }> = {};
-
-    sectors.forEach((sector, i) => {
-      const angle = (i / sectors.length) * Math.PI * 2 - Math.PI / 2;
-      centroids[sector] = {
-        x: cx + Math.cos(angle) * radius,
-        y: cy + Math.sin(angle) * radius,
-      };
-    });
-
-    return centroids;
-  }, [sectors, dimensions]);
-
-  // Initialize nodes from stocks
-  useEffect(() => {
-    if (stocks.length === 0) return;
-    const { width, height } = dimensions;
-
-    const newNodes: BubbleNode[] = stocks.map((stock) => {
-      const weight = MARKET_CAP_WEIGHTS[stock.ticker] ?? 1;
-      const baseRadius = Math.sqrt(weight) * (Math.min(width, height) < 500 ? 8 : 12);
-      const radius = Math.max(baseRadius, 10);
+  // Build hierarchy data for d3 circle packing
+  const hierarchyData = useMemo((): HierarchyDatum => {
+    const grouped = new Map<string, IStock[]>();
+    for (const stock of stocks) {
       const sector = stock.sector || 'Other';
-      const centroid = sectorCentroids[sector] || { x: width / 2, y: height / 2 };
-      const color = SECTOR_COLORS[sector] || '#64748B';
+      if (!grouped.has(sector)) grouped.set(sector, []);
+      grouped.get(sector)!.push(stock);
+    }
 
-      return {
-        id: stock.ticker,
-        ticker: stock.ticker,
-        name: stock.name,
-        sector,
-        lastPrice: stock.lastPrice ?? null,
-        change: stock.change ?? null,
-        changePercent: stock.changePercent ?? null,
-        radius,
-        x: centroid.x + (Math.random() - 0.5) * 60,
-        y: centroid.y + (Math.random() - 0.5) * 60,
-        vx: 0,
-        vy: 0,
-        targetX: centroid.x,
-        targetY: centroid.y,
-        color,
-      };
-    });
-
-    setNodes(newNodes);
-  }, [stocks, dimensions, sectorCentroids]);
-
-  // Physics simulation (simple force-directed)
-  useEffect(() => {
-    if (nodes.length === 0) return;
-
-    const localNodes = nodes.map((n) => ({ ...n }));
-    let running = true;
-    let frameCount = 0;
-
-    const tick = () => {
-      if (!running) return;
-      frameCount++;
-
-      const alpha = Math.max(0.01, 0.3 * Math.pow(0.995, frameCount));
-
-      for (const node of localNodes) {
-        // Attraction to sector centroid
-        const dx = node.targetX - node.x;
-        const dy = node.targetY - node.y;
-        node.vx += dx * 0.008 * alpha;
-        node.vy += dy * 0.008 * alpha;
-      }
-
-      // Collision avoidance
-      for (let i = 0; i < localNodes.length; i++) {
-        for (let j = i + 1; j < localNodes.length; j++) {
-          const a = localNodes[i];
-          const b = localNodes[j];
-          const ddx = b.x - a.x;
-          const ddy = b.y - a.y;
-          const dist = Math.sqrt(ddx * ddx + ddy * ddy) || 1;
-          const minDist = a.radius + b.radius + 3;
-
-          if (dist < minDist) {
-            const force = (minDist - dist) / dist * 0.3;
-            const fx = ddx * force;
-            const fy = ddy * force;
-            a.vx -= fx;
-            a.vy -= fy;
-            b.vx += fx;
-            b.vy += fy;
-          }
-        }
-      }
-
-      // Update positions with damping
-      const { width, height } = dimensions;
-      for (const node of localNodes) {
-        node.vx *= 0.85;
-        node.vy *= 0.85;
-        node.x += node.vx;
-        node.y += node.vy;
-
-        // Boundary containment
-        node.x = Math.max(node.radius, Math.min(width - node.radius, node.x));
-        node.y = Math.max(node.radius, Math.min(height - node.radius, node.y));
-      }
-
-      // Update state every 2 frames for performance
-      if (frameCount % 2 === 0) {
-        setNodes([...localNodes]);
-      }
-
-      // Slow down after settling (stop after ~300 frames)
-      if (frameCount < 300) {
-        animationRef.current = requestAnimationFrame(tick);
-      } else {
-        setNodes([...localNodes]);
-      }
+    return {
+      name: 'root',
+      children: Array.from(grouped.entries())
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([sector, sectorStocks]) => ({
+          name: sector,
+          sector,
+          children: sectorStocks.map((stock) => ({
+            name: stock.ticker,
+            ticker: stock.ticker,
+            sector,
+            stock,
+            // Use sqrt to compress range so RELIANCE doesn't overwhelm
+            weight: Math.sqrt(MARKET_CAP_WEIGHTS[stock.ticker] ?? 1),
+          })),
+        })),
     };
+  }, [stocks]);
 
-    animationRef.current = requestAnimationFrame(tick);
+  // Compute circle packing layout
+  const packedRoot = useMemo(() => {
+    if (stocks.length === 0) return null;
+    const { width, height } = dimensions;
+    const padding = width < 500 ? 8 : 14;
+    const innerPadding = width < 500 ? 1 : 3;
 
-    return () => {
-      running = false;
-      cancelAnimationFrame(animationRef.current);
-    };
-    // Only run on initial mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nodes.length > 0 ? 'initialized' : 'waiting', dimensions.width, dimensions.height]);
+    const root = hierarchy(hierarchyData)
+      .sum((d) => d.weight ?? 0)
+      .sort((a, b) => (b.value ?? 0) - (a.value ?? 0));
+
+    const packLayout = pack<HierarchyDatum>()
+      .size([width - 10, height - 10])
+      .padding((node) => (node.depth === 0 ? padding : innerPadding));
+
+    return packLayout(root);
+  }, [hierarchyData, dimensions, stocks.length]);
+
+  // Extract sector nodes (depth 1) and stock nodes (leaves)
+  const { sectorNodes, stockNodes } = useMemo(() => {
+    if (!packedRoot) return { sectorNodes: [] as HierarchyCircularNode<HierarchyDatum>[], stockNodes: [] as HierarchyCircularNode<HierarchyDatum>[] };
+    const sectorNodes: HierarchyCircularNode<HierarchyDatum>[] = [];
+    const stockNodes: HierarchyCircularNode<HierarchyDatum>[] = [];
+
+    for (const node of packedRoot.descendants()) {
+      if (node.depth === 1) sectorNodes.push(node);
+      else if (node.depth === 2) stockNodes.push(node);
+    }
+
+    return { sectorNodes, stockNodes };
+  }, [packedRoot]);
 
   // Filter logic
   const filteredIds = useMemo(() => {
     const searchLower = search.toLowerCase();
     return new Set(
-      nodes
+      stockNodes
         .filter((n) => {
-          const matchSector = activeSector === null || n.sector === activeSector;
-          const matchSearch = !search || n.ticker.toLowerCase().includes(searchLower) || n.name.toLowerCase().includes(searchLower);
+          const matchSector = activeSector === null || n.data.sector === activeSector;
+          const matchSearch = !search ||
+            (n.data.ticker?.toLowerCase().includes(searchLower) ?? false) ||
+            (n.data.stock?.name.toLowerCase().includes(searchLower) ?? false);
           return matchSector && matchSearch;
         })
-        .map((n) => n.id),
+        .map((n) => n.data.ticker),
     );
-  }, [nodes, search, activeSector]);
+  }, [stockNodes, search, activeSector]);
+
+  // Sector index map for staggered animation
+  const sectorIndexMap = useMemo(() => {
+    const map = new Map<string, number>();
+    sectorNodes.forEach((n, i) => {
+      if (n.data.sector) map.set(n.data.sector, i);
+    });
+    return map;
+  }, [sectorNodes]);
 
   const handleBubbleHover = useCallback(
-    (node: BubbleNode, event: React.MouseEvent) => {
+    (node: HierarchyCircularNode<HierarchyDatum>, event: React.MouseEvent) => {
       const rect = containerRef.current?.getBoundingClientRect();
-      if (!rect) return;
-      setHoveredId(node.id);
+      if (!rect || !node.data.stock) return;
+      setHoveredId(node.data.ticker ?? null);
       setTooltip({
         visible: true,
-        ticker: node.ticker,
-        name: node.name,
-        sector: node.sector,
-        lastPrice: node.lastPrice,
-        changePercent: node.changePercent,
+        ticker: node.data.ticker ?? '',
+        name: node.data.stock.name,
+        sector: node.data.sector ?? '',
+        lastPrice: node.data.stock.lastPrice ?? null,
+        changePercent: node.data.stock.changePercent ?? null,
         x: event.clientX - rect.left,
         y: event.clientY - rect.top,
       });
@@ -311,7 +248,6 @@ export function BubbleCluster() {
         className="relative w-full rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent overflow-hidden"
         style={{ height: 'clamp(350px, 55vh, 600px)' }}
       >
-        {/* SVG glow filter definition */}
         <svg className="absolute inset-0 w-full h-full">
           <defs>
             <filter id="bubble-glow" x="-50%" y="-50%" width="200%" height="200%">
@@ -327,92 +263,170 @@ export function BubbleCluster() {
             </radialGradient>
           </defs>
 
-          {nodes.map((node) => {
-            const isFiltered = filteredIds.has(node.id);
-            const isHovered = hoveredId === node.id;
-            const changeMag = Math.min(Math.abs(node.changePercent ?? 0) / 3, 1);
-            const isPositive = (node.changePercent ?? 0) >= 0;
+          {/* Layer 1: Sector background circles */}
+          {sectorNodes.map((node) => {
+            const color = SECTOR_COLORS[node.data.sector ?? ''] || '#64748B';
+            const sectorIdx = sectorIndexMap.get(node.data.sector ?? '') ?? 0;
+            const hasFilteredStocks = activeSector === null || activeSector === node.data.sector;
+
+            return (
+              <g key={`sector-${node.data.sector}`}
+                style={{
+                  opacity: hasFilteredStocks ? 1 : 0.08,
+                  transition: 'opacity 0.4s ease',
+                }}
+              >
+                {/* Sector boundary */}
+                <circle
+                  cx={node.x + 5}
+                  cy={node.y + 5}
+                  r={mounted ? node.r : 0}
+                  fill={color}
+                  fillOpacity={0.04}
+                  stroke={color}
+                  strokeWidth={1}
+                  strokeOpacity={0.12}
+                  strokeDasharray="4 3"
+                  style={{
+                    transition: `r 0.6s ease-out ${sectorIdx * 60}ms`,
+                  }}
+                />
+
+                {/* Sector label */}
+                {node.r > 40 && (
+                  <text
+                    x={node.x + 5}
+                    y={node.y - node.r + 14 + 5}
+                    textAnchor="middle"
+                    fill={color}
+                    fillOpacity={mounted ? 0.7 : 0}
+                    fontSize={Math.max(7, Math.min(10, node.r * 0.15))}
+                    fontWeight="600"
+                    letterSpacing="0.06em"
+                    style={{
+                      textTransform: 'uppercase' as const,
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      transition: `fill-opacity 0.5s ease ${sectorIdx * 60 + 300}ms`,
+                    }}
+                  >
+                    {(node.data.sector ?? '').length > 18
+                      ? (node.data.sector ?? '').slice(0, 16) + '…'
+                      : node.data.sector}
+                  </text>
+                )}
+              </g>
+            );
+          })}
+
+          {/* Layer 2: Stock bubbles */}
+          {stockNodes.map((node) => {
+            const stock = node.data.stock;
+            if (!stock) return null;
+
+            const ticker = node.data.ticker ?? '';
+            const color = SECTOR_COLORS[node.data.sector ?? ''] || '#64748B';
+            const isFiltered = filteredIds.has(ticker);
+            const isHovered = hoveredId === ticker;
+            const changePercent = stock.changePercent ?? 0;
+            const changeMag = Math.min(Math.abs(changePercent) / 3, 1);
+            const isPositive = changePercent >= 0;
             const glowColor = isPositive
               ? `rgba(110,231,183,${changeMag * 0.6})`
               : `rgba(252,165,165,${changeMag * 0.6})`;
+            const sectorIdx = sectorIndexMap.get(node.data.sector ?? '') ?? 0;
+            const r = node.r;
 
             return (
               <g
-                key={node.id}
+                key={ticker}
                 style={{
                   cursor: 'pointer',
-                  opacity: isFiltered ? 1 : 0.12,
-                  transition: 'opacity 0.3s ease',
+                  opacity: isFiltered ? (mounted ? 1 : 0) : 0.12,
+                  transition: `opacity 0.4s ease ${sectorIdx * 60 + 100}ms`,
                 }}
                 onMouseEnter={(e) => handleBubbleHover(node, e)}
                 onMouseLeave={handleBubbleLeave}
-                onClick={() => handleBubbleClick(node.ticker)}
+                onClick={() => handleBubbleClick(ticker)}
               >
-                {/* Glow circle (behind) */}
+                {/* Glow circle */}
                 {changeMag > 0.1 && isFiltered && (
                   <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={node.radius + 4 + changeMag * 6}
+                    cx={node.x + 5}
+                    cy={node.y + 5}
+                    r={mounted ? r + 4 + changeMag * 4 : 0}
                     fill="none"
                     stroke={glowColor}
-                    strokeWidth={1 + changeMag * 2}
+                    strokeWidth={1 + changeMag * 1.5}
                     filter="url(#bubble-glow)"
+                    style={{ transition: `r 0.6s ease-out ${sectorIdx * 60}ms` }}
                   />
                 )}
 
                 {/* Main bubble */}
                 <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={isHovered ? node.radius * 1.15 : node.radius}
-                  fill={node.color}
+                  cx={node.x + 5}
+                  cy={node.y + 5}
+                  r={mounted ? (isHovered ? r * 1.12 : r) : 0}
+                  fill={color}
                   fillOpacity={isHovered ? 0.35 : 0.2}
-                  stroke={node.color}
+                  stroke={color}
                   strokeWidth={isHovered ? 2 : 1}
                   strokeOpacity={isHovered ? 0.8 : 0.4}
-                  style={{ transition: 'r 0.2s ease, fill-opacity 0.2s ease, stroke-width 0.2s ease' }}
+                  style={{
+                    transition: `r 0.6s ease-out ${sectorIdx * 60}ms, fill-opacity 0.2s ease, stroke-width 0.2s ease`,
+                  }}
                 />
 
                 {/* Glass highlight */}
                 <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={isHovered ? node.radius * 1.15 : node.radius}
+                  cx={node.x + 5}
+                  cy={node.y + 5}
+                  r={mounted ? (isHovered ? r * 1.12 : r) : 0}
                   fill="url(#bubble-gradient)"
-                  style={{ transition: 'r 0.2s ease' }}
+                  style={{ transition: `r 0.6s ease-out ${sectorIdx * 60}ms` }}
                 />
 
                 {/* Ticker label */}
-                {node.radius > 14 && (
+                {r > 12 && (
                   <text
-                    x={node.x}
-                    y={node.y - 2}
+                    x={node.x + 5}
+                    y={node.y + 5 - (r > 16 ? 2 : 0)}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fill="white"
-                    fontSize={Math.min(node.radius * 0.5, 11)}
+                    fillOpacity={mounted ? 1 : 0}
+                    fontSize={Math.min(r * 0.55, 11)}
                     fontWeight="700"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    style={{
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      transition: `fill-opacity 0.4s ease ${sectorIdx * 60 + 200}ms`,
+                    }}
                   >
-                    {node.ticker.length > 8 ? node.ticker.slice(0, 7) : node.ticker}
+                    {ticker.length > 8 ? ticker.slice(0, 7) : ticker}
                   </text>
                 )}
 
                 {/* Change percent label */}
-                {node.radius > 18 && node.changePercent != null && (
+                {r > 16 && stock.changePercent != null && (
                   <text
-                    x={node.x}
-                    y={node.y + 10}
+                    x={node.x + 5}
+                    y={node.y + 5 + Math.min(r * 0.4, 10)}
                     textAnchor="middle"
                     dominantBaseline="middle"
                     fill={isPositive ? '#6EE7B7' : '#FCA5A5'}
-                    fontSize={Math.min(node.radius * 0.35, 9)}
+                    fillOpacity={mounted ? 1 : 0}
+                    fontSize={Math.min(r * 0.38, 9)}
                     fontWeight="600"
-                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                    style={{
+                      pointerEvents: 'none',
+                      userSelect: 'none',
+                      transition: `fill-opacity 0.4s ease ${sectorIdx * 60 + 250}ms`,
+                    }}
                   >
-                    {node.changePercent >= 0 ? '+' : ''}
-                    {node.changePercent.toFixed(1)}%
+                    {stock.changePercent >= 0 ? '+' : ''}
+                    {stock.changePercent.toFixed(1)}%
                   </text>
                 )}
               </g>

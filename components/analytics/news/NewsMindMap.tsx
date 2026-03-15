@@ -2,10 +2,11 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { hierarchy, tree as d3Tree } from 'd3-hierarchy';
-import { Loader2, Search } from 'lucide-react';
+import { Loader2, Search, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import type { INewsMindMapNode } from '@/types/analytics';
 import {
   getSentimentColor,
+  getSourceDisplayName,
   THEME_COLORS,
   NODE_TYPE_COLORS,
   formatTimeAgo,
@@ -48,6 +49,7 @@ export function NewsMindMap({
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearch, setShowSearch] = useState(false);
+  const [mapZoom, setMapZoom] = useState(1);
 
   // Responsive sizing
   useEffect(() => {
@@ -170,12 +172,44 @@ export function NewsMindMap({
       ref={containerRef}
       className="relative w-full h-[500px] rounded-xl border border-white/10 bg-[#0d1117] overflow-auto"
     >
+      {/* Zoom controls */}
+      <div className="absolute top-3 right-3 z-20 flex flex-col gap-1">
+        <button
+          onClick={() => setMapZoom((z) => Math.min(z + 0.2, 2.5))}
+          className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+          title="Zoom in"
+        >
+          <ZoomIn className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => setMapZoom((z) => Math.max(z - 0.2, 0.4))}
+          className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+          title="Zoom out"
+        >
+          <ZoomOut className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={() => setMapZoom(1)}
+          className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+          title="Reset zoom"
+        >
+          <Maximize2 className="h-3.5 w-3.5" />
+        </button>
+      </div>
+
       <svg
-        width={Math.max(dimensions.width, Math.max(...layout.descendants().map((d) => (d.y ?? 0))) + 400)}
-        height={Math.max(dimensions.height, (layout.leaves().length * 28) + 80)}
+        width={Math.max(dimensions.width, Math.max(...layout.descendants().map((d) => (d.y ?? 0))) + 400) * mapZoom}
+        height={Math.max(dimensions.height, (layout.leaves().length * 28) + 80) * mapZoom}
         className="min-w-full"
+        onWheel={(e) => {
+          if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            const delta = e.deltaY > 0 ? -0.1 : 0.1;
+            setMapZoom((z) => Math.max(0.4, Math.min(2.5, z + delta)));
+          }
+        }}
       >
-        <g transform="translate(120, 40)">
+        <g transform={`scale(${mapZoom}) translate(120, 40)`}>
           {/* Links */}
           {layout.links().map((link, i) => {
             const sx = link.source.y ?? 0;
@@ -297,8 +331,16 @@ export function NewsMindMap({
                     className="pointer-events-none select-none"
                   >
                     {node.label.length > 50 ? node.label.slice(0, 48) + '...' : node.label}
+                    {node.label.length > 50 && <title>{node.label}</title>}
                   </text>
                 )}
+
+                {/* Tooltip for full details */}
+                <title>
+                  {node.label}
+                  {node.source ? `\n${getSourceDisplayName(node.source)}` : ''}
+                  {node.published_at ? ` ${formatTimeAgo(node.published_at)}` : ''}
+                </title>
 
                 {/* Impact badge for articles */}
                 {node.type === 'article' && node.impact && (
@@ -314,7 +356,7 @@ export function NewsMindMap({
                     fontSize={8}
                     className="pointer-events-none select-none"
                   >
-                    {node.source} {formatTimeAgo(node.published_at)}
+                    {getSourceDisplayName(node.source ?? '')} {formatTimeAgo(node.published_at)}
                   </text>
                 )}
               </g>
@@ -344,7 +386,7 @@ function ImpactBadge({
 
   return (
     <text
-      x={x + 200}
+      x={x + 60}
       y={y}
       fill={color}
       fontSize={9}

@@ -8,9 +8,10 @@ import {
   Minus,
   Activity,
   Gauge,
-  GitBranch,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { IMTFAlignment } from '@/types/analytics';
 
 interface PatternKPICardsProps {
   overallSignal: 'bullish' | 'bearish' | 'neutral';
@@ -19,17 +20,13 @@ interface PatternKPICardsProps {
   bullishCount: number;
   bearishCount: number;
   neutralCount: number;
-  regime: {
-    current: string;
-    hurst_exponent: number;
-    hurst_classification: string;
-    last_changepoint_index: number | null;
-  };
   momentum: {
     rsi: { value: number; zone: string };
     macd: { histogram: number; signal: string; strengthening: boolean };
     adx: { value: number; trend: string; direction: string };
   };
+  mtfAlignment?: IMTFAlignment | null;
+  mtfLoading?: boolean;
 }
 
 const signalConfig = {
@@ -37,24 +34,6 @@ const signalConfig = {
   bearish: { color: 'text-rose-400', Icon: TrendingDown, label: 'Bearish' },
   neutral: { color: 'text-amber-400', Icon: Minus, label: 'Neutral' },
 } as const;
-
-const regimeDotColor: Record<string, string> = {
-  bull: 'bg-emerald-400',
-  bear: 'bg-rose-400',
-  sideways: 'bg-amber-400',
-};
-
-const regimeLabel: Record<string, string> = {
-  bull: 'Bull',
-  bear: 'Bear',
-  sideways: 'Sideways',
-};
-
-const hurstLabel: Record<string, string> = {
-  trending: 'Trending',
-  mean_reverting: 'Mean-Reverting',
-  random_walk: 'Random Walk',
-};
 
 function gradeStyles(grade: string) {
   switch (grade) {
@@ -72,6 +51,27 @@ function gradeStyles(grade: string) {
 const cardBase = 'p-4 rounded-xl border border-white/[0.06] bg-[#111827]';
 const cardTitle = 'text-[11px] font-medium text-gray-500 uppercase tracking-wider mb-2';
 
+const alignmentConfig = {
+  full: { color: 'text-emerald-400', bg: 'bg-emerald-500/15', ring: 'ring-emerald-500/30', label: 'Full' },
+  partial: { color: 'text-amber-400', bg: 'bg-amber-500/15', ring: 'ring-amber-500/30', label: 'Partial' },
+  conflicting: { color: 'text-rose-400', bg: 'bg-rose-500/15', ring: 'ring-rose-500/30', label: 'Conflicting' },
+  insufficient_data: { color: 'text-gray-400', bg: 'bg-gray-500/15', ring: 'ring-gray-500/30', label: 'N/A' },
+} as const;
+
+const tfSignalDot: Record<string, string> = {
+  bullish: 'bg-emerald-400',
+  bearish: 'bg-rose-400',
+  neutral: 'bg-amber-400',
+  unavailable: 'bg-gray-600',
+};
+
+const tfSignalLabel: Record<string, string> = {
+  bullish: 'Bull',
+  bearish: 'Bear',
+  neutral: 'Neutral',
+  unavailable: '--',
+};
+
 export function PatternKPICards({
   overallSignal,
   overallQuality,
@@ -79,8 +79,9 @@ export function PatternKPICards({
   bullishCount,
   bearishCount,
   neutralCount,
-  regime,
   momentum,
+  mtfAlignment,
+  mtfLoading,
 }: PatternKPICardsProps) {
   const normalizedSignal = (overallSignal?.toLowerCase() ?? 'neutral') as keyof typeof signalConfig;
   const sig = signalConfig[normalizedSignal] ?? signalConfig.neutral;
@@ -91,7 +92,7 @@ export function PatternKPICards({
   const isOversold = momentum.rsi.value <= 30;
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {/* Card 1: Signal Summary */}
       <motion.div
         className={cardBase}
@@ -125,47 +126,12 @@ export function PatternKPICards({
         </div>
       </motion.div>
 
-      {/* Card 2: Market Regime */}
+      {/* Card 2: Quality Score */}
       <motion.div
         className={cardBase}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay: 0.06 }}
-      >
-        <p className={cardTitle}>
-          <GitBranch className="inline h-3 w-3 mr-1 -mt-px" />
-          Market Regime
-        </p>
-        <div className="flex items-center gap-2 mb-2">
-          <span
-            className={cn(
-              'inline-block h-2.5 w-2.5 rounded-full',
-              regimeDotColor[regime.current] ?? 'bg-gray-400'
-            )}
-          />
-          <span className="text-lg font-semibold text-white">
-            {regimeLabel[regime.current] ?? regime.current}
-          </span>
-        </div>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">Hurst</span>
-            <span className="text-2xl font-semibold font-mono text-white">
-              {regime.hurst_exponent.toFixed(2)}
-            </span>
-          </div>
-          <p className="text-[10px] text-gray-500">
-            {hurstLabel[regime.hurst_classification] ?? regime.hurst_classification}
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Card 3: Quality Score */}
-      <motion.div
-        className={cardBase}
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.12 }}
       >
         <p className={cardTitle}>
           <Gauge className="inline h-3 w-3 mr-1 -mt-px" />
@@ -182,33 +148,33 @@ export function PatternKPICards({
           </motion.span>
         </div>
         <div className="space-y-1">
-          <div className="h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
+          <div className="h-2 bg-white/[0.06] rounded-full overflow-hidden">
             <motion.div
               className={cn(
                 'h-full rounded-full',
-                overallQuality.score >= 80
-                  ? 'bg-emerald-400'
-                  : overallQuality.score >= 60
-                    ? 'bg-amber-400'
+                overallQuality.score >= 0.80
+                  ? 'bg-gradient-to-r from-emerald-500/80 to-emerald-400/60'
+                  : overallQuality.score >= 0.60
+                    ? 'bg-gradient-to-r from-amber-500/80 to-amber-400/60'
                     : 'bg-gray-400'
               )}
               initial={{ width: 0 }}
-              animate={{ width: `${Math.min(100, Math.max(0, overallQuality.score))}%` }}
+              animate={{ width: `${Math.min(100, Math.max(0, overallQuality.score * 100))}%` }}
               transition={{ duration: 0.6, delay: 0.15 }}
             />
           </div>
           <p className="text-[10px] text-gray-500 text-right">
-            {Math.round(overallQuality.score)}%
+            {Math.round(overallQuality.score * 100)}%
           </p>
         </div>
       </motion.div>
 
-      {/* Card 4: Momentum Snapshot */}
+      {/* Card 3: Momentum Snapshot */}
       <motion.div
         className={cardBase}
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35, delay: 0.18 }}
+        transition={{ duration: 0.35, delay: 0.12 }}
       >
         <p className={cardTitle}>
           <Activity className="inline h-3 w-3 mr-1 -mt-px" />
@@ -222,28 +188,28 @@ export function PatternKPICards({
             <span
               className={cn(
                 'font-mono font-semibold',
-                isOversold ? 'text-rose-400' : isOverbought ? 'text-emerald-400' : 'text-white'
+                isOversold ? 'text-emerald-400' : isOverbought ? 'text-rose-400' : 'text-white'
               )}
             >
               {momentum.rsi.value.toFixed(1)}
             </span>
           </div>
           <div className="relative h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
-            {/* Oversold zone (0-30) */}
-            <div className="absolute inset-y-0 left-0 w-[30%] bg-rose-500/10 rounded-l-full" />
-            {/* Overbought zone (70-100) */}
-            <div className="absolute inset-y-0 right-0 w-[30%] bg-emerald-500/10 rounded-r-full" />
+            {/* Oversold zone (0-30) — bullish opportunity */}
+            <div className="absolute inset-y-0 left-0 w-[30%] bg-emerald-500/10 rounded-l-full" />
+            {/* Overbought zone (70-100) — bearish warning */}
+            <div className="absolute inset-y-0 right-0 w-[30%] bg-rose-500/10 rounded-r-full" />
             {/* Indicator dot */}
             <div
               className={cn(
                 'absolute top-1/2 -translate-y-1/2 h-2.5 w-2.5 rounded-full border-2 border-[#111827]',
                 isOversold
-                  ? 'bg-rose-400'
+                  ? 'bg-emerald-400'
                   : isOverbought
-                    ? 'bg-emerald-400'
+                    ? 'bg-rose-400'
                     : 'bg-white'
               )}
-              style={{ left: `calc(${rsiPct}% - 5px)` }}
+              style={{ left: `clamp(2px, calc(${rsiPct}% - 5px), calc(100% - 12px))` }}
             />
           </div>
         </div>
@@ -275,6 +241,62 @@ export function PatternKPICards({
             </span>
           </div>
         </div>
+      </motion.div>
+
+      {/* Card 4: MTF Alignment */}
+      <motion.div
+        className={cardBase}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay: 0.18 }}
+      >
+        <p className={cardTitle}>
+          <Layers className="inline h-3 w-3 mr-1 -mt-px" />
+          MTF Alignment
+        </p>
+        {mtfAlignment && mtfAlignment.alignment !== 'insufficient_data' ? (
+          <>
+            <div className="flex items-center gap-2 mb-3">
+              <span
+                className={cn(
+                  'text-lg font-semibold px-3 py-1 rounded-lg ring-1',
+                  alignmentConfig[mtfAlignment.alignment].bg,
+                  alignmentConfig[mtfAlignment.alignment].color,
+                  alignmentConfig[mtfAlignment.alignment].ring,
+                )}
+              >
+                {alignmentConfig[mtfAlignment.alignment].label}
+              </span>
+            </div>
+            <div className="space-y-1">
+              {Object.entries(mtfAlignment.timeframes).map(([tf, info]) => (
+                <div key={tf} className="flex items-center justify-between text-xs">
+                  <span className="text-gray-500 uppercase font-mono">{tf}</span>
+                  <span className="flex items-center gap-1.5">
+                    <span
+                      className={cn(
+                        'inline-block h-1.5 w-1.5 rounded-full',
+                        tfSignalDot[info.signal] ?? 'bg-gray-600',
+                      )}
+                    />
+                    <span className="text-gray-300 text-[11px]">
+                      {tfSignalLabel[info.signal] ?? info.signal}
+                    </span>
+                    <span className="text-gray-600 text-[10px]">
+                      ({info.pattern_count})
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-16">
+            <span className="text-xs text-gray-600">
+              {mtfAlignment ? 'Insufficient data' : mtfLoading ? 'Loading...' : 'Unavailable'}
+            </span>
+          </div>
+        )}
       </motion.div>
     </div>
   );

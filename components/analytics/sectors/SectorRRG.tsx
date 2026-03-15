@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useMemo, useRef, useState, useEffect } from 'react';
+import React, { useMemo, useRef, useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import * as d3Scale from 'd3-scale';
-import { cn } from '@/lib/utils';
+import { Play, Pause, RotateCcw } from 'lucide-react';
 import { SECTOR_COLORS, RRG_QUADRANT_COLORS, RRG_QUADRANT_LABELS } from './constants';
 import type { ISectorAnalytics } from '@/types/analytics';
 
@@ -13,11 +13,50 @@ interface SectorRRGProps {
 }
 
 const MARGIN = { top: 28, right: 16, bottom: 28, left: 16 };
+const PLAYBACK_INTERVAL_MS = 600; // ms between trail steps
 
 export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: 380, height: 340 });
   const [hoveredSector, setHoveredSector] = useState<string | null>(null);
+
+  // ─── Playback state ────────────────────────────────────────────────
+  const maxTrailLen = useMemo(
+    () => Math.max(...sectors.map((s) => s.rrg.trail?.length ?? 0), 1),
+    [sectors],
+  );
+  const [playing, setPlaying] = useState(false);
+  const [trailIndex, setTrailIndex] = useState(maxTrailLen); // start fully revealed
+
+  // Animate: step trailIndex from 1 → maxTrailLen
+  useEffect(() => {
+    if (!playing) return;
+    const timer = setInterval(() => {
+      setTrailIndex((prev) => {
+        if (prev >= maxTrailLen) {
+          setPlaying(false);
+          return maxTrailLen;
+        }
+        return prev + 1;
+      });
+    }, PLAYBACK_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, [playing, maxTrailLen]);
+
+  const handlePlayPause = useCallback(() => {
+    if (playing) {
+      setPlaying(false);
+    } else {
+      // If at end, restart from beginning
+      if (trailIndex >= maxTrailLen) setTrailIndex(0);
+      setPlaying(true);
+    }
+  }, [playing, trailIndex, maxTrailLen]);
+
+  const handleReset = useCallback(() => {
+    setPlaying(false);
+    setTrailIndex(maxTrailLen);
+  }, [maxTrailLen]);
 
   // Responsive
   useEffect(() => {
@@ -72,7 +111,33 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
         <span className="text-xs font-semibold text-white uppercase tracking-wider">
           Relative Rotation Graph
         </span>
-        <span className="text-[9px] text-muted-foreground">vs NIFTY 50</span>
+        <div className="flex items-center gap-1.5">
+          {/* Playback controls */}
+          <button
+            onClick={handlePlayPause}
+            className="flex items-center justify-center h-5 w-5 rounded bg-white/[0.08] hover:bg-white/[0.15] transition-colors"
+            aria-label={playing ? 'Pause' : 'Play trail animation'}
+            title={playing ? 'Pause' : 'Play trail animation'}
+          >
+            {playing ? (
+              <Pause className="h-2.5 w-2.5 text-brand-blue" />
+            ) : (
+              <Play className="h-2.5 w-2.5 text-brand-blue ml-px" />
+            )}
+          </button>
+          <button
+            onClick={handleReset}
+            className="flex items-center justify-center h-5 w-5 rounded bg-white/[0.08] hover:bg-white/[0.15] transition-colors"
+            aria-label="Reset to current"
+            title="Reset to current"
+          >
+            <RotateCcw className="h-2.5 w-2.5 text-muted-foreground" />
+          </button>
+          {/* Progress indicator */}
+          <span className="text-[9px] text-muted-foreground tabular-nums ml-1">
+            {trailIndex < maxTrailLen ? `${trailIndex}/${maxTrailLen}` : 'vs NIFTY 50'}
+          </span>
+        </div>
       </div>
 
       <svg width={dims.width} height={dims.height}>
@@ -168,16 +233,28 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
           const rrg = sector.rrg;
           if (!rrg.rs_ratio || !rrg.rs_momentum) return null;
 
-          const sx = xScale(rrg.rs_ratio);
-          const sy = yScale(rrg.rs_momentum);
           const color = SECTOR_COLORS[sector.sector] ?? '#94A3B8';
           const isHovered = hoveredSector === sector.sector;
 
+          // Slice trail to current playback position
+          const fullTrail = rrg.trail ?? [];
+          const visibleTrail = fullTrail.slice(0, Math.min(trailIndex, fullTrail.length));
+
+          // Current "head" position: last visible trail point, or the live position
+          const head =
+            trailIndex >= fullTrail.length
+              ? { rs_ratio: rrg.rs_ratio, rs_momentum: rrg.rs_momentum }
+              : visibleTrail.length > 0
+                ? visibleTrail[visibleTrail.length - 1]
+                : { rs_ratio: rrg.rs_ratio, rs_momentum: rrg.rs_momentum };
+
+          const sx = xScale(head.rs_ratio);
+          const sy = yScale(head.rs_momentum);
+
           // Trail path
-          const trail = rrg.trail ?? [];
           const trailPath =
-            trail.length > 1
-              ? trail
+            visibleTrail.length > 1
+              ? visibleTrail
                   .map((p, i) => {
                     const px = xScale(p.rs_ratio);
                     const py = yScale(p.rs_momentum);
@@ -196,44 +273,65 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
             >
               {/* Trail line */}
               {trailPath && (
-                <path
+                <motion.path
                   d={trailPath}
                   fill="none"
                   stroke={color}
                   strokeWidth={1.5}
                   opacity={isHovered ? 0.7 : 0.3}
                   strokeLinecap="round"
+                  initial={false}
+                  animate={{ d: trailPath }}
+                  transition={{ duration: 0.3, ease: 'easeOut' }}
                 />
               )}
 
               {/* Trail dots (fading) */}
-              {trail.slice(0, -1).map((p, i) => (
+              {visibleTrail.slice(0, -1).map((p, i) => (
                 <circle
                   key={i}
                   cx={xScale(p.rs_ratio)}
                   cy={yScale(p.rs_momentum)}
                   r={1.5}
                   fill={color}
-                  opacity={isHovered ? 0.15 + (i / trail.length) * 0.5 : 0.1}
+                  opacity={isHovered ? 0.15 + (i / visibleTrail.length) * 0.5 : 0.1}
                 />
               ))}
 
-              {/* Current position dot */}
+              {/* Current position dot — animated to follow head */}
               <motion.circle
-                initial={{ r: 0 }}
-                animate={{ r: isHovered ? 7 : 5 }}
-                cx={sx}
-                cy={sy}
+                initial={false}
+                animate={{
+                  cx: sx,
+                  cy: sy,
+                  r: isHovered ? 7 : 5,
+                }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
                 fill={color}
                 stroke={isHovered ? 'white' : 'rgba(255,255,255,0.2)'}
                 strokeWidth={isHovered ? 2 : 1}
                 opacity={0.9}
               />
 
+              {/* Pulse ring during playback */}
+              {playing && (
+                <motion.circle
+                  cx={sx}
+                  cy={sy}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={1}
+                  initial={{ r: 5, opacity: 0.6 }}
+                  animate={{ r: 14, opacity: 0 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: 'easeOut' }}
+                />
+              )}
+
               {/* Label */}
-              <text
-                x={sx}
-                y={sy - (isHovered ? 12 : 9)}
+              <motion.text
+                initial={false}
+                animate={{ x: sx, y: sy - (isHovered ? 12 : 9) }}
+                transition={{ duration: 0.35, ease: 'easeOut' }}
                 fill="white"
                 fontSize={isHovered ? 10 : 8}
                 fontWeight={isHovered ? 600 : 400}
@@ -241,7 +339,7 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
                 opacity={isHovered ? 1 : 0.7}
               >
                 {sector.sector.length > 10 ? sector.sector.slice(0, 8) + '..' : sector.sector}
-              </text>
+              </motion.text>
 
               {/* Hover tooltip */}
               {isHovered && (
@@ -249,7 +347,7 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
                   <div className="rounded bg-brand-slate/95 px-2 py-1.5 text-[10px] text-white shadow-lg border border-white/10 text-center">
                     <div className="font-semibold">{sector.sector}</div>
                     <div className="text-muted-foreground">
-                      RS: {rrg.rs_ratio.toFixed(2)} | Mom: {rrg.rs_momentum.toFixed(2)}
+                      RS: {head.rs_ratio.toFixed(2)} | Mom: {head.rs_momentum.toFixed(2)}
                     </div>
                     <div
                       className="text-[9px] font-medium mt-0.5"

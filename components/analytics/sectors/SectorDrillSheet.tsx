@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { ArrowUpDown, ChevronDown, ChevronUp, ExternalLink } from 'lucide-react';
+import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -19,7 +19,7 @@ import {
   formatMarketCap,
   formatVolume,
 } from './constants';
-import type { ISectorAnalytics, SectorTimeframe, ISectorStockEnriched } from '@/types/analytics';
+import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorDrillSheetProps {
   sector: ISectorAnalytics | null;
@@ -244,12 +244,12 @@ export function SectorDrillSheet({
                 </tr>
               </thead>
               <tbody>
-                {sortedStocks.map((stock, idx) => (
+                {sortedStocks.map((stock) => (
                   <motion.tr
                     key={stock.ticker}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    transition={{ delay: idx * 0.02 }}
+                    transition={{ duration: 0.15 }}
                     onClick={() => {
                       onOpenChange(false);
                       router.push(`/stocks/${stock.ticker}`);

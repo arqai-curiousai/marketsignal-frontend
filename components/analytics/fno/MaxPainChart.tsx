@@ -13,6 +13,8 @@ import {
 } from 'recharts';
 import { Target } from 'lucide-react';
 import type { IOptionStrike } from '@/types/analytics';
+import { cn } from '@/lib/utils';
+import { T, S, C, L, TOOLTIP_STYLE, AXIS_STYLE } from './tokens';
 
 interface Props {
   chain: IOptionStrike[];
@@ -39,7 +41,8 @@ export function MaxPainChart({ chain, underlyingPrice, maxPainStrike, lotSize }:
       let callPain = 0;
       let putPain = 0;
 
-      for (const s of subset) {
+      // Iterate full chain for accurate pain — display is windowed but computation is not
+      for (const s of chain) {
         if (settlement > s.strike && s.ce_oi > 0) {
           callPain += (settlement - s.strike) * s.ce_oi * lotSize;
         }
@@ -62,56 +65,52 @@ export function MaxPainChart({ chain, underlyingPrice, maxPainStrike, lotSize }:
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.35 }}
-      className="rounded-xl border border-white/10 bg-white/[0.02] p-4"
+      className={cn(S.card, 'p-4')}
     >
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">
           <Target className="h-4 w-4 text-brand-violet" />
-          <span className="text-sm font-semibold text-white">Max Pain</span>
+          <span className={T.heading}>Max Pain</span>
         </div>
         {maxPainStrike && (
-          <div className="flex items-center gap-2 text-[10px]">
+          <div className={cn('flex items-center gap-2', T.caption)}>
             <span className="text-muted-foreground">Max Pain:</span>
-            <span className="text-brand-violet font-mono font-bold">
+            <span className={cn(C.maxPain.text, 'font-mono font-bold')}>
               {maxPainStrike.toLocaleString('en-IN')}
             </span>
-            <span className="text-muted-foreground">
+            <span className="text-muted-foreground hidden sm:inline">
               ({underlyingPrice > maxPainStrike ? '+' : ''}{(underlyingPrice - maxPainStrike).toFixed(0)} pts from spot)
             </span>
           </div>
         )}
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <div className={L.chartMd}>
+      <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={painData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
           <defs>
             <linearGradient id="callPainGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#60A5FA" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#60A5FA" stopOpacity={0} />
+              <stop offset="5%" stopColor={C.call.hex} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={C.call.hex} stopOpacity={0} />
             </linearGradient>
             <linearGradient id="putPainGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#F87171" stopOpacity={0.3} />
-              <stop offset="95%" stopColor="#F87171" stopOpacity={0} />
+              <stop offset="5%" stopColor={C.bearish.hex} stopOpacity={0.3} />
+              <stop offset="95%" stopColor={C.bearish.hex} stopOpacity={0} />
             </linearGradient>
           </defs>
           <XAxis
             dataKey="strike"
-            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+            tick={AXIS_STYLE}
             tickFormatter={(v: number) => v >= 1000 ? `${(v / 1000).toFixed(1)}K` : v.toString()}
             interval="preserveStartEnd"
           />
           <YAxis
-            tick={{ fill: 'rgba(255,255,255,0.4)', fontSize: 9 }}
+            tick={AXIS_STYLE}
             tickFormatter={(v: number) => `${v.toFixed(0)}Cr`}
             width={55}
           />
           <Tooltip
-            contentStyle={{
-              background: 'rgba(15, 23, 36, 0.95)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: '8px',
-              fontSize: '11px',
-            }}
+            contentStyle={TOOLTIP_STYLE}
             labelFormatter={(strike: number) => `Settlement: ${strike.toLocaleString('en-IN')}`}
             formatter={(value: number, name: string) => [
               `${value.toFixed(2)} Cr`,
@@ -139,16 +138,16 @@ export function MaxPainChart({ chain, underlyingPrice, maxPainStrike, lotSize }:
                 Math.abs(s.strike - maxPainStrike) < Math.abs(closest.strike - maxPainStrike) ? s : closest,
                 painData[0]
               )?.strike}
-              stroke="rgba(124, 58, 237, 0.6)"
+              stroke="rgba(34, 197, 94, 0.6)"
               strokeDasharray="6 3"
-              label={{ value: 'Max Pain', fill: 'rgba(124, 58, 237, 0.8)', fontSize: 9, position: 'top' }}
+              label={{ value: 'Max Pain', fill: 'rgba(34, 197, 94, 0.8)', fontSize: 9, position: 'top' }}
             />
           )}
 
           <Area
             type="monotone"
             dataKey="callPain"
-            stroke="#60A5FA"
+            stroke={C.call.hex}
             strokeWidth={1.5}
             fill="url(#callPainGrad)"
             stackId="1"
@@ -156,15 +155,16 @@ export function MaxPainChart({ chain, underlyingPrice, maxPainStrike, lotSize }:
           <Area
             type="monotone"
             dataKey="putPain"
-            stroke="#F87171"
+            stroke={C.bearish.hex}
             strokeWidth={1.5}
             fill="url(#putPainGrad)"
             stackId="1"
           />
         </AreaChart>
       </ResponsiveContainer>
+      </div>
 
-      <div className="flex items-center gap-4 mt-2 text-[9px] text-muted-foreground">
+      <div className={cn('flex flex-wrap items-center gap-2 md:gap-4 mt-2', T.legend)}>
         <span className="flex items-center gap-1">
           <span className="h-2 w-3 rounded bg-blue-500/40 inline-block" /> Call Writer Pain
         </span>

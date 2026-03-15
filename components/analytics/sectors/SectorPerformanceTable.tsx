@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,6 +10,7 @@ import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 interface SectorPerformanceTableProps {
   sectors: ISectorAnalytics[];
   timeframe: SectorTimeframe;
+  selectedSector?: string | null;
   onSectorClick: (sector: ISectorAnalytics) => void;
 }
 
@@ -23,6 +24,9 @@ type SortKey =
   | 'ytd'
   | 'momentum'
   | 'breadth'
+  | 'pe'
+  | 'pb'
+  | 'dy'
   | 'market_cap';
 
 const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
@@ -35,6 +39,9 @@ const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
   { key: 'ytd', label: 'YTD' },
   { key: 'momentum', label: 'Mom.' },
   { key: 'breadth', label: 'Breadth' },
+  { key: 'pe', label: 'PE' },
+  { key: 'pb', label: 'PB' },
+  { key: 'dy', label: 'DY' },
   { key: 'market_cap', label: 'Mkt Cap' },
 ];
 
@@ -53,6 +60,12 @@ function getCellValue(sector: ISectorAnalytics, key: SortKey): number | string {
       return sector.momentum_score;
     case 'breadth':
       return sector.breadth.above_50dma_pct ?? 0;
+    case 'pe':
+      return sector.valuation?.metrics?.pe_ratio?.weighted_avg ?? 0;
+    case 'pb':
+      return sector.valuation?.metrics?.price_to_book?.weighted_avg ?? 0;
+    case 'dy':
+      return sector.valuation?.metrics?.dividend_yield?.weighted_avg ?? 0;
     case 'market_cap':
       return sector.total_market_cap ?? 0;
     default:
@@ -63,10 +76,16 @@ function getCellValue(sector: ISectorAnalytics, key: SortKey): number | string {
 export function SectorPerformanceTable({
   sectors,
   timeframe,
+  selectedSector,
   onSectorClick,
 }: SectorPerformanceTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>(timeframe as SortKey);
   const [sortAsc, setSortAsc] = useState(false);
+
+  // Sync sort key when timeframe prop changes
+  useEffect(() => {
+    setSortKey(timeframe as SortKey);
+  }, [timeframe]);
 
   const sorted = useMemo(() => {
     const copy = [...sectors];
@@ -103,6 +122,7 @@ export function SectorPerformanceTable({
                   className={cn(
                     'px-3 py-2.5 font-medium text-muted-foreground cursor-pointer hover:text-white transition-colors whitespace-nowrap',
                     col.className ?? 'text-right',
+                    col.key === 'sector' && 'sticky left-0 z-10 bg-[#0B0F19]',
                   )}
                 >
                   <div className={cn('flex items-center gap-1', col.className !== 'text-left' && 'justify-end')}>
@@ -122,23 +142,33 @@ export function SectorPerformanceTable({
             </tr>
           </thead>
           <tbody>
-            {sorted.map((sector, idx) => (
+            {sorted.map((sector) => {
+              const isSelected = selectedSector === sector.sector;
+              const sectorColor = SECTOR_COLORS[sector.sector] ?? '#64748B';
+              return (
               <motion.tr
                 key={sector.sector}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: idx * 0.02 }}
+                transition={{ duration: 0.15 }}
                 onClick={() => onSectorClick(sector)}
-                className="border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors"
+                className={cn(
+                  'border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors',
+                  isSelected && 'bg-white/[0.04]',
+                )}
+                style={isSelected ? { boxShadow: `inset 3px 0 0 0 ${sectorColor}` } : undefined}
               >
                 {/* Sector name */}
-                <td className="px-3 py-2.5 text-left">
+                <td className={cn(
+                  'px-3 py-2.5 text-left sticky left-0 z-10',
+                  isSelected ? 'bg-[#0F1320]' : 'bg-[#0B0F19]',
+                )}>
                   <div className="flex items-center gap-2">
                     <div
                       className="h-2 w-2 rounded-full flex-shrink-0"
                       style={{ backgroundColor: SECTOR_COLORS[sector.sector] ?? '#64748B' }}
                     />
-                    <span className="font-semibold text-white">{sector.sector}</span>
+                    <span className="font-semibold text-white whitespace-nowrap">{sector.sector}</span>
                   </div>
                 </td>
 
@@ -199,12 +229,34 @@ export function SectorPerformanceTable({
                   </span>
                 </td>
 
+                {/* PE */}
+                <td className="px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
+                  {sector.valuation?.metrics?.pe_ratio?.weighted_avg != null
+                    ? sector.valuation.metrics.pe_ratio.weighted_avg.toFixed(1)
+                    : '\u2014'}
+                </td>
+
+                {/* PB */}
+                <td className="px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
+                  {sector.valuation?.metrics?.price_to_book?.weighted_avg != null
+                    ? sector.valuation.metrics.price_to_book.weighted_avg.toFixed(1)
+                    : '\u2014'}
+                </td>
+
+                {/* DY */}
+                <td className="px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
+                  {sector.valuation?.metrics?.dividend_yield?.weighted_avg != null
+                    ? `${sector.valuation.metrics.dividend_yield.weighted_avg.toFixed(2)}%`
+                    : '\u2014'}
+                </td>
+
                 {/* Market Cap */}
                 <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
                   {formatMarketCap(sector.total_market_cap)}
                 </td>
               </motion.tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

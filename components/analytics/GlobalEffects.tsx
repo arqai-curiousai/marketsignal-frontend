@@ -12,7 +12,7 @@ const EXCHANGE_COLORS: Record<string, string> = {
   SGX: '#F59E0B',
   HKSE: '#EF4444',
   NSE: '#6EE7B7',
-  LSE: '#60A5FA',
+  LSE: '#4ADE80',
   NYSE: '#818CF8',
   NASDAQ: '#A78BFA',
 };

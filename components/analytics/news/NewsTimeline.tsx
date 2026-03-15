@@ -16,7 +16,7 @@ import type { INewsTimeline } from '@/types/analytics';
 import { cn } from '@/lib/utils';
 import { SentimentBadge } from './SentimentBadge';
 import { TickerPill } from './TickerPill';
-import { formatTimeAgo, getSentimentColor, THEME_COLORS } from './constants';
+import { formatTimeAgo, getSentimentColor, getSourceDisplayName, THEME_COLORS } from './constants';
 
 interface NewsTimelineProps {
   data: INewsTimeline | null;
@@ -50,7 +50,18 @@ export function NewsTimeline({
     );
   }
 
-  const priceSeries = ticker && data.price_series[ticker] ? data.price_series[ticker] : null;
+  // Auto-select most-mentioned ticker if none selected but price data available
+  const effectiveTicker = ticker ?? (() => {
+    const tickers = data.events.flatMap((e) => e.tickers);
+    if (tickers.length === 0) return null;
+    const counts: Record<string, number> = {};
+    for (const t of tickers) counts[t] = (counts[t] ?? 0) + 1;
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const top = sorted[0]?.[0];
+    return top && data.price_series[top] ? top : null;
+  })();
+
+  const priceSeries = effectiveTicker && data.price_series[effectiveTicker] ? data.price_series[effectiveTicker] : null;
   const impactMap = new Map(
     data.impact_markers.map((m) => [m.event_id, m])
   );
@@ -73,15 +84,15 @@ export function NewsTimeline({
       {priceSeries && chartData.length > 0 && (
         <div className="rounded-xl border border-white/10 bg-white/[0.02] p-4">
           <div className="flex items-center gap-2 mb-3">
-            <span className="text-xs font-mono font-semibold text-white">{ticker}</span>
+            <span className="text-xs font-mono font-semibold text-white">{effectiveTicker}</span>
             <span className="text-[10px] text-muted-foreground">Price with news events</span>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#60A5FA" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#60A5FA" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#4ADE80" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#4ADE80" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
@@ -108,7 +119,7 @@ export function NewsTimeline({
               <Area
                 type="monotone"
                 dataKey="close"
-                stroke="#60A5FA"
+                stroke="#4ADE80"
                 strokeWidth={1.5}
                 fill="url(#priceGradient)"
               />
@@ -135,12 +146,13 @@ export function NewsTimeline({
               transition={{ delay: idx * 0.04 }}
               className="relative mb-4"
             >
-              {/* Timeline dot */}
+              {/* Timeline dot — colored by sentiment with glow */}
               <div
-                className="absolute -left-5 top-3 w-2.5 h-2.5 rounded-full border-2 z-10"
+                className="absolute -left-5 top-4 w-2.5 h-2.5 rounded-full border-2 z-10"
                 style={{
                   backgroundColor: sentColor,
                   borderColor: '#0d1117',
+                  boxShadow: `0 0 8px ${sentColor}40`,
                 }}
               />
 
@@ -165,7 +177,7 @@ export function NewsTimeline({
                 </div>
 
                 <div className="flex items-center gap-2 mt-2">
-                  <span className="text-[10px] text-muted-foreground">{event.source}</span>
+                  <span className="text-[10px] text-muted-foreground">{getSourceDisplayName(event.source)}</span>
                   <span className="text-[10px] text-muted-foreground">
                     {formatTimeAgo(event.published_at)}
                   </span>

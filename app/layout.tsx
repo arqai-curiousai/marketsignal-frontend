@@ -1,11 +1,17 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Sora } from 'next/font/google';
 import './globals.css';
 import { Shell } from '@/components/layout/Shell';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/context/AuthContext';
 
 const inter = Inter({ subsets: ['latin'] });
+const sora = Sora({
+  subsets: ['latin'],
+  variable: '--font-display',
+  display: 'swap',
+  weight: ['300', '400', '600', '700'],
+});
 
 export const metadata: Metadata = {
     title: 'Market Signal - Investment Research & Signals by arQai',
@@ -19,7 +25,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" className="dark">
-            <body className={inter.className}>
+            <body className={`${inter.className} ${sora.variable}`}>
                 <AuthProvider>
                     <Shell>{children}</Shell>
                 </AuthProvider>

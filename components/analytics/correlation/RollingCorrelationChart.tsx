@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import {
   ResponsiveContainer,
-  LineChart,
+  ComposedChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -64,13 +65,20 @@ export function RollingCorrelationChart({
   }
 
   // Transform for recharts
-  const chartData = data.dates.map((date, i) => ({
-    date,
-    dateLabel: date.slice(5), // MM-DD
-    r20: data.rolling_20d[i],
-    r60: data.rolling_60d[i],
-    r90: data.rolling_90d[i],
-  }));
+  const chartData = data.dates.map((date, i) => {
+    const ciUpper = data.confidence_upper_60d?.[i] ?? null;
+    const ciLower = data.confidence_lower_60d?.[i] ?? null;
+    return {
+      date,
+      dateLabel: date.slice(5), // MM-DD
+      r20: data.rolling_20d[i],
+      r60: data.rolling_60d[i],
+      r90: data.rolling_90d[i],
+      ewma: data.rolling_ewma?.[i] ?? null,
+      ci_lower: ciLower,
+      ci_band: ciUpper != null && ciLower != null ? ciUpper - ciLower : null,
+    };
+  });
 
   return (
     <div className="space-y-2">
@@ -80,7 +88,7 @@ export function RollingCorrelationChart({
         </h4>
         <div className="flex items-center gap-3 text-[9px]">
           <span className="flex items-center gap-1">
-            <div className="w-3 h-px bg-blue-400" style={{ borderTop: '2px dashed #60A5FA' }} />
+            <div className="w-3 h-px bg-green-400" style={{ borderTop: '2px dashed #4ADE80' }} />
             20d
           </span>
           <span className="flex items-center gap-1">
@@ -91,11 +99,19 @@ export function RollingCorrelationChart({
             <div className="w-3 h-0.5 bg-purple-400/50 rounded" />
             90d
           </span>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-px" style={{ borderTop: '2px dashed #FB923C' }} />
+            EWMA
+          </span>
+          <span className="flex items-center gap-1">
+            <div className="w-3 h-2 bg-green-400/10 rounded-sm" />
+            95% CI
+          </span>
         </div>
       </div>
 
       <ResponsiveContainer width="100%" height={height}>
-        <LineChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
+        <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
 
           <XAxis
@@ -134,6 +150,27 @@ export function RollingCorrelationChart({
             />
           ))}
 
+          {/* 95% CI band: invisible lower + visible band between lower→upper */}
+          <Area
+            type="monotone"
+            dataKey="ci_lower"
+            stackId="ci"
+            stroke="none"
+            fill="transparent"
+            isAnimationActive={false}
+            connectNulls
+          />
+          <Area
+            type="monotone"
+            dataKey="ci_band"
+            stackId="ci"
+            stroke="none"
+            fill="#4ADE80"
+            fillOpacity={0.1}
+            isAnimationActive={false}
+            connectNulls
+          />
+
           <Tooltip
             contentStyle={{
               backgroundColor: '#1a1f2e',
@@ -143,18 +180,23 @@ export function RollingCorrelationChart({
               color: 'white',
             }}
             formatter={(value: number | string | Array<number | string>, name: string) => {
+              if (name === 'ci_band' || name === 'ci_lower') return [null, null];
               if (value === null || value === undefined) return ['N/A', name];
-              const label = name === 'r20' ? '20d' : name === 'r60' ? '60d' : '90d';
+              const labelMap: Record<string, string> = {
+                r20: '20d', r60: '60d', r90: '90d', ewma: 'EWMA',
+              };
+              const label = labelMap[name] ?? name;
               const num = typeof value === 'number' ? value : Number(value);
               return [isNaN(num) ? 'N/A' : num.toFixed(3), label];
             }}
+            itemSorter={() => 0}
             labelFormatter={(label) => `Date: ${label}`}
           />
 
           <Line
             type="monotone"
             dataKey="r20"
-            stroke="#60A5FA"
+            stroke="#4ADE80"
             strokeWidth={1}
             strokeDasharray="4 3"
             dot={false}
@@ -178,7 +220,17 @@ export function RollingCorrelationChart({
             connectNulls
             strokeOpacity={0.5}
           />
-        </LineChart>
+          <Line
+            type="monotone"
+            dataKey="ewma"
+            stroke="#FB923C"
+            strokeWidth={1.5}
+            strokeDasharray="6 3"
+            dot={false}
+            name="EWMA"
+            connectNulls
+          />
+        </ComposedChart>
       </ResponsiveContainer>
 
       {/* Regime alerts */}
@@ -216,6 +268,11 @@ export function RollingCorrelationChart({
         {data.current_90d !== null && (
           <span className="text-muted-foreground">
             90d: <span className="text-white font-mono">{data.current_90d.toFixed(3)}</span>
+          </span>
+        )}
+        {data.current_ewma !== null && data.current_ewma !== undefined && (
+          <span className="text-muted-foreground">
+            EWMA: <span className="text-orange-400 font-mono">{data.current_ewma.toFixed(3)}</span>
           </span>
         )}
       </div>
