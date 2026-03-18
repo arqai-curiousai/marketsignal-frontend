@@ -58,10 +58,10 @@ export const NODE_TYPE_COLORS: Record<string, string> = {
   theme: '#FBBF24',
 };
 
-export const EDGE_STYLES: Record<string, { dash: string; opacity: number }> = {
-  mentions: { dash: '', opacity: 0.3 },
-  co_topic: { dash: '4 2', opacity: 0.2 },
-  co_occurrence: { dash: '', opacity: 0.35 },
+export const EDGE_STYLES: Record<string, { dash: string; opacity: number; color: string; label: string }> = {
+  mentions: { dash: '', opacity: 0.3, color: '#6EE7B7', label: 'Article mentions ticker' },
+  co_topic: { dash: '4 2', opacity: 0.2, color: '#A78BFA', label: 'Articles share a theme' },
+  co_occurrence: { dash: '', opacity: 0.35, color: '#FB923C', label: 'Tickers appear together' },
 };
 
 export const TIME_RANGES = [

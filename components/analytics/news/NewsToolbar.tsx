@@ -130,9 +130,9 @@ export function NewsToolbar({
   const showArticleResults = searchResults && searchResults.length > 0 && searchQuery.length >= 2;
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-wrap items-center gap-2.5">
       {/* View switcher */}
-      <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/10">
+      <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
         {VIEW_OPTIONS.map((v) => (
           <button
             key={v.id}
@@ -140,9 +140,12 @@ export function NewsToolbar({
             className={cn(
               'flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-md transition-all',
               activeView === v.id
-                ? 'bg-brand-blue/30 text-white'
-                : 'text-muted-foreground hover:text-white'
+                ? 'bg-brand-blue/20 text-white shadow-sm'
+                : 'text-white/35 hover:text-white/60'
             )}
+            style={activeView === v.id ? {
+              boxShadow: '0 0 10px rgba(59, 130, 246, 0.08)',
+            } : undefined}
           >
             {v.icon}
             <span className="hidden sm:inline">{v.label}</span>
@@ -153,7 +156,7 @@ export function NewsToolbar({
       {/* Unified search — tickers + full-text */}
       <div className="relative">
         {selectedTicker ? (
-          <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-brand-blue/20 border border-brand-blue/30 text-xs font-mono font-semibold text-brand-blue">
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-brand-blue/[0.12] border border-brand-blue/25 text-xs font-mono font-bold text-brand-blue">
             {selectedTicker}
             <button
               onClick={() => onTickerChange(null)}
@@ -169,32 +172,35 @@ export function NewsToolbar({
               className={cn(
                 'flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-all',
                 searchOpen
-                  ? 'bg-white/10 border-white/20 text-white'
-                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white'
+                  ? 'bg-white/[0.08] border-white/[0.15] text-white'
+                  : 'bg-white/[0.03] border-white/[0.06] text-white/35 hover:text-white/60 hover:border-white/[0.1]'
               )}
             >
               <Search className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">Search</span>
               {!searchOpen && (
-                <kbd className="hidden sm:inline text-[9px] text-white/30 bg-white/5 px-1 py-0.5 rounded font-mono">/</kbd>
+                <kbd className="hidden sm:inline text-[9px] text-white/20 bg-white/[0.04] px-1 py-0.5 rounded font-mono">/</kbd>
               )}
             </button>
             {searchOpen && (
               <>
               <div className="fixed inset-0 z-40" onClick={closeSearch} />
-              <div className="absolute top-full left-0 mt-1 z-50 w-64 max-w-[calc(100vw-2rem)] bg-[#1a1f2e] border border-white/15 rounded-lg shadow-xl overflow-hidden">
-                <input
-                  ref={searchRef}
-                  value={searchQuery}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  placeholder="Search stocks or news..."
-                  className="w-full px-3 py-2 bg-transparent text-xs text-white placeholder:text-muted-foreground outline-none border-b border-white/10"
-                />
+              <div className="absolute top-full left-0 mt-1.5 z-50 w-72 max-w-[calc(100vw-2rem)] bg-[#151a26] border border-white/[0.1] rounded-xl shadow-2xl overflow-hidden">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-white/25" />
+                  <input
+                    ref={searchRef}
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    placeholder="Search stocks or news..."
+                    className="w-full pl-9 pr-3 py-2.5 bg-transparent text-xs text-white placeholder:text-white/25 outline-none border-b border-white/[0.06]"
+                  />
+                </div>
                 <div className="max-h-64 overflow-y-auto">
                   {/* Ticker matches */}
                   {filteredTickers.length > 0 && (
                     <>
-                      <div className="px-3 py-1.5 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      <div className="px-3 py-1.5 text-[9px] uppercase tracking-wider text-white/25 font-semibold">
                         Stocks
                       </div>
                       {filteredTickers.map((t) => (
@@ -204,7 +210,7 @@ export function NewsToolbar({
                             onTickerChange(t);
                             closeSearch();
                           }}
-                          className="w-full text-left px-3 py-1.5 text-xs text-white/80 hover:bg-white/10 font-mono"
+                          className="w-full text-left px-3 py-1.5 text-xs text-white/60 hover:bg-white/[0.06] font-mono transition-colors"
                         >
                           {t}
                         </button>
@@ -215,9 +221,9 @@ export function NewsToolbar({
                   {showArticleResults && (
                     <>
                       {filteredTickers.length > 0 && (
-                        <div className="border-t border-white/10" />
+                        <div className="border-t border-white/[0.06]" />
                       )}
-                      <div className="px-3 py-1.5 text-[9px] uppercase tracking-wider text-muted-foreground font-semibold">
+                      <div className="px-3 py-1.5 text-[9px] uppercase tracking-wider text-white/25 font-semibold">
                         Articles
                       </div>
                       {searchResults!.slice(0, 5).map((a) => (
@@ -227,10 +233,10 @@ export function NewsToolbar({
                             onSelectArticle?.(a);
                             closeSearch();
                           }}
-                          className="w-full text-left px-3 py-1.5 text-xs text-white/70 hover:bg-white/10 leading-snug line-clamp-2"
+                          className="w-full text-left px-3 py-2 text-xs text-white/55 hover:bg-white/[0.06] leading-snug line-clamp-2 transition-colors"
                         >
                           {a.headline}
-                          <span className="block text-[9px] text-muted-foreground mt-0.5">
+                          <span className="block text-[9px] text-white/25 mt-0.5">
                             {getSourceDisplayName(a.source)}
                           </span>
                         </button>
@@ -239,9 +245,9 @@ export function NewsToolbar({
                   )}
                   {/* Loading / No results */}
                   {searchQuery.length >= 2 && filteredTickers.length === 0 && !showArticleResults && (
-                    <div className="px-3 py-3 text-[10px] text-muted-foreground text-center">
+                    <div className="px-3 py-4 text-[10px] text-white/25 text-center">
                       {searchLoading ? (
-                        <Loader2 className="h-4 w-4 mx-auto animate-spin opacity-60" />
+                        <Loader2 className="h-4 w-4 mx-auto animate-spin opacity-40" />
                       ) : (
                         'No results found'
                       )}
@@ -256,16 +262,20 @@ export function NewsToolbar({
       </div>
 
       {/* Sentiment filter */}
-      <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/10">
+      <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
         {SENTIMENT_OPTIONS.map((s) => (
           <button
             key={s.value}
             onClick={() => onSentimentChange(s.value)}
             className={cn(
-              'px-2 py-1.5 text-xs font-medium rounded-md transition-all',
+              'px-2.5 py-1.5 text-xs font-medium rounded-md transition-all',
               sentimentFilter === s.value
-                ? 'bg-white/10 text-white'
-                : 'text-muted-foreground hover:text-white'
+                ? s.value === 'bullish'
+                  ? 'bg-emerald-500/15 text-emerald-400'
+                  : s.value === 'bearish'
+                  ? 'bg-red-500/15 text-red-400'
+                  : 'bg-white/[0.08] text-white'
+                : 'text-white/35 hover:text-white/60'
             )}
           >
             {s.label}
@@ -275,7 +285,7 @@ export function NewsToolbar({
 
       {/* Time range selector */}
       {onTimeRangeChange && timeRange && (
-        <div className="flex items-center gap-0.5 bg-white/5 rounded-lg p-0.5 border border-white/10">
+        <div className="flex items-center gap-0.5 bg-white/[0.03] rounded-lg p-0.5 border border-white/[0.06]">
           {TIME_RANGES.map((t) => (
             <button
               key={t.value}
@@ -283,8 +293,8 @@ export function NewsToolbar({
               className={cn(
                 'px-2 py-1.5 text-xs font-medium rounded-md transition-all tabular-nums',
                 timeRange === t.value
-                  ? 'bg-white/10 text-white'
-                  : 'text-muted-foreground hover:text-white'
+                  ? 'bg-white/[0.08] text-white'
+                  : 'text-white/35 hover:text-white/60'
               )}
             >
               {t.label}
@@ -308,8 +318,8 @@ export function NewsToolbar({
           disabled={refreshing}
           className={cn(
             'flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-all',
-            'bg-white/5 border-white/10 text-muted-foreground hover:text-white hover:border-white/20',
-            refreshing && 'opacity-50 cursor-not-allowed'
+            'bg-white/[0.03] border-white/[0.06] text-white/35 hover:text-white/60 hover:border-white/[0.1]',
+            refreshing && 'opacity-40 cursor-not-allowed'
           )}
           title="Fetch latest news now"
         >
@@ -320,7 +330,7 @@ export function NewsToolbar({
 
       {/* Last updated indicator */}
       {secondsAgo != null && secondsAgo > 0 && (
-        <span className="text-[10px] text-muted-foreground tabular-nums">
+        <span className="text-[10px] text-white/20 tabular-nums">
           {secondsAgo < 60
             ? `${secondsAgo}s ago`
             : `${Math.floor(secondsAgo / 60)}m ago`}
@@ -329,7 +339,7 @@ export function NewsToolbar({
 
       {/* Filter active indicator for non-feed views */}
       {activeView !== 'feed' && (sentimentFilter !== 'all' || !!sourceFilter) && (
-        <span className="text-[9px] text-yellow-500/80 bg-yellow-500/10 px-1.5 py-0.5 rounded-full border border-yellow-500/20">
+        <span className="text-[9px] text-amber-500/60 bg-amber-500/[0.08] px-1.5 py-0.5 rounded-md border border-amber-500/[0.12]">
           Filters apply to Feed only
         </span>
       )}
@@ -349,8 +359,8 @@ function SourceDropdown({ value, onChange }: { value: string; onChange: (v: stri
         className={cn(
           'flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-all',
           value
-            ? 'bg-white/10 border-white/20 text-white'
-            : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white'
+            ? 'bg-white/[0.08] border-white/[0.15] text-white'
+            : 'bg-white/[0.03] border-white/[0.06] text-white/35 hover:text-white/60 hover:border-white/[0.1]'
         )}
       >
         {selected.label}
@@ -359,7 +369,7 @@ function SourceDropdown({ value, onChange }: { value: string; onChange: (v: stri
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute top-full left-0 mt-1 z-50 w-48 bg-[#1a1f2e] border border-white/15 rounded-lg shadow-xl overflow-hidden">
+          <div className="absolute top-full left-0 mt-1.5 z-50 w-48 bg-[#151a26] border border-white/[0.1] rounded-xl shadow-2xl overflow-hidden">
             {SOURCE_FILTER_OPTIONS.map((s) => (
               <button
                 key={s.value}
@@ -368,10 +378,10 @@ function SourceDropdown({ value, onChange }: { value: string; onChange: (v: stri
                   setOpen(false);
                 }}
                 className={cn(
-                  'w-full text-left px-3 py-1.5 text-xs transition-colors',
+                  'w-full text-left px-3 py-2 text-xs transition-colors',
                   value === s.value
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/70 hover:bg-white/10 hover:text-white'
+                    ? 'bg-white/[0.08] text-white'
+                    : 'text-white/50 hover:bg-white/[0.06] hover:text-white/70'
                 )}
               >
                 {s.label}

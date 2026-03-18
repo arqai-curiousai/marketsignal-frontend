@@ -2,6 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
+import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
 import { SENTIMENT_COLORS, SENTIMENT_THRESHOLDS, sentimentScoreToColor } from './constants';
 
@@ -58,6 +59,9 @@ export function SentimentPulse({ articles }: SentimentPulseProps) {
 
     return {
       total: articles.length,
+      bullish,
+      neutral,
+      bearish,
       bullishPct: total > 0 ? (bullish / total) * 100 : 0,
       neutralPct: total > 0 ? (neutral / total) * 100 : 0,
       bearishPct: total > 0 ? (bearish / total) * 100 : 0,
@@ -71,97 +75,166 @@ export function SentimentPulse({ articles }: SentimentPulseProps) {
 
   const netColor = sentimentScoreToColor(stats.netScore);
   const netSign = stats.netScore > 0 ? '+' : '';
-  const netArrow = stats.netScore > 0.05 ? ' \u25B2' : stats.netScore < -0.05 ? ' \u25BC' : '';
+  const moodLabel = stats.netScore > 0.4 ? 'Strong Bullish' :
+    stats.netScore > 0.15 ? 'Bullish' :
+    stats.netScore > -0.15 ? 'Neutral' :
+    stats.netScore > -0.4 ? 'Bearish' : 'Strong Bearish';
+  const MoodIcon = stats.netScore > 0.15 ? TrendingUp :
+    stats.netScore < -0.15 ? TrendingDown : Minus;
+
+  // Gauge needle position: map score from [-1, 1] to [0, 100]
+  const gaugePosition = ((stats.netScore + 1) / 2) * 100;
 
   return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.02] px-3 py-2 mb-3">
-      {/* KPI badges */}
-      <div className="flex items-center gap-3 text-[10px] flex-wrap mb-1.5">
-        <span className="text-muted-foreground tabular-nums">
-          <span className="text-white font-medium">{stats.total}</span> articles
-        </span>
+    <div className="rounded-xl border border-white/[0.08] bg-gradient-to-r from-white/[0.02] via-white/[0.03] to-white/[0.02] overflow-hidden">
+      <div className="px-4 py-3">
+        {/* Top row: Market Mood label + Net score + Ticker highlights */}
+        <div className="flex items-center justify-between gap-4 mb-3">
+          {/* Left: Mood indicator */}
+          <div className="flex items-center gap-3">
+            <div
+              className="flex items-center justify-center w-8 h-8 rounded-lg"
+              style={{
+                background: `${netColor}15`,
+                boxShadow: `0 0 20px ${netColor}10`,
+              }}
+            >
+              <MoodIcon className="h-4 w-4" style={{ color: netColor }} />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-semibold tracking-wide" style={{ color: netColor }}>
+                  {moodLabel}
+                </span>
+                <span
+                  className="text-sm font-mono font-bold tabular-nums"
+                  style={{ color: netColor }}
+                >
+                  {netSign}{stats.netScore.toFixed(2)}
+                </span>
+              </div>
+              <div className="flex items-center gap-1 mt-0.5">
+                <Activity className="h-2.5 w-2.5 text-white/30" />
+                <span className="text-[10px] text-white/40 tabular-nums">
+                  {stats.total} articles analyzed
+                </span>
+              </div>
+            </div>
+          </div>
 
-        <span className="text-muted-foreground">
-          Net:{' '}
-          <span className="font-mono font-medium tabular-nums" style={{ color: netColor }}>
-            {netSign}{stats.netScore.toFixed(2)}{netArrow}
-          </span>
-        </span>
+          {/* Right: Bull/Bear counters + top movers */}
+          <div className="flex items-center gap-3">
+            {/* Bull count */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-emerald-500/[0.08] border border-emerald-500/[0.12]">
+              <TrendingUp className="h-3 w-3 text-emerald-400" />
+              <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">{stats.bullish}</span>
+            </div>
 
-        {stats.mostBullish && (
-          <span className="text-muted-foreground">
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full mr-0.5"
-              style={{ backgroundColor: SENTIMENT_COLORS.bullish }}
+            {/* Bear count */}
+            <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/[0.08] border border-red-500/[0.12]">
+              <TrendingDown className="h-3 w-3 text-red-400" />
+              <span className="text-[11px] font-semibold text-red-400 tabular-nums">{stats.bearish}</span>
+            </div>
+
+            {/* Top bullish ticker */}
+            {stats.mostBullish && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.08]">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: SENTIMENT_COLORS.bullish }}
+                />
+                <span className="text-[10px] font-mono font-semibold text-white/80">{stats.mostBullish.ticker}</span>
+                <span className="text-[10px] font-mono tabular-nums" style={{ color: SENTIMENT_COLORS.bullish }}>
+                  +{stats.mostBullish.avgScore.toFixed(2)}
+                </span>
+              </div>
+            )}
+
+            {/* Top bearish ticker */}
+            {stats.mostBearish && (
+              <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.08]">
+                <span
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: SENTIMENT_COLORS.bearish }}
+                />
+                <span className="text-[10px] font-mono font-semibold text-white/80">{stats.mostBearish.ticker}</span>
+                <span className="text-[10px] font-mono tabular-nums" style={{ color: SENTIMENT_COLORS.bearish }}>
+                  {stats.mostBearish.avgScore.toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sentiment gauge bar — the main visual */}
+        <div className="relative">
+          {/* Background track */}
+          <div className="h-2.5 rounded-full overflow-hidden flex bg-white/[0.04]">
+            {stats.bullishPct > 0 && (
+              <motion.div
+                layout
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="h-full"
+                style={{
+                  width: `${stats.bullishPct}%`,
+                  background: `linear-gradient(90deg, ${SENTIMENT_COLORS.very_bullish}, ${SENTIMENT_COLORS.bullish})`,
+                  boxShadow: stats.bullishPct > 30 ? `0 0 12px ${SENTIMENT_COLORS.bullish}40` : undefined,
+                }}
+              />
+            )}
+            {stats.neutralPct > 0 && (
+              <motion.div
+                layout
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="h-full"
+                style={{
+                  width: `${stats.neutralPct}%`,
+                  backgroundColor: SENTIMENT_COLORS.neutral,
+                  opacity: 0.25,
+                }}
+              />
+            )}
+            {stats.bearishPct > 0 && (
+              <motion.div
+                layout
+                transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                className="h-full"
+                style={{
+                  width: `${stats.bearishPct}%`,
+                  background: `linear-gradient(90deg, ${SENTIMENT_COLORS.bearish}, ${SENTIMENT_COLORS.very_bearish})`,
+                  boxShadow: stats.bearishPct > 30 ? `0 0 12px ${SENTIMENT_COLORS.bearish}40` : undefined,
+                }}
+              />
+            )}
+          </div>
+
+          {/* Gauge needle — shows net sentiment position */}
+          <motion.div
+            initial={{ left: '50%' }}
+            animate={{ left: `${gaugePosition}%` }}
+            transition={{ type: 'spring', stiffness: 200, damping: 25 }}
+            className="absolute -top-0.5 -translate-x-1/2"
+            style={{ filter: `drop-shadow(0 0 4px ${netColor}60)` }}
+          >
+            <div
+              className="w-1 h-3.5 rounded-full"
+              style={{ backgroundColor: netColor }}
             />
-            <span className="text-white font-medium">{stats.mostBullish.ticker}</span>{' '}
-            <span className="font-mono tabular-nums" style={{ color: SENTIMENT_COLORS.bullish }}>
-              +{stats.mostBullish.avgScore.toFixed(2)}
-            </span>
-          </span>
-        )}
+          </motion.div>
+        </div>
 
-        {stats.mostBearish && (
-          <span className="text-muted-foreground">
-            <span
-              className="inline-block w-1.5 h-1.5 rounded-full mr-0.5"
-              style={{ backgroundColor: SENTIMENT_COLORS.bearish }}
-            />
-            <span className="text-white font-medium">{stats.mostBearish.ticker}</span>{' '}
-            <span className="font-mono tabular-nums" style={{ color: SENTIMENT_COLORS.bearish }}>
-              {stats.mostBearish.avgScore.toFixed(2)}
-            </span>
+        {/* Bottom labels */}
+        <div className="flex items-center justify-between mt-1.5">
+          <span className="text-[9px] tabular-nums" style={{ color: SENTIMENT_COLORS.bullish, opacity: 0.7 }}>
+            {Math.round(stats.bullishPct)}% bullish
           </span>
-        )}
-      </div>
-
-      {/* Gradient distribution bar with percentage labels */}
-      <div className="flex items-center gap-2 text-[9px] text-muted-foreground mb-0.5">
-        {stats.bullishPct > 0 && (
-          <span style={{ color: SENTIMENT_COLORS.bullish }}>{Math.round(stats.bullishPct)}% bullish</span>
-        )}
-        {stats.neutralPct > 0 && (
-          <span>{Math.round(stats.neutralPct)}% neutral</span>
-        )}
-        {stats.bearishPct > 0 && (
-          <span style={{ color: SENTIMENT_COLORS.bearish }}>{Math.round(stats.bearishPct)}% bearish</span>
-        )}
-      </div>
-      <div className="h-2 rounded-full overflow-hidden flex bg-white/5">
-        {stats.bullishPct > 0 && (
-          <motion.div
-            layout
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="h-full rounded-l-full"
-            style={{
-              width: `${stats.bullishPct}%`,
-              background: `linear-gradient(90deg, ${SENTIMENT_COLORS.very_bullish}, ${SENTIMENT_COLORS.bullish})`,
-            }}
-          />
-        )}
-        {stats.neutralPct > 0 && (
-          <motion.div
-            layout
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="h-full"
-            style={{
-              width: `${stats.neutralPct}%`,
-              backgroundColor: SENTIMENT_COLORS.neutral,
-              opacity: 0.4,
-            }}
-          />
-        )}
-        {stats.bearishPct > 0 && (
-          <motion.div
-            layout
-            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="h-full rounded-r-full"
-            style={{
-              width: `${stats.bearishPct}%`,
-              background: `linear-gradient(90deg, ${SENTIMENT_COLORS.bearish}, ${SENTIMENT_COLORS.very_bearish})`,
-            }}
-          />
-        )}
+          <span className="text-[9px] text-white/30 tabular-nums">
+            {Math.round(stats.neutralPct)}% neutral
+          </span>
+          <span className="text-[9px] tabular-nums" style={{ color: SENTIMENT_COLORS.bearish, opacity: 0.7 }}>
+            {Math.round(stats.bearishPct)}% bearish
+          </span>
+        </div>
       </div>
     </div>
   );

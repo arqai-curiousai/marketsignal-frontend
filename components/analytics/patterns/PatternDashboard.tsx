@@ -17,6 +17,7 @@ import {
   FileSpreadsheet,
   Image as ImageIcon,
   RefreshCw,
+  Layers,
 } from 'lucide-react';
 import { getPatternsV2, getPatternMTF } from '@/src/lib/api/analyticsApi';
 import type { IPatternDetectionV2, IPatternV2, IMTFAlignment } from '@/types/analytics';
@@ -25,9 +26,15 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadCSV, downloadPNG } from '@/src/lib/utils/export';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { PatternChart } from './PatternChart';
-import { PatternKPICards } from './PatternKPICards';
-import { PatternCard } from './PatternCard';
+import { SignalPulseStrip } from './SignalPulseStrip';
+import { PatternTable } from './PatternTable';
 import { MatrixProfilePanel } from './MatrixProfilePanel';
 import { RegimeTimeline } from './RegimeTimeline';
 import { ScannerView } from './ScannerView';
@@ -94,6 +101,17 @@ export function PatternDashboard() {
   const [mtfLoading, setMtfLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // ── Chart-Table connection state ──
+  const [focusedPattern, setFocusedPattern] = useState<IPatternV2 | null>(null);
+  const [highlightedTableId, setHighlightedTableId] = useState<string | null>(null);
+  const highlightTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleTablePatternClick = useCallback((pattern: IPatternV2) => {
+    setFocusedPattern(pattern);
+    // Clear after animation
+    setTimeout(() => setFocusedPattern(null), 4000);
+  }, []);
 
   const fetchPatterns = useCallback(async (t: string, tf: string, signal?: AbortSignal) => {
     setLoading(true);
@@ -165,12 +183,14 @@ export function PatternDashboard() {
     fetchMTF(ticker);
   }, [ticker, timeframe, fetchPatterns, fetchMTF]);
 
-  // Autocomplete suggestions (Fix 8)
+  // Autocomplete suggestions (Fix 8) — show popular tickers when empty
   const filteredSuggestions = useMemo(() => {
-    if (!searchInput.trim()) return [];
+    if (!searchInput.trim()) return POPULAR_TICKERS.filter((t) => t !== ticker);
     const query = searchInput.trim().toUpperCase();
     return NIFTY_50.filter((t) => t.startsWith(query) && t !== query).slice(0, 8);
-  }, [searchInput]);
+  }, [searchInput, ticker]);
+
+  const showPopularHeader = !searchInput.trim() && showSuggestions;
 
   // Filter patterns by category
   const filteredPatterns = useMemo(() => {
@@ -205,6 +225,20 @@ export function PatternDashboard() {
 
   const showMatrixProfile = selectedCategory === 'all' || selectedCategory === 'matrix_profile';
 
+  // ── Chart → Table click handler (needs regularPatterns) ──
+  const handleChartPatternClick = useCallback((pattern: IPatternV2) => {
+    if (pattern.id) {
+      setHighlightedTableId(pattern.id);
+    } else {
+      const idx = regularPatterns.findIndex(
+        (p) => p.type === pattern.type && p.pattern_end_index === pattern.pattern_end_index,
+      );
+      setHighlightedTableId(idx >= 0 ? `p-${idx}` : null);
+    }
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    highlightTimerRef.current = setTimeout(() => setHighlightedTableId(null), 3000);
+  }, [regularPatterns]);
+
   // Current price for PatternCard context (Fix 14)
   const currentPrice = useMemo(() => {
     if (!data) return null;
@@ -220,11 +254,11 @@ export function PatternDashboard() {
 
   return (
     <PatternErrorBoundary fallbackMessage="Pattern Dashboard encountered an error">
-    <div className="space-y-5">
-      {/* ─── Mode Toggle + Ticker Selector ─── */}
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="space-y-6">
+      {/* ─── Unified Command Bar ─── */}
+      <div className="flex flex-wrap items-center gap-2">
         {/* Analyze / Scan toggle */}
-        <div className="flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+        <div className="flex items-center rounded-lg border border-white/[0.06] bg-white/[0.03] p-0.5">
           <button
             onClick={() => setViewMode('analyze')}
             className={cn(
@@ -251,7 +285,7 @@ export function PatternDashboard() {
           </button>
         </div>
 
-        {/* Ticker search with autocomplete (Fix 8) */}
+        {/* Ticker search with autocomplete — popular tickers shown when empty */}
         {viewMode === 'analyze' && (
           <>
             <div className="relative flex-1 min-w-[140px] max-w-xs">
@@ -262,17 +296,22 @@ export function PatternDashboard() {
                 onKeyDown={(e) => { if (e.key === 'Enter') { handleSearch(); setShowSuggestions(false); } }}
                 onFocus={() => setShowSuggestions(true)}
                 onBlur={() => setTimeout(() => setShowSuggestions(false), 150)}
-                placeholder="Enter ticker (e.g., RELIANCE)"
-                className="pl-10 bg-white/5 border-white/10 h-9 text-sm"
+                placeholder="Search NIFTY 50..."
+                className="pl-10 bg-white/5 border-white/[0.06] h-9 text-sm"
                 autoComplete="off"
               />
               {showSuggestions && filteredSuggestions.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-[#111827] border border-white/10 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-[#111827] border border-white/[0.06] rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                  {showPopularHeader && (
+                    <div className="px-3 py-1.5 text-[10px] uppercase tracking-wider text-gray-600 font-medium">
+                      Popular
+                    </div>
+                  )}
                   {filteredSuggestions.map((t) => (
                     <button
                       key={t}
                       onMouseDown={() => { setTicker(t); setSearchInput(t); setShowSuggestions(false); }}
-                      className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                      className="w-full px-3 py-2 text-left text-sm text-gray-300 hover:bg-white/[0.03] hover:text-white transition-colors"
                     >
                       {t}
                     </button>
@@ -280,15 +319,9 @@ export function PatternDashboard() {
                 </div>
               )}
             </div>
-            <button
-              onClick={handleSearch}
-              className="px-4 py-2 text-xs font-medium rounded-lg bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 transition-colors"
-            >
-              Analyze
-            </button>
 
             {/* Timeframe selector pills */}
-            <div className="flex items-center rounded-lg border border-white/10 bg-white/[0.03] p-0.5">
+            <div className="flex items-center rounded-lg border border-white/[0.06] bg-white/[0.03] p-0.5">
               {TIMEFRAME_OPTIONS.map((tf) => (
                 <button
                   key={tf.value}
@@ -337,7 +370,7 @@ export function PatternDashboard() {
                   ]}
                 />
 
-                {/* Last updated + refresh (Fix 11) */}
+                {/* Last updated + refresh */}
                 <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
                   {lastUpdated && (
                     <span>
@@ -367,45 +400,19 @@ export function PatternDashboard() {
       {/* ─── Analyze Mode ─── */}
       {viewMode === 'analyze' && (
         <>
-      {/* Quick Tickers */}
-      <div className="flex flex-wrap gap-1.5">
-        {POPULAR_TICKERS.map((t) => (
-          <button
-            key={t}
-            onClick={() => { setTicker(t); setSearchInput(t); }}
-            className={cn(
-              'px-2.5 py-1 text-[11px] font-medium rounded-md border transition-all',
-              t === ticker
-                ? 'bg-blue-600/20 border-blue-500/50 text-white'
-                : 'bg-white/5 border-white/10 text-gray-500 hover:text-white hover:border-white/20',
-            )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {/* ─── Loading Skeleton (Fix 9) ─── */}
+      {/* ─── Loading Skeleton ─── */}
       {loading && (
-        <div className="space-y-5 animate-in fade-in duration-200">
-          {/* Chart skeleton */}
-          <Skeleton className="h-[280px] md:h-[400px] rounded-xl" />
-          {/* KPI cards skeleton */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className="h-32 rounded-xl" />
-            ))}
-          </div>
-          {/* Category tabs skeleton */}
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <Skeleton className="h-[320px] md:h-[500px] rounded-xl" />
+          <Skeleton className="h-12 rounded-xl" />
           <div className="flex gap-1">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-8 w-20 rounded-lg" />
+              <Skeleton key={i} className="h-7 w-16 rounded-md" />
             ))}
           </div>
-          {/* Pattern cards skeleton */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div className="space-y-1">
             {Array.from({ length: 6 }).map((_, i) => (
-              <Skeleton key={i} className="h-48 rounded-xl" />
+              <Skeleton key={i} className="h-11 rounded-lg" />
             ))}
           </div>
         </div>
@@ -424,11 +431,11 @@ export function PatternDashboard() {
         <AnimatePresence mode="wait">
           <motion.div
             key={data.ticker}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="space-y-5"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.4 }}
+            className="space-y-6"
             data-export-target="patterns"
           >
             {/* Hero Chart */}
@@ -447,34 +454,37 @@ export function PatternDashboard() {
                 supertrend={data.supertrend}
                 trendlines={data.trendlines}
                 fibonacci={data.fibonacci}
+                focusedPattern={focusedPattern}
+                onChartPatternClick={handleChartPatternClick}
               />
               </PatternErrorBoundary>
             )}
 
-            {/* Category Tabs — moved above KPIs for better access (Fix 6) */}
+            {/* Category Filters — zen: understated text links */}
             <div className="sticky top-0 z-10 py-2 -mx-1 px-1 bg-[#0B0F19]">
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex items-center gap-0.5 overflow-x-auto pb-1 scrollbar-none">
                 {CATEGORY_TABS.map((tab) => {
                   const count = categoryCounts[tab.id] || 0;
+                  const isActive = selectedCategory === tab.id;
                   return (
                     <button
                       key={tab.id}
                       onClick={() => setSelectedCategory(tab.id)}
                       className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all whitespace-nowrap',
-                        selectedCategory === tab.id
-                          ? 'bg-blue-600/20 border-blue-500/40 text-blue-400'
-                          : 'bg-white/[0.03] border-white/[0.06] text-gray-500 hover:text-gray-300 hover:border-white/[0.12]',
+                        'group/tab flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium transition-all whitespace-nowrap border-b-2',
+                        isActive
+                          ? 'text-white border-blue-400'
+                          : 'text-gray-500 border-transparent hover:text-gray-300',
                       )}
                     >
-                      {tab.icon}
+                      {isActive && tab.icon}
                       {tab.label}
                       {count > 0 && (
                         <span className={cn(
-                          'ml-1 px-1.5 py-0.5 text-[10px] rounded-full',
-                          selectedCategory === tab.id
-                            ? 'bg-blue-500/30 text-blue-300'
-                            : 'bg-white/[0.06] text-gray-600',
+                          'ml-0.5 text-[10px] tabular-nums transition-opacity',
+                          isActive
+                            ? 'text-blue-400'
+                            : 'text-gray-600 opacity-0 group-hover/tab:opacity-100',
                         )}>
                           {count}
                         </span>
@@ -485,8 +495,8 @@ export function PatternDashboard() {
               </div>
             </div>
 
-            {/* KPI Cards Row (Fix 7: regime card removed) */}
-            <PatternKPICards
+            {/* Signal Pulse Strip — zen: one line replaces 4 cards */}
+            <SignalPulseStrip
               overallSignal={data.overall_signal}
               overallQuality={data.overall_quality || { score: 0, grade: 'C' as const }}
               patternCount={data.active_pattern_count || 0}
@@ -502,24 +512,48 @@ export function PatternDashboard() {
               mtfLoading={mtfLoading}
             />
 
-            {/* Regime Timeline (Fix 16: pass chartDates) */}
-            {data.regime && (
-              <RegimeTimeline
-                regime={data.regime}
-                totalBars={data.chart_data?.length || 90}
-                chartDates={data.chart_data?.map((d) => d.date)}
-              />
+            {/* Deep Analysis — zen: progressive disclosure */}
+            {(data.regime || (showMatrixProfile && data.matrix_profile)) && (
+              <Accordion type="single" collapsible>
+                <AccordionItem value="deep-analysis" className="border-white/[0.06] border rounded-xl bg-[#111827]/50">
+                  <AccordionTrigger className="text-xs text-gray-500 hover:text-gray-300 py-3 px-4 hover:no-underline">
+                    <span className="flex items-center gap-2">
+                      <Layers className="h-3.5 w-3.5" />
+                      Deep Analysis
+                      {data.regime && (
+                        <span className={cn(
+                          'text-[10px] px-1.5 py-0.5 rounded-md',
+                          data.regime.current === 'bull' ? 'bg-emerald-500/10 text-emerald-400' :
+                          data.regime.current === 'bear' ? 'bg-rose-500/10 text-rose-400' :
+                          'bg-amber-500/10 text-amber-400'
+                        )}>
+                          {data.regime.current}
+                        </span>
+                      )}
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-4 px-4 pt-1">
+                      {data.regime && (
+                        <RegimeTimeline
+                          regime={data.regime}
+                          totalBars={data.chart_data?.length || 90}
+                          chartDates={data.chart_data?.map((d) => d.date)}
+                        />
+                      )}
+                      {showMatrixProfile && data.matrix_profile && (
+                        <MatrixProfilePanel
+                          matrixProfile={data.matrix_profile}
+                          chartData={data.chart_data.map((d) => ({ date: d.date, close: d.close }))}
+                        />
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             )}
 
-            {/* Matrix Profile Panel (star feature) */}
-            {showMatrixProfile && data.matrix_profile && (
-              <MatrixProfilePanel
-                matrixProfile={data.matrix_profile}
-                chartData={data.chart_data.map((d) => ({ date: d.date, close: d.close }))}
-              />
-            )}
-
-            {/* Pattern Cards Grid */}
+            {/* Pattern Table — zen: compact expandable rows */}
             {filteredPatterns.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-gray-500">
                 <Activity className="h-10 w-10 mb-3 opacity-20" />
@@ -536,7 +570,7 @@ export function PatternDashboard() {
                     <button
                       key={tf.value}
                       onClick={() => setTimeframe(tf.value)}
-                      className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:border-white/20 transition-all"
+                      className="px-2.5 py-1 text-[11px] font-medium rounded-md bg-white/5 border border-white/[0.06] text-gray-400 hover:text-white hover:border-white/20 transition-all"
                     >
                       Try {tf.label}
                     </button>
@@ -544,11 +578,12 @@ export function PatternDashboard() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                {regularPatterns.map((pattern: IPatternV2, i: number) => (
-                  <PatternCard key={pattern.id || i} pattern={pattern} currentPrice={currentPrice} />
-                ))}
-              </div>
+              <PatternTable
+                patterns={regularPatterns}
+                currentPrice={currentPrice}
+                onPatternClick={handleTablePatternClick}
+                highlightedId={highlightedTableId}
+              />
             )}
           </motion.div>
         </AnimatePresence>

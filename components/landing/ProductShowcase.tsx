@@ -11,15 +11,15 @@ export function ProductShowcase() {
     target: ref,
     offset: ['start end', 'end start'],
   });
-  const rotateX = useTransform(scrollYProgress, [0, 0.5], [8, 0]);
-  const scale = useTransform(scrollYProgress, [0, 0.5], [0.92, 1]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.5], [6, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [0.95, 1]);
   const opacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
   const [imgError, setImgError] = useState(false);
 
   const imageSrc = imgError ? SHOWCASE.fallbackImage : SHOWCASE.image;
 
   return (
-    <section id="product-showcase" ref={ref} className="landing-section">
+    <section id="product-showcase" ref={ref} className="landing-section overflow-hidden">
       <div className="container max-w-7xl mx-auto">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -42,36 +42,39 @@ export function ProductShowcase() {
           style={{ rotateX, scale, opacity, perspective: 1200 }}
           className="relative"
         >
-          {/* Dual-color glow underneath */}
-          <div className="absolute -bottom-16 left-1/4 right-1/4 h-32 bg-brand-emerald/[0.08] blur-[80px] rounded-full" />
-          <div className="absolute -bottom-12 left-1/3 right-1/3 h-24 bg-brand-blue/[0.05] blur-[60px] rounded-full" />
+          {/* Ambient glow — emerald + blue aurora beneath the image */}
+          <div className="absolute -bottom-20 left-[10%] right-[10%] h-40 bg-brand-emerald/[0.07] blur-[100px] rounded-full" />
+          <div className="absolute -bottom-14 left-[20%] right-[20%] h-28 bg-brand-blue/[0.04] blur-[80px] rounded-full" />
+          <div className="absolute -top-10 left-[30%] right-[30%] h-20 bg-brand-emerald/[0.03] blur-[60px] rounded-full" />
 
-          <div className="relative rounded-xl overflow-hidden shadow-2xl shadow-black/40 bg-white/[0.02] gradient-border-animated">
-            {/* Browser chrome */}
-            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5 bg-white/[0.03] backdrop-blur-sm">
-              <div className="flex gap-1.5">
-                <div className="w-3 h-3 rounded-full bg-red-400/30" />
-                <div className="w-3 h-3 rounded-full bg-yellow-400/30" />
-                <div className="w-3 h-3 rounded-full bg-green-400/30" />
-              </div>
-              <div className="flex-1 flex justify-center">
-                <div className="px-4 py-1 rounded-md bg-white/5 text-xs text-muted-foreground font-mono">
-                  marketsignal.ai/signals
-                </div>
-              </div>
-              <div className="w-12" />
-            </div>
-
-            {/* Screenshot */}
-            <div className="aspect-[16/9] bg-brand-slate overflow-hidden">
+          {/* Image container — no browser chrome, zen presentation */}
+          <div className="relative rounded-2xl overflow-hidden">
+            {/* The image */}
+            <div className="aspect-[16/9] bg-brand-slate overflow-hidden rounded-2xl">
               <img
                 src={imageSrc}
-                alt="MarketSignal Platform — Analytics Dashboard"
-                className="w-full h-full object-cover object-top"
+                alt="MarketSignal Platform — AI-Powered Indian Market Intelligence"
+                className="w-full h-full object-cover"
                 onError={() => setImgError(true)}
                 loading="lazy"
               />
             </div>
+
+            {/* Edge fade — all four sides dissolve into the background */}
+            <div
+              className="absolute inset-0 pointer-events-none rounded-2xl"
+              style={{
+                background: `
+                  linear-gradient(to bottom, hsl(150 40% 4.5%) 0%, transparent 15%),
+                  linear-gradient(to top, hsl(150 40% 4.5%) 0%, transparent 20%),
+                  linear-gradient(to right, hsl(150 40% 4.5%) 0%, transparent 10%),
+                  linear-gradient(to left, hsl(150 40% 4.5%) 0%, transparent 10%)
+                `,
+              }}
+            />
+
+            {/* Subtle inner border glow */}
+            <div className="absolute inset-0 pointer-events-none rounded-2xl ring-1 ring-inset ring-white/[0.06]" />
           </div>
         </motion.div>
       </div>

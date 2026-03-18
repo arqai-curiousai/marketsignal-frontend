@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronRight, Sparkles, Network } from 'lucide-react';
+import { ChevronDown, ChevronRight, Sparkles, Network, Layers, ArrowUpRight } from 'lucide-react';
 import type { INewsCluster, INewsArticle } from '@/types/analytics';
 import { cn } from '@/lib/utils';
 import { ArticleCard } from './ArticleCard';
@@ -13,6 +13,7 @@ import { THEME_COLORS, SENTIMENT_COLORS, SENTIMENT_THRESHOLDS, getTimeGroup, get
 interface ClusterTab {
   label: string;
   count: number;
+  theme: string;
 }
 
 interface NewsFeedViewProps {
@@ -44,12 +45,27 @@ export function NewsFeedView({
   if (loading) {
     return (
       <div className="space-y-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-xl border border-white/10 bg-white/[0.02] p-4 animate-pulse">
-            <div className="h-4 w-48 bg-white/10 rounded mb-3" />
+        {/* Skeleton hero */}
+        <div className="rounded-xl border border-white/[0.08] bg-white/[0.02] p-5 animate-pulse">
+          <div className="h-3 w-24 bg-white/[0.08] rounded-md mb-4" />
+          <div className="h-5 w-3/4 bg-white/[0.06] rounded-md mb-3" />
+          <div className="h-4 w-1/2 bg-white/[0.04] rounded-md mb-4" />
+          <div className="flex gap-2">
+            <div className="h-5 w-16 bg-white/[0.06] rounded-md" />
+            <div className="h-5 w-16 bg-white/[0.06] rounded-md" />
+          </div>
+        </div>
+        {/* Skeleton clusters */}
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 animate-pulse">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-3 w-3 bg-white/[0.08] rounded-full" />
+              <div className="h-3 w-32 bg-white/[0.08] rounded-md" />
+              <div className="h-3 w-12 bg-white/[0.06] rounded-md" />
+            </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="h-24 bg-white/5 rounded-lg" />
-              <div className="h-24 bg-white/5 rounded-lg" />
+              <div className="h-24 bg-white/[0.03] rounded-lg" />
+              <div className="h-24 bg-white/[0.03] rounded-lg" />
             </div>
           </div>
         ))}
@@ -60,16 +76,17 @@ export function NewsFeedView({
   if (clusters.length === 0) {
     return (
       <div className="text-center py-20 text-muted-foreground">
-        <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-50" />
-        <p>No news clusters available. News syncs every 5 minutes.</p>
+        <Sparkles className="h-12 w-12 mx-auto mb-3 opacity-30" />
+        <p className="text-sm text-white/40">No news clusters available</p>
+        <p className="text-xs text-white/20 mt-1">News syncs every 5 minutes</p>
       </div>
     );
   }
 
   // Build cluster tabs
   const clusterTabs: ClusterTab[] = [
-    { label: 'All', count: clusters.reduce((s, c) => s + c.article_count, 0) },
-    ...clusters.map((c) => ({ label: c.cluster_label, count: c.article_count })),
+    { label: 'All', count: clusters.reduce((s, c) => s + c.article_count, 0), theme: 'general' },
+    ...clusters.map((c) => ({ label: c.cluster_label, count: c.article_count, theme: c.primary_theme })),
   ];
 
   // When a specific cluster tab is active, show just that cluster's articles
@@ -94,24 +111,38 @@ export function NewsFeedView({
     <div className="space-y-4">
       {/* Cluster tab navigation */}
       {clusters.length > 1 && onClusterTabChange && (
-        <div className="flex items-center gap-1 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {clusterTabs.slice(0, 6).map((tab) => (
-            <button
-              key={tab.label}
-              onClick={() => onClusterTabChange(tab.label === 'All' ? 'all' : tab.label)}
-              className={cn(
-                'shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all',
-                (activeClusterTab === 'all' && tab.label === 'All') || activeClusterTab === tab.label
-                  ? 'bg-white/10 text-white border-brand-blue/40'
-                  : 'bg-transparent text-muted-foreground border-white/10 hover:text-white hover:border-white/20'
-              )}
-            >
-              <span className="max-w-[120px] truncate">{tab.label}</span>
-              <span className="text-[9px] tabular-nums opacity-60">{tab.count}</span>
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+          {clusterTabs.slice(0, 6).map((tab) => {
+            const isActive = (activeClusterTab === 'all' && tab.label === 'All') || activeClusterTab === tab.label;
+            const themeColor = THEME_COLORS[tab.theme] || '#94A3B8';
+            return (
+              <button
+                key={tab.label}
+                onClick={() => onClusterTabChange(tab.label === 'All' ? 'all' : tab.label)}
+                className={cn(
+                  'shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all',
+                  isActive
+                    ? 'bg-white/[0.08] text-white border-white/[0.15]'
+                    : 'bg-transparent text-white/40 border-white/[0.06] hover:text-white/70 hover:border-white/[0.12]'
+                )}
+                style={isActive && tab.label !== 'All' ? {
+                  borderColor: `${themeColor}40`,
+                  boxShadow: `0 0 10px ${themeColor}10`,
+                } : undefined}
+              >
+                {tab.label !== 'All' && (
+                  <span
+                    className="w-1.5 h-1.5 rounded-full shrink-0"
+                    style={{ backgroundColor: themeColor }}
+                  />
+                )}
+                <span className="max-w-[120px] truncate">{tab.label}</span>
+                <span className="text-[9px] tabular-nums opacity-50">{tab.count}</span>
+              </button>
+            );
+          })}
           {clusterTabs.length > 6 && (
-            <span className="shrink-0 px-2 py-1.5 text-[10px] text-muted-foreground">
+            <span className="shrink-0 px-2 py-1.5 text-[10px] text-white/30">
               +{clusterTabs.length - 6} more
             </span>
           )}
@@ -128,22 +159,23 @@ export function NewsFeedView({
         >
           <div className="flex items-center gap-2">
             <div
-              className="w-2 h-2 rounded-full"
-              style={{ backgroundColor: THEME_COLORS[selectedCluster.primary_theme] || '#94A3B8' }}
+              className="w-2.5 h-2.5 rounded-full"
+              style={{
+                backgroundColor: THEME_COLORS[selectedCluster.primary_theme] || '#94A3B8',
+                boxShadow: `0 0 8px ${THEME_COLORS[selectedCluster.primary_theme] || '#94A3B8'}40`,
+              }}
             />
             <span className="text-xs font-semibold text-white">{selectedCluster.cluster_label}</span>
-            <span className="text-[10px] text-muted-foreground">{selectedCluster.article_count} articles</span>
+            <span className="text-[10px] text-white/35">{selectedCluster.article_count} articles</span>
             <SentimentBadge
-              sentiment={
-                classifySentiment(selectedCluster.avg_sentiment_score)
-              }
+              sentiment={classifySentiment(selectedCluster.avg_sentiment_score)}
               score={selectedCluster.avg_sentiment_score}
             />
           </div>
           {selectedCluster.cluster_summary && (
-            <p className="text-xs text-muted-foreground italic">{selectedCluster.cluster_summary}</p>
+            <p className="text-xs text-white/35 italic leading-relaxed">{selectedCluster.cluster_summary}</p>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {selectedCluster.articles.map((article, aidx) => (
               <ArticleCard
                 key={article.id}
@@ -169,12 +201,17 @@ export function NewsFeedView({
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className={cn(
-            'relative rounded-xl border overflow-hidden cursor-pointer transition-all',
+            'relative rounded-xl border overflow-hidden cursor-pointer transition-all group',
             selectedArticle?.id === heroArticle.id
               ? 'border-brand-blue/40'
-              : 'border-white/10 hover:border-white/20'
+              : 'border-white/[0.08] hover:border-white/[0.15]'
           )}
           onClick={() => onSelectArticle(heroArticle)}
+          style={{
+            boxShadow: selectedArticle?.id === heroArticle.id
+              ? '0 0 30px rgba(59, 130, 246, 0.1)'
+              : undefined,
+          }}
         >
           {/* Background image */}
           {heroArticle.image_url && !heroImgError && (
@@ -182,38 +219,58 @@ export function NewsFeedView({
               <img
                 src={heroArticle.image_url}
                 alt=""
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
                 onError={() => setHeroImgError(true)}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-[#0d1117]/80 to-[#0d1117]/40" />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-[#0d1117]/85 to-[#0d1117]/30" />
             </div>
           )}
 
-          <div className="relative z-10 p-5 min-h-[180px] flex flex-col justify-end gap-3">
-            {/* Cluster label */}
+          {/* Fallback gradient background when no image */}
+          {(!heroArticle.image_url || heroImgError) && (
+            <div
+              className="absolute inset-0 z-0"
+              style={{
+                background: `linear-gradient(135deg, ${THEME_COLORS[heroCluster.primary_theme] || '#94A3B8'}08, transparent 60%)`,
+              }}
+            />
+          )}
+
+          <div className="relative z-10 p-5 min-h-[200px] flex flex-col justify-end gap-3">
+            {/* Cluster label + source count */}
             <div className="flex items-center gap-2">
               <span
-                className="px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider"
+                className="px-2.5 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider backdrop-blur-sm"
                 style={{
-                  backgroundColor: `${THEME_COLORS[heroCluster.primary_theme] || '#94A3B8'}30`,
+                  backgroundColor: `${THEME_COLORS[heroCluster.primary_theme] || '#94A3B8'}25`,
                   color: THEME_COLORS[heroCluster.primary_theme] || '#94A3B8',
+                  border: `1px solid ${THEME_COLORS[heroCluster.primary_theme] || '#94A3B8'}20`,
                 }}
               >
                 {heroCluster.cluster_label}
               </span>
               {heroCluster.article_count > 1 && (
-                <span className="text-[10px] text-muted-foreground">
+                <span className="text-[10px] text-white/40 flex items-center gap-1">
+                  <Layers className="h-3 w-3" />
                   {heroCluster.article_count} related articles
                 </span>
               )}
+              {(() => {
+                const uniqueSources = new Set(heroCluster.articles.map((a) => getSourceDisplayName(a.source)));
+                return uniqueSources.size > 1 ? (
+                  <span className="text-[9px] text-white/30 bg-white/[0.06] px-1.5 py-0.5 rounded-full backdrop-blur-sm">
+                    {uniqueSources.size} sources
+                  </span>
+                ) : null;
+              })()}
             </div>
 
-            <h2 className="text-lg font-semibold text-white leading-snug line-clamp-2">
+            <h2 className="text-lg font-semibold text-white leading-snug line-clamp-2 group-hover:text-white/95">
               {heroArticle.headline}
             </h2>
 
             {heroArticle.summary && (
-              <p className="text-sm text-white/70 line-clamp-2">{heroArticle.summary}</p>
+              <p className="text-sm text-white/50 line-clamp-2 leading-relaxed">{heroArticle.summary}</p>
             )}
 
             <div className="flex items-center gap-3">
@@ -223,23 +280,14 @@ export function NewsFeedView({
                 ))}
               </div>
               <SentimentBadge
-                sentiment={
-                  classifySentiment(heroCluster.avg_sentiment_score)
-                }
+                sentiment={classifySentiment(heroCluster.avg_sentiment_score)}
                 score={heroCluster.avg_sentiment_score}
                 size="md"
               />
-              <span className="text-[10px] text-muted-foreground">
+              <span className="text-[10px] text-white/35">
                 {getSourceDisplayName(heroArticle.source)}
               </span>
-              {(() => {
-                const uniqueSources = new Set(heroCluster.articles.map((a) => getSourceDisplayName(a.source)));
-                return uniqueSources.size > 1 ? (
-                  <span className="text-[9px] text-white/40 bg-white/[0.06] px-1.5 py-0.5 rounded-full">
-                    {uniqueSources.size} sources
-                  </span>
-                ) : null;
-              })()}
+              <ArrowUpRight className="h-3.5 w-3.5 text-white/20 ml-auto opacity-0 group-hover:opacity-100 transition-opacity" />
             </div>
           </div>
         </motion.div>
@@ -249,6 +297,7 @@ export function NewsFeedView({
       {remainingClusters.map((cluster, cidx) => {
         const isCollapsed = collapsedClusters.has(cluster.cluster_label);
         const timeGroups = groupByTime(cluster.articles);
+        const themeColor = THEME_COLORS[cluster.primary_theme] || '#94A3B8';
 
         return (
           <motion.div
@@ -256,51 +305,52 @@ export function NewsFeedView({
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: (cidx + 1) * 0.05 }}
-            className="rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden"
+            className="rounded-xl border border-white/[0.08] bg-white/[0.02] overflow-hidden"
           >
             {/* Cluster header */}
             <button
               onClick={() => toggleCluster(cluster.cluster_label)}
-              className="w-full flex items-center gap-3 p-3 hover:bg-white/[0.03] transition-colors"
+              className="w-full flex items-center gap-3 p-3.5 hover:bg-white/[0.03] transition-colors"
             >
               {isCollapsed ? (
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                <ChevronRight className="h-3.5 w-3.5 text-white/30 shrink-0" />
               ) : (
-                <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />
+                <ChevronDown className="h-3.5 w-3.5 text-white/30 shrink-0" />
               )}
 
               <div
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: THEME_COLORS[cluster.primary_theme] || '#94A3B8' }}
+                className="w-2.5 h-2.5 rounded-full shrink-0"
+                style={{
+                  backgroundColor: themeColor,
+                  boxShadow: `0 0 8px ${themeColor}30`,
+                }}
               />
 
-              <span className="text-xs font-semibold text-white truncate">
+              <span className="text-xs font-semibold text-white/90 truncate">
                 {cluster.cluster_label}
               </span>
 
-              <span className="text-[10px] text-muted-foreground shrink-0">
-                {cluster.article_count} articles
+              <span className="text-[10px] text-white/30 shrink-0 tabular-nums">
+                {cluster.article_count}
               </span>
 
               {(() => {
                 const srcCount = new Set(cluster.articles.map((a) => getSourceDisplayName(a.source))).size;
                 return srcCount > 1 ? (
-                  <span className="text-[9px] text-white/40 bg-white/[0.06] px-1.5 py-0.5 rounded-full shrink-0">
+                  <span className="text-[9px] text-white/25 bg-white/[0.04] px-1.5 py-0.5 rounded-full shrink-0">
                     {srcCount} sources
                   </span>
                 ) : null;
               })()}
 
               <SentimentBadge
-                sentiment={
-                  classifySentiment(cluster.avg_sentiment_score)
-                }
+                sentiment={classifySentiment(cluster.avg_sentiment_score)}
                 score={cluster.avg_sentiment_score}
               />
 
-              <div className="flex gap-1 ml-auto shrink-0">
+              <div className="flex gap-1.5 ml-auto shrink-0">
                 {cluster.tickers.slice(0, 3).map((t) => (
-                  <span key={t} className="text-[9px] font-mono text-muted-foreground">{t}</span>
+                  <span key={t} className="text-[9px] font-mono text-white/30">{t}</span>
                 ))}
               </div>
 
@@ -309,7 +359,7 @@ export function NewsFeedView({
                   e.stopPropagation();
                   onExploreCluster(cluster);
                 }}
-                className="text-muted-foreground hover:text-brand-blue transition-colors shrink-0"
+                className="text-white/25 hover:text-brand-blue transition-colors shrink-0"
                 title="Explore in network"
               >
                 <Network className="h-3.5 w-3.5" />
@@ -329,7 +379,7 @@ export function NewsFeedView({
               const total = bull + neut + bear;
               if (total === 0) return null;
               return (
-                <div className="h-[3px] flex mx-3 mb-0 rounded-full overflow-hidden">
+                <div className="h-[2px] flex mx-3.5 mb-0 rounded-full overflow-hidden">
                   {bull > 0 && (
                     <div
                       style={{ width: `${(bull / total) * 100}%`, backgroundColor: SENTIMENT_COLORS.bullish }}
@@ -338,7 +388,7 @@ export function NewsFeedView({
                   )}
                   {neut > 0 && (
                     <div
-                      style={{ width: `${(neut / total) * 100}%`, backgroundColor: SENTIMENT_COLORS.neutral, opacity: 0.3 }}
+                      style={{ width: `${(neut / total) * 100}%`, backgroundColor: SENTIMENT_COLORS.neutral, opacity: 0.2 }}
                       className="h-full"
                     />
                   )}
@@ -362,9 +412,9 @@ export function NewsFeedView({
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-3 pb-3 space-y-3">
+                  <div className="px-3.5 pb-3.5 space-y-3">
                     {cluster.cluster_summary && (
-                      <p className="text-xs text-muted-foreground italic pl-6">
+                      <p className="text-xs text-white/30 italic pl-6 leading-relaxed">
                         {cluster.cluster_summary}
                       </p>
                     )}
@@ -378,18 +428,22 @@ export function NewsFeedView({
                               <span className={cn(
                                 'text-[9px] uppercase tracking-wider font-semibold',
                                 group === 'breaking' ? 'text-red-400' :
-                                group === 'today' ? 'text-white/60' : 'text-muted-foreground'
+                                group === 'today' ? 'text-white/50' : 'text-white/30'
                               )}>
                                 {group === 'breaking' ? 'Breaking' :
                                  group === 'today' ? 'Today' :
                                  group === 'this_week' ? 'This Week' : 'Earlier'}
                               </span>
                               {group === 'breaking' && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse" />
+                                <span className="relative flex h-1.5 w-1.5">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-400" />
+                                </span>
                               )}
+                              <div className="flex-1 h-px bg-white/[0.05]" />
                             </div>
                           )}
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 pl-6">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pl-6">
                             {articles.map((article, aidx) => (
                               <ArticleCard
                                 key={article.id}

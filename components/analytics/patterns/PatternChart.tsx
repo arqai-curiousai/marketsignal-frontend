@@ -16,7 +16,7 @@ import {
   CrosshairMode,
 } from 'lightweight-charts';
 import { cn } from '@/lib/utils';
-import { ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Minimize2, ScanLine } from 'lucide-react';
 import type { IOHLCVBar, IOverlayData, IPatternV2, IRegimeZone, ISupertrend, ITrendline, IFibonacci } from '@/types/analytics';
 import { DrawingCanvas, type DrawingTool, type Drawing } from './DrawingCanvas';
 import { DrawingToolbar } from './DrawingToolbar';
@@ -49,6 +49,8 @@ interface PatternChartProps {
   supertrend?: ISupertrend | null;
   trendlines?: { support: ITrendline[]; resistance: ITrendline[] } | null;
   fibonacci?: IFibonacci | null;
+  focusedPattern?: IPatternV2 | null;
+  onChartPatternClick?: (pattern: IPatternV2) => void;
 }
 
 // ─── Constants ──────────────────────────────────────────────
@@ -96,6 +98,46 @@ function formatPrice(price: number): string {
   return price.toFixed(2);
 }
 
+function formatVolume(vol: number): string {
+  if (vol >= 10_000_000) return `${(vol / 10_000_000).toFixed(1)}Cr`;
+  if (vol >= 100_000) return `${(vol / 100_000).toFixed(1)}L`;
+  if (vol >= 1_000) return `${(vol / 1_000).toFixed(1)}K`;
+  return vol.toLocaleString('en-IN');
+}
+
+/** Compute marker color based on direction + confidence */
+function markerColor(direction: string, confidence: number): string {
+  if (direction === 'bullish') {
+    if (confidence > 0.8) return '#34D399';
+    if (confidence > 0.6) return 'rgba(52,211,153,0.65)';
+    return 'rgba(52,211,153,0.35)';
+  }
+  if (direction === 'bearish') {
+    if (confidence > 0.8) return '#FB7185';
+    if (confidence > 0.6) return 'rgba(251,113,133,0.65)';
+    return 'rgba(251,113,133,0.35)';
+  }
+  // neutral
+  if (confidence > 0.8) return '#FBBF24';
+  if (confidence > 0.6) return 'rgba(251,191,36,0.65)';
+  return 'rgba(251,191,36,0.35)';
+}
+
+/** Map quality grade to marker size */
+function gradeSize(grade: string): number {
+  if (grade === 'A+') return 2;
+  if (grade === 'A') return 1.5;
+  if (grade === 'B') return 1;
+  return 0.6;
+}
+
+const GRADE_STYLES: Record<string, string> = {
+  'A+': 'bg-emerald-500/20 text-emerald-400 ring-1 ring-emerald-500/30',
+  'A': 'bg-emerald-500/15 text-emerald-400 ring-1 ring-emerald-500/20',
+  'B': 'bg-amber-500/15 text-amber-400 ring-1 ring-amber-500/20',
+  'C': 'bg-gray-500/15 text-gray-400 ring-1 ring-gray-500/20',
+};
+
 // ─── Component ──────────────────────────────────────────────
 
 export function PatternChart({
@@ -111,7 +153,10 @@ export function PatternChart({
   supertrend,
   trendlines,
   fibonacci,
+  focusedPattern,
+  onChartPatternClick,
 }: PatternChartProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRefs = useRef<{
@@ -146,6 +191,16 @@ export function PatternChart({
   const srPriceLinesRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']>[]>([]);
   const fibPriceLinesRef = useRef<ReturnType<ISeriesApi<'Candlestick'>['createPriceLine']>[]>([]);
 
+  // ── Pattern Pulse Strip canvas ref ──
+  const pulseCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // ── Highlight overlay canvas ref (for chart-table connection) ──
+  const highlightCanvasRef = useRef<HTMLCanvasElement>(null);
+  const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── Fullscreen state ──
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   // ── Drawing tools state ──
   const [activeTool, setActiveTool] = useState<DrawingTool | null>(null);
   const [drawings, setDrawings] = useState<Drawing[]>([]);
@@ -154,7 +209,7 @@ export function PatternChart({
   // ── Undo stack for drawings (Fix 18) ──
   const undoStackRef = useRef<Drawing[]>([]);
 
-  // ── Crosshair tooltip state (Fix 3) ──
+  // ── Crosshair tooltip state (enriched with pattern data) ──
   const [tooltipData, setTooltipData] = useState<{
     open: number;
     high: number;
@@ -162,7 +217,43 @@ export function PatternChart({
     close: number;
     volume: number;
     date: string;
+    patterns: IPatternV2[];
+    cursorX: number;
   } | null>(null);
+
+  // ── Precompute pattern lookup by date for O(1) tooltip access ──
+  const patternsByDate = useMemo(() => {
+    const map = new Map<string, IPatternV2[]>();
+    for (const p of patterns) {
+      if (p.pattern_end_index >= 0 && p.pattern_end_index < chartData.length) {
+        const date = chartData[p.pattern_end_index].date;
+        const arr = map.get(date) || [];
+        arr.push(p);
+        map.set(date, arr);
+      }
+    }
+    // Sort each bar's patterns by quality
+    map.forEach((arr, key) => {
+      map.set(key, arr.sort((a: IPatternV2, b: IPatternV2) => (b.quality_score ?? 0) - (a.quality_score ?? 0)));
+    });
+    return map;
+  }, [patterns, chartData]);
+
+  // ── Precompute per-bar pulse data for the pattern heatmap strip ──
+  const barPulseData = useMemo(() => {
+    const data: { bullish: number; bearish: number; neutral: number; maxQuality: number }[] =
+      new Array(chartData.length).fill(null).map(() => ({ bullish: 0, bearish: 0, neutral: 0, maxQuality: 0 }));
+    for (const p of patterns) {
+      const idx = p.pattern_end_index;
+      if (idx >= 0 && idx < chartData.length) {
+        if (p.direction === 'bullish') data[idx].bullish++;
+        else if (p.direction === 'bearish') data[idx].bearish++;
+        else data[idx].neutral++;
+        data[idx].maxQuality = Math.max(data[idx].maxQuality, p.quality_score ?? 0);
+      }
+    }
+    return data;
+  }, [patterns, chartData]);
 
   const storageKey = ticker ? `ms_drawings_${ticker}` : null;
 
@@ -305,6 +396,44 @@ export function PatternChart({
     chartRef.current?.timeScale().fitContent();
   }, []);
 
+  // ── Fullscreen toggle ──
+  const toggleFullscreen = useCallback(() => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {
+        // Fallback: browser blocked fullscreen
+      });
+    } else {
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+    }
+  }, []);
+
+  // Listen for fullscreen changes and resize chart accordingly
+  useEffect(() => {
+    const handler = () => {
+      const isFs = !!document.fullscreenElement;
+      setIsFullscreen(isFs);
+      // Wait for DOM reflow before reading new dimensions
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const chart = chartRef.current;
+          const wrapper = wrapperRef.current;
+          if (!chart || !wrapper) return;
+          const w = wrapper.clientWidth;
+          const h = isFs
+            ? window.innerHeight - 56
+            : window.innerWidth < 768 ? 320 : 500;
+          chart.applyOptions({ width: w, height: h });
+          setChartDimensions({ width: w, height: h });
+          chart.timeScale().fitContent();
+        });
+      });
+    };
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
   // ── Chart creation & data binding ──
   useEffect(() => {
     if (!containerRef.current || !chartData.length) return;
@@ -313,7 +442,7 @@ export function PatternChart({
 
     // Determine dimensions
     const isMobile = window.innerWidth < 768;
-    const chartHeight = isMobile ? 280 : 400;
+    const chartHeight = isMobile ? 320 : 500;
 
     // Create chart
     const chart = createChart(container, {
@@ -368,7 +497,7 @@ export function PatternChart({
     candleSeries.setData(candleData);
     seriesRefs.current.candle = candleSeries;
 
-    // ── Pattern markers — aggregate same-bar markers (Fix 17) ──
+    // ── Smart Semantic Markers — encode info via size/color/shape, no text ──
     {
       const markersByBar = new Map<number, IPatternV2[]>();
       for (const p of patterns) {
@@ -382,32 +511,54 @@ export function PatternChart({
       const patternMarkers: SeriesMarker<Time>[] = [];
       markersByBar.forEach((pats, idx) => {
         const bar = chartData[idx];
+        // Sort by quality so we pick the best pattern for the primary marker
+        const sorted = [...pats].sort((a, b) => (b.quality_score ?? 0) - (a.quality_score ?? 0));
+        const best = sorted[0];
+
         if (pats.length === 1) {
-          const p = pats[0];
+          // Single pattern — shape=direction, size=grade, color=confidence
+          const p = best;
           let shape: 'arrowUp' | 'arrowDown' | 'circle' = 'circle';
-          let color = '#4ADE80';
           let position: 'aboveBar' | 'belowBar' = 'aboveBar';
           if (p.direction === 'bullish') {
-            shape = 'arrowUp'; color = COLORS.candleUp; position = 'belowBar';
+            shape = 'arrowUp'; position = 'belowBar';
           } else if (p.direction === 'bearish') {
-            shape = 'arrowDown'; color = COLORS.candleDown; position = 'aboveBar';
+            shape = 'arrowDown'; position = 'aboveBar';
           }
           patternMarkers.push({
-            time: toTime(bar.date), position, color, shape,
-            text: p.type.replace(/_/g, ' '), size: 1,
+            time: toTime(bar.date), position, shape,
+            color: markerColor(p.direction, p.confidence ?? 0.5),
+            text: '',
+            size: gradeSize(p.quality_grade ?? 'C'),
           });
         } else {
-          // Aggregate: show count with dominant direction
+          // Multi-pattern bar — show count, use dominant direction, best pattern's grade for size
           const bullish = pats.filter((pat: IPatternV2) => pat.direction === 'bullish').length;
           const bearish = pats.filter((pat: IPatternV2) => pat.direction === 'bearish').length;
           const dominant = bullish > bearish ? 'bullish' : bearish > bullish ? 'bearish' : 'neutral';
           patternMarkers.push({
             time: toTime(bar.date),
             position: dominant === 'bullish' ? 'belowBar' : 'aboveBar',
-            color: dominant === 'bullish' ? COLORS.candleUp : dominant === 'bearish' ? COLORS.candleDown : '#4ADE80',
+            color: markerColor(dominant, best.confidence ?? 0.5),
             shape: dominant === 'bullish' ? 'arrowUp' : dominant === 'bearish' ? 'arrowDown' : 'circle',
-            text: `${pats.length} patterns`,
-            size: 1,
+            text: `${pats.length}`,
+            size: Math.max(1, gradeSize(best.quality_grade ?? 'C')),
+          });
+        }
+
+        // Triple-confirmed gold accent — second marker on opposite side
+        const tripleConfirmed = sorted.find(
+          (p) => p.volume_confirmed && p.trend_aligned && p.multi_tf_aligned,
+        );
+        if (tripleConfirmed) {
+          const mainPosition = tripleConfirmed.direction === 'bullish' ? 'belowBar' : 'aboveBar';
+          patternMarkers.push({
+            time: toTime(bar.date),
+            position: mainPosition === 'aboveBar' ? 'belowBar' : 'aboveBar',
+            color: '#FBBF24',
+            shape: 'circle' as const,
+            text: '',
+            size: 0.3,
           });
         }
       });
@@ -449,7 +600,7 @@ export function PatternChart({
     volumeSeries.setData(volumeData);
     seriesRefs.current.volume = volumeSeries;
 
-    // ── Crosshair OHLCV tooltip (Fix 3) ──
+    // ── Crosshair tooltip with pattern insight ──
     chart.subscribeCrosshairMove((param) => {
       if (!param.time || !param.point || param.point.x < 0) {
         setTooltipData(null);
@@ -458,13 +609,17 @@ export function PatternChart({
       const cData = param.seriesData.get(candleSeries);
       if (cData && 'open' in cData) {
         const vData = param.seriesData.get(volumeSeries);
+        const dateKey = String(param.time);
+        const barPatterns = patternsByDate.get(dateKey) || [];
         setTooltipData({
           open: (cData as { open: number }).open,
           high: (cData as { high: number }).high,
           low: (cData as { low: number }).low,
           close: (cData as { close: number }).close,
           volume: vData && 'value' in vData ? (vData as { value: number }).value : 0,
-          date: String(param.time),
+          date: dateKey,
+          patterns: barPatterns,
+          cursorX: param.point.x,
         });
       } else {
         setTooltipData(null);
@@ -657,45 +812,6 @@ export function PatternChart({
       }
     }
 
-    // ── Chart pattern price target + stop loss lines ──
-    {
-      const chartPatterns = patterns.filter((p) => p.category === 'chart');
-      for (const p of chartPatterns) {
-        if (p.price_target != null) {
-          candleSeries.createPriceLine({
-            price: p.price_target,
-            color: p.direction === 'bearish' ? '#FB7185' : '#34D399',
-            lineWidth: 1, lineStyle: LineStyle.SparseDotted,
-            axisLabelVisible: true, title: `T ${formatPrice(p.price_target)}`,
-          });
-        }
-        if (p.stop_loss != null) {
-          candleSeries.createPriceLine({
-            price: p.stop_loss, color: '#FBBF24', lineWidth: 1,
-            lineStyle: LineStyle.SparseDotted, axisLabelVisible: true,
-            title: `SL ${formatPrice(p.stop_loss)}`,
-          });
-        }
-        if (p.annotations) {
-          for (const ann of p.annotations) {
-            if (ann.type === 'target' && ann.price != null) {
-              candleSeries.createPriceLine({
-                price: ann.price, color: ann.color || '#4ADE80', lineWidth: 1,
-                lineStyle: LineStyle.Dotted, axisLabelVisible: true, title: ann.label || '',
-              });
-            }
-            if (ann.type === 'line' && ann.price != null) {
-              candleSeries.createPriceLine({
-                price: ann.price, color: ann.color || '#A78BFA', lineWidth: 1,
-                lineStyle: ann.style === 'dashed' ? LineStyle.Dashed : LineStyle.Solid,
-                axisLabelVisible: false, title: ann.label || '',
-              });
-            }
-          }
-        }
-      }
-    }
-
     // ── Regime zone background markers ──
     if (regimeZones.length > 0) {
       const regimeSeries = chart.addSeries(HistogramSeries, {
@@ -727,17 +843,22 @@ export function PatternChart({
     setChartDimensions({ width: container.clientWidth, height: chartHeight });
 
     // ── ResizeObserver ──
-    const resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width } = entry.contentRect;
-        if (width > 0) {
-          const newHeight = window.innerWidth < 768 ? 280 : 400;
-          chart.applyOptions({ width, height: newHeight });
-          setChartDimensions({ width, height: newHeight });
-        }
+    const resizeObserver = new ResizeObserver(() => {
+      const wrapper = wrapperRef.current;
+      if (!wrapper) return;
+      const w = wrapper.clientWidth;
+      if (w > 0) {
+        const isFs = !!document.fullscreenElement;
+        const newHeight = isFs
+          ? window.innerHeight - 56
+          : window.innerWidth < 768 ? 320 : 500;
+        chart.applyOptions({ width: w, height: newHeight });
+        setChartDimensions({ width: w, height: newHeight });
       }
     });
     resizeObserver.observe(container);
+    // Also observe the wrapper for fullscreen dimension changes
+    if (wrapperRef.current) resizeObserver.observe(wrapperRef.current);
 
     // Cleanup
     return () => {
@@ -828,18 +949,276 @@ export function PatternChart({
     }
   }, [overlays, fibonacci]);
 
+  // ── Pattern Pulse Strip — paint heatmap between candles and volume ──
+  const paintPulseStrip = useCallback(() => {
+    const canvas = pulseCanvasRef.current;
+    const chart = chartRef.current;
+    if (!canvas || !chart || !chartData.length) return;
+
+    const dpr = window.devicePixelRatio || 1;
+    const stripH = window.innerWidth < 768 ? 14 : 18;
+    const rect = canvas.parentElement?.getBoundingClientRect();
+    const w = rect?.width || chartDimensions.width;
+
+    canvas.width = w * dpr;
+    canvas.height = stripH * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${stripH}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, w, stripH);
+
+    // Top border line
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    ctx.fillRect(0, 0, w, 1);
+
+    const ts = chart.timeScale();
+    const visibleRange = ts.getVisibleLogicalRange();
+    if (!visibleRange) return;
+
+    const from = Math.max(0, Math.floor(visibleRange.from));
+    const to = Math.min(chartData.length - 1, Math.ceil(visibleRange.to));
+
+    for (let i = from; i <= to; i++) {
+      const pulse = barPulseData[i];
+      if (!pulse || (pulse.bullish === 0 && pulse.bearish === 0 && pulse.neutral === 0)) continue;
+
+      const x = ts.timeToCoordinate(toTime(chartData[i].date));
+      if (x === null || x < 0 || x > w) continue;
+
+      // Determine cell color and intensity
+      const totalCount = pulse.bullish + pulse.bearish + pulse.neutral;
+      const countFactor = Math.min(1, totalCount / 3); // 3+ patterns = max intensity
+      const qualityFactor = Math.max(0.3, pulse.maxQuality);
+      const alpha = 0.15 + 0.45 * countFactor * qualityFactor;
+
+      let r: number, g: number, b: number;
+      if (pulse.bullish > 0 && pulse.bearish > 0) {
+        // Mixed/conflict: amber
+        r = 251; g = 191; b = 36;
+      } else if (pulse.bullish > pulse.bearish) {
+        // Bullish: emerald
+        r = 52; g = 211; b = 153;
+      } else if (pulse.bearish > pulse.bullish) {
+        // Bearish: rose
+        r = 251; g = 113; b = 133;
+      } else {
+        // Neutral: gray
+        r = 156; g = 163; b = 175;
+      }
+
+      // Compute bar width from neighboring bars
+      let barW = 6;
+      if (i + 1 < chartData.length) {
+        const nextX = ts.timeToCoordinate(toTime(chartData[i + 1].date));
+        if (nextX !== null) barW = Math.max(3, (nextX - x) * 0.8);
+      }
+
+      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+      // Rounded rect for each cell
+      const cellX = x - barW / 2;
+      const cellY = 2;
+      const cellH = stripH - 4;
+      const radius = 2;
+      ctx.beginPath();
+      ctx.moveTo(cellX + radius, cellY);
+      ctx.lineTo(cellX + barW - radius, cellY);
+      ctx.quadraticCurveTo(cellX + barW, cellY, cellX + barW, cellY + radius);
+      ctx.lineTo(cellX + barW, cellY + cellH - radius);
+      ctx.quadraticCurveTo(cellX + barW, cellY + cellH, cellX + barW - radius, cellY + cellH);
+      ctx.lineTo(cellX + radius, cellY + cellH);
+      ctx.quadraticCurveTo(cellX, cellY + cellH, cellX, cellY + cellH - radius);
+      ctx.lineTo(cellX, cellY + radius);
+      ctx.quadraticCurveTo(cellX, cellY, cellX + radius, cellY);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }, [chartData, barPulseData, chartDimensions.width]);
+
+  // Subscribe to visible range changes to repaint pulse strip
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    paintPulseStrip();
+    chart.timeScale().subscribeVisibleLogicalRangeChange(paintPulseStrip);
+    return () => {
+      try { chart.timeScale().unsubscribeVisibleLogicalRangeChange(paintPulseStrip); } catch { /* chart may be disposed */ }
+    };
+  }, [paintPulseStrip]);
+
+  // Repaint pulse strip on resize
+  useEffect(() => {
+    paintPulseStrip();
+  }, [chartDimensions, paintPulseStrip]);
+
+  // ── Chart-Table Connection: scroll + highlight on focusedPattern ──
+  useEffect(() => {
+    if (!focusedPattern || !chartRef.current || !chartData.length) return;
+    const chart = chartRef.current;
+    const endIdx = focusedPattern.pattern_end_index;
+    const startIdx = focusedPattern.pattern_start_index ?? endIdx;
+    if (endIdx < 0 || endIdx >= chartData.length) return;
+
+    // Scroll to center the pattern
+    const ts = chart.timeScale();
+    const range = ts.getVisibleLogicalRange();
+    if (range) {
+      const span = range.to - range.from;
+      const patternCenter = (startIdx + endIdx) / 2;
+      ts.setVisibleLogicalRange({
+        from: patternCenter - span / 2,
+        to: patternCenter + span / 2,
+      });
+    }
+
+    // Draw highlight overlay
+    const canvas = highlightCanvasRef.current;
+    const candle = seriesRefs.current.candle;
+    if (!canvas || !candle) return;
+
+    // Clear previous timer
+    if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+
+    const dpr = window.devicePixelRatio || 1;
+    const w = chartDimensions.width;
+    const h = chartDimensions.height;
+    canvas.width = w * dpr;
+    canvas.height = h * dpr;
+    canvas.style.width = `${w}px`;
+    canvas.style.height = `${h}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.scale(dpr, dpr);
+
+    // Wait a tick for scroll to settle, then paint
+    requestAnimationFrame(() => {
+      const safeStart = Math.max(0, startIdx);
+      const safeEnd = Math.min(chartData.length - 1, endIdx);
+
+      const x1 = ts.timeToCoordinate(toTime(chartData[safeStart].date));
+      const x2 = ts.timeToCoordinate(toTime(chartData[safeEnd].date));
+      if (x1 === null || x2 === null) return;
+
+      // Use approximate mapping — highlight a generous vertical zone
+      const padding = 20;
+      const leftX = Math.min(x1, x2) - padding;
+      const rightX = Math.max(x1, x2) + padding;
+      const topY = h * 0.02;
+      const bottomY = h * 0.78;
+
+      // Fade-in animation
+      let opacity = 0;
+      const fadeIn = () => {
+        opacity = Math.min(1, opacity + 0.08);
+        ctx.clearRect(0, 0, w, h);
+
+        // Fill
+        ctx.fillStyle = `rgba(59,130,246,${0.08 * opacity})`;
+        ctx.beginPath();
+        const radius = 6;
+        const rectW = rightX - leftX;
+        const rectH = bottomY - topY;
+        ctx.moveTo(leftX + radius, topY);
+        ctx.lineTo(leftX + rectW - radius, topY);
+        ctx.quadraticCurveTo(leftX + rectW, topY, leftX + rectW, topY + radius);
+        ctx.lineTo(leftX + rectW, topY + rectH - radius);
+        ctx.quadraticCurveTo(leftX + rectW, topY + rectH, leftX + rectW - radius, topY + rectH);
+        ctx.lineTo(leftX + radius, topY + rectH);
+        ctx.quadraticCurveTo(leftX, topY + rectH, leftX, topY + rectH - radius);
+        ctx.lineTo(leftX, topY + radius);
+        ctx.quadraticCurveTo(leftX, topY, leftX + radius, topY);
+        ctx.closePath();
+        ctx.fill();
+
+        // Border
+        ctx.strokeStyle = `rgba(59,130,246,${0.35 * opacity})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        if (opacity < 1) {
+          requestAnimationFrame(fadeIn);
+        }
+      };
+      fadeIn();
+
+      // Fade out after 3s
+      highlightTimerRef.current = setTimeout(() => {
+        let fadeOpacity = 1;
+        const fadeOut = () => {
+          fadeOpacity = Math.max(0, fadeOpacity - 0.04);
+          ctx.clearRect(0, 0, w, h);
+          if (fadeOpacity > 0) {
+            ctx.fillStyle = `rgba(59,130,246,${0.08 * fadeOpacity})`;
+            ctx.beginPath();
+            const rr = 6;
+            const rw = rightX - leftX;
+            const rh = bottomY - topY;
+            ctx.moveTo(leftX + rr, topY);
+            ctx.lineTo(leftX + rw - rr, topY);
+            ctx.quadraticCurveTo(leftX + rw, topY, leftX + rw, topY + rr);
+            ctx.lineTo(leftX + rw, topY + rh - rr);
+            ctx.quadraticCurveTo(leftX + rw, topY + rh, leftX + rw - rr, topY + rh);
+            ctx.lineTo(leftX + rr, topY + rh);
+            ctx.quadraticCurveTo(leftX, topY + rh, leftX, topY + rh - rr);
+            ctx.lineTo(leftX, topY + rr);
+            ctx.quadraticCurveTo(leftX, topY, leftX + rr, topY);
+            ctx.closePath();
+            ctx.fill();
+            ctx.strokeStyle = `rgba(59,130,246,${0.35 * fadeOpacity})`;
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+            requestAnimationFrame(fadeOut);
+          }
+        };
+        fadeOut();
+      }, 3000);
+    });
+
+    return () => {
+      if (highlightTimerRef.current) clearTimeout(highlightTimerRef.current);
+    };
+  }, [focusedPattern, chartData, chartDimensions]);
+
+  // ── Chart click → table connection ──
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart || !onChartPatternClick) return;
+
+    const handler = (param: { time?: Time; point?: { x: number; y: number } }) => {
+      if (!param.time) return;
+      const dateKey = String(param.time);
+      const barPatterns = patternsByDate.get(dateKey);
+      if (barPatterns && barPatterns.length > 0) {
+        // Click selects the highest-quality pattern on that bar
+        onChartPatternClick(barPatterns[0]);
+      }
+    };
+
+    chart.subscribeClick(handler);
+    return () => { chart.unsubscribeClick(handler); };
+  }, [onChartPatternClick, patternsByDate]);
+
   // ── Render ──
 
   if (!chartData.length) {
     return (
-      <div className="flex items-center justify-center h-[280px] md:h-[400px] bg-[#0B0F19] rounded-xl border border-white/10">
+      <div className="flex items-center justify-center h-[320px] md:h-[500px] bg-[#0B0F19] rounded-xl border border-white/[0.06]">
         <p className="text-sm text-muted-foreground">No chart data available</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-white/10 bg-[#0B0F19] overflow-hidden">
+    <div
+      ref={wrapperRef}
+      className={cn(
+        'rounded-xl border border-white/[0.06] bg-[#0B0F19] overflow-hidden shadow-lg shadow-black/20',
+        isFullscreen && 'rounded-none border-0',
+      )}
+    >
       {/* ── Chart Header ── */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 md:px-4 pt-3 pb-2">
         <div className="flex items-center gap-2 md:gap-3">
@@ -890,8 +1269,11 @@ export function PatternChart({
             <button onClick={zoomOut} className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-white transition-colors" title="Zoom out">
               <ZoomOut className="h-3.5 w-3.5" />
             </button>
-            <button onClick={resetZoom} className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-white transition-colors" title="Fit to screen">
-              <Maximize2 className="h-3.5 w-3.5" />
+            <button onClick={resetZoom} className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-white transition-colors" title="Fit all data">
+              <ScanLine className="h-3.5 w-3.5" />
+            </button>
+            <button onClick={toggleFullscreen} className="p-1 rounded hover:bg-white/5 text-gray-500 hover:text-white transition-colors" title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}>
+              {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
             </button>
           </div>
         </div>
@@ -899,32 +1281,118 @@ export function PatternChart({
 
       {/* ── Chart Container with Drawing Overlay ── */}
       <div className="relative">
-        {/* ── Crosshair OHLCV Tooltip (Fix 3) ── */}
+        {/* ── Pattern Insight Tooltip ── */}
         {tooltipData && (
-          <div className="absolute top-2 left-2 z-20 pointer-events-none bg-[#111827]/90 border border-white/10 rounded-lg px-3 py-2 text-xs font-mono space-y-0.5 backdrop-blur-sm">
-            <div className="text-gray-400 text-[10px] mb-1">{tooltipData.date}</div>
-            <div className="flex gap-3">
-              <span className="text-gray-500 w-3">O</span>
-              <span className="text-white">{formatPrice(tooltipData.open)}</span>
+          <div
+            className={cn(
+              'absolute top-2 z-20 pointer-events-none transition-all duration-150 ease-out',
+              'bg-[#111827]/92 border border-white/10 rounded-xl px-3 py-2.5 backdrop-blur-xl',
+              'shadow-2xl shadow-black/40 max-w-[280px] md:max-w-[300px]',
+              tooltipData.cursorX < (chartDimensions.width * 0.35) ? 'right-2' : 'left-2',
+            )}
+          >
+            {/* OHLCV Section */}
+            <div className="text-[10px] text-gray-500 mb-1.5 font-mono">{tooltipData.date}</div>
+            <div className="flex items-center gap-3 text-[11px] font-mono tabular-nums mb-0.5">
+              <span><span className="text-gray-600">O</span> <span className="text-white">{formatPrice(tooltipData.open)}</span></span>
+              <span><span className="text-gray-600">H</span> <span className="text-white">{formatPrice(tooltipData.high)}</span></span>
+              <span><span className="text-gray-600">L</span> <span className="text-white">{formatPrice(tooltipData.low)}</span></span>
             </div>
-            <div className="flex gap-3">
-              <span className="text-gray-500 w-3">H</span>
-              <span className="text-white">{formatPrice(tooltipData.high)}</span>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-gray-500 w-3">L</span>
-              <span className="text-white">{formatPrice(tooltipData.low)}</span>
-            </div>
-            <div className="flex gap-3">
-              <span className="text-gray-500 w-3">C</span>
-              <span className={tooltipData.close >= tooltipData.open ? 'text-emerald-400' : 'text-rose-400'}>
-                {formatPrice(tooltipData.close)}
+            <div className="flex items-center gap-3 text-[11px] font-mono tabular-nums">
+              <span>
+                <span className="text-gray-600">C</span>{' '}
+                <span className={tooltipData.close >= tooltipData.open ? 'text-emerald-400' : 'text-rose-400'}>
+                  {formatPrice(tooltipData.close)}
+                </span>
               </span>
+              <span><span className="text-gray-600">V</span> <span className="text-white">{formatVolume(tooltipData.volume)}</span></span>
             </div>
-            <div className="flex gap-3">
-              <span className="text-gray-500 w-3">V</span>
-              <span className="text-white">{tooltipData.volume.toLocaleString('en-IN')}</span>
-            </div>
+
+            {/* Pattern Section */}
+            {tooltipData.patterns.length > 0 && (
+              <>
+                <div className="border-t border-white/[0.06] my-2" />
+                <div className="space-y-1.5">
+                  {tooltipData.patterns.slice(0, 4).map((p, i) => (
+                    <div key={p.id || i}>
+                      {/* Pattern header: direction arrow + name + grade */}
+                      <div className="flex items-center gap-1.5">
+                        <span className={cn(
+                          'text-[10px]',
+                          p.direction === 'bullish' ? 'text-emerald-400' : p.direction === 'bearish' ? 'text-rose-400' : 'text-amber-400',
+                        )}>
+                          {p.direction === 'bullish' ? '▲' : p.direction === 'bearish' ? '▼' : '◆'}
+                        </span>
+                        <span className="text-[11px] font-medium text-white truncate flex-1">
+                          {p.type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </span>
+                        <span className={cn(
+                          'text-[9px] font-bold px-1.5 py-0.5 rounded-full',
+                          GRADE_STYLES[p.quality_grade ?? 'C'] || GRADE_STYLES['C'],
+                        )}>
+                          {p.quality_grade ?? 'C'}
+                        </span>
+                      </div>
+                      {/* Metrics row: confidence, win rate, validation dots */}
+                      <div className="flex items-center gap-1.5 mt-0.5 ml-4">
+                        <span className="text-[9px] text-gray-500">
+                          {Math.round((p.confidence ?? 0) * 100)}% conf
+                        </span>
+                        <span className="text-[9px] text-gray-600">·</span>
+                        <span className="text-[9px] text-gray-500">
+                          {Math.round((p.historical_win_rate ?? 0) * 100)}% win
+                        </span>
+                        <span className="text-[9px] text-gray-600">·</span>
+                        {/* Validation dots: volume, trend, multi-TF */}
+                        <div className="hidden md:flex items-center gap-0.5">
+                          <span className={cn('w-1.5 h-1.5 rounded-full', p.volume_confirmed ? 'bg-emerald-400' : 'bg-gray-700')} title="Volume" />
+                          <span className={cn('w-1.5 h-1.5 rounded-full', p.trend_aligned ? 'bg-emerald-400' : 'bg-gray-700')} title="Trend" />
+                          <span className={cn('w-1.5 h-1.5 rounded-full', p.multi_tf_aligned ? 'bg-emerald-400' : 'bg-gray-700')} title="MTF" />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {tooltipData.patterns.length > 4 && (
+                    <div className="text-[9px] text-gray-600 ml-4">
+                      +{tooltipData.patterns.length - 4} more
+                    </div>
+                  )}
+                </div>
+
+                {/* Target / Stop Loss from best pattern */}
+                {(() => {
+                  const best = tooltipData.patterns[0];
+                  if (!best?.price_target && !best?.stop_loss) return null;
+                  return (
+                    <>
+                      <div className="border-t border-dashed border-white/[0.04] my-1.5" />
+                      <div className="flex items-center gap-3 text-[10px] font-mono">
+                        {best.price_target != null && (
+                          <span className="text-emerald-400/80">
+                            Target {'\u20B9'}{formatPrice(best.price_target)}
+                            {tooltipData.close > 0 && (
+                              <span className="text-emerald-400/50 ml-0.5">
+                                ({((best.price_target - tooltipData.close) / tooltipData.close * 100).toFixed(1)}%)
+                              </span>
+                            )}
+                          </span>
+                        )}
+                        {best.stop_loss != null && (
+                          <span className="text-rose-400/80">
+                            Stop {'\u20B9'}{formatPrice(best.stop_loss)}
+                            {tooltipData.close > 0 && (
+                              <span className="text-rose-400/50 ml-0.5">
+                                ({((best.stop_loss - tooltipData.close) / tooltipData.close * 100).toFixed(1)}%)
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </>
+                  );
+                })()}
+              </>
+            )}
           </div>
         )}
 
@@ -939,6 +1407,17 @@ export function PatternChart({
           hasDrawings={drawings.length > 0}
         />
         <div ref={containerRef} className="w-full" />
+        {/* ── Pattern Pulse Strip — heatmap between candles and volume ── */}
+        <canvas
+          ref={pulseCanvasRef}
+          className="absolute left-0 pointer-events-none z-[5]"
+          style={{ bottom: `${chartDimensions.height * 0.2 + 2}px` }}
+        />
+        {/* ── Pattern Highlight Overlay (chart-table connection) ── */}
+        <canvas
+          ref={highlightCanvasRef}
+          className="absolute top-0 left-0 pointer-events-none z-[6]"
+        />
         <DrawingCanvas
           chartApi={chartRef.current}
           candleSeries={seriesRefs.current.candle}

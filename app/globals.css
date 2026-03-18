@@ -217,6 +217,19 @@
   border-left: 3px solid hsl(var(--signal-caution));
 }
 
+/* Pattern Table Row Accents */
+.pattern-row-bullish {
+  border-left: 2px solid rgba(52, 211, 153, 0.5);
+}
+
+.pattern-row-bearish {
+  border-left: 2px solid rgba(251, 113, 133, 0.5);
+}
+
+.pattern-row-neutral {
+  border-left: 2px solid rgba(251, 191, 36, 0.3);
+}
+
 /* Custom Scrollbar for Smooth Scrolling */
 .custom-scrollbar {
   scrollbar-width: thin;

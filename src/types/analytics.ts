@@ -572,6 +572,7 @@ export interface INewsArticle {
   symbols: string[];
   sentiment: string | null;
   sentiment_score: number | null;
+  priority?: 'breaking' | 'high' | 'normal' | 'low';
 }
 
 // ─── Cross-Asset ────────────────────────────────────────────

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getNewsClusters,
@@ -30,6 +30,7 @@ import { NewsTimeline } from './NewsTimeline';
 import { NewsDetailPanel } from './NewsDetailPanel';
 import { SentimentPulse } from './SentimentPulse';
 import { TrendingCarousel } from './TrendingCarousel';
+import { BreakingNewsBanner } from './BreakingNewsBanner';
 import {
   Sheet,
   SheetContent,
@@ -86,6 +87,11 @@ export function NewsIntelligence() {
 
   // Refresh state
   const [refreshing, setRefreshing] = useState(false);
+
+  // Breaking news (from SSE)
+  const [breakingArticles, setBreakingArticles] = useState<INewsArticle[]>([]);
+  const eventSourceRef = useRef<EventSource | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-refresh state
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -145,6 +151,73 @@ export function NewsIntelligence() {
     const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
   }, [lastUpdated]);
+
+  // SSE connection for real-time news push
+  useEffect(() => {
+    let retryDelay = 1000;
+    const maxRetryDelay = 30_000;
+
+    function connect() {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+
+      const es = new EventSource('/api/analytics/news/stream');
+      eventSourceRef.current = es;
+
+      es.onmessage = (event) => {
+        try {
+          const article = JSON.parse(event.data) as INewsArticle;
+
+          // Prepend to fallback articles for immediate display
+          setFallbackArticles((prev) => {
+            // Deduplicate by id
+            if (prev.some((a) => a.id === article.id)) return prev;
+            return [article, ...prev].slice(0, 100);
+          });
+
+          // Show in breaking banner if high priority
+          if (article.priority === 'breaking' || article.priority === 'high') {
+            setBreakingArticles((prev) => {
+              if (prev.some((a) => a.id === article.id)) return prev;
+              return [article, ...prev].slice(0, 5);
+            });
+          }
+
+          setLastUpdated(new Date().toISOString());
+          retryDelay = 1000; // Reset retry delay on success
+        } catch {
+          // Ignore parse errors
+        }
+      };
+
+      es.onerror = () => {
+        es.close();
+        // Reconnect with exponential backoff
+        reconnectTimeoutRef.current = setTimeout(() => {
+          retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
+          connect();
+        }, retryDelay);
+      };
+    }
+
+    connect();
+
+    return () => {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Dismiss a breaking news article
+  const handleDismissBreaking = useCallback((id: string) => {
+    setBreakingArticles((prev) => prev.filter((a) => a.id !== id));
+  }, []);
 
   // Manual refresh — trigger backend sync then reload feed
   const handleRefresh = useCallback(async () => {
@@ -449,6 +522,15 @@ export function NewsIntelligence() {
         searchLoading={searchLoading}
         onSelectArticle={handleSelectArticle}
       />
+
+      {/* Breaking News Banner (SSE-pushed high priority articles) */}
+      {activeView === 'feed' && breakingArticles.length > 0 && (
+        <BreakingNewsBanner
+          articles={breakingArticles}
+          onDismiss={handleDismissBreaking}
+          onSelect={handleSelectArticle}
+        />
+      )}
 
       {/* Sentiment Pulse — KPI bar + distribution gradient (respects active filters) */}
       {activeView === 'feed' && filteredFallbackArticles.length > 0 && (

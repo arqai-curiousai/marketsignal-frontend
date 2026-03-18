@@ -12,7 +12,7 @@ import {
   type SimulationNodeDatum,
   type SimulationLinkDatum,
 } from 'd3-force';
-import { Loader2, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Loader2, ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCcw, PanelLeftOpen, PanelLeftClose, X } from 'lucide-react';
 import type { INewsGraphNode, INewsGraphEdge } from '@/types/analytics';
 import { cn } from '@/lib/utils';
 import {
@@ -20,9 +20,12 @@ import {
   EDGE_STYLES,
   getSentimentColor,
   THEME_COLORS,
-  formatTimeAgo,
-  getSourceDisplayName,
+  THEME_LABELS,
+  classifySentiment,
 } from './constants';
+import { NetworkTooltip } from './NetworkTooltip';
+import { NetworkLegend } from './NetworkLegend';
+import { NetworkInsightsPanel, type NetworkInsights } from './NetworkInsightsPanel';
 
 interface GraphNode extends SimulationNodeDatum {
   id: string;
@@ -34,6 +37,7 @@ interface GraphNode extends SimulationNodeDatum {
   source: string | null;
   article_count: number | null;
   radius: number;
+  importance: number;
 }
 
 interface SimLink extends SimulationLinkDatum<GraphNode> {
@@ -49,26 +53,27 @@ interface NewsNetworkGraphProps {
   onSelectTicker: (ticker: string) => void;
 }
 
-function getNodeRadius(node: INewsGraphNode): number {
+/** Compute importance score for article nodes */
+function computeImportance(node: INewsGraphNode, edgeCount: number, maxEdges: number, nowMs: number): number {
+  if (node.type !== 'article') return 0;
+  // Recency factor: 1.0 for <1h, decays to 0.3 at 24h+
+  const ageMs = node.published_at ? nowMs - new Date(node.published_at).getTime() : 86400000;
+  const ageHours = Math.max(0, ageMs / 3600000);
+  const recency = Math.max(0.3, 1 - (ageHours / 30));
+  // Connectivity factor
+  const connectivity = maxEdges > 0 ? edgeCount / maxEdges : 0;
+  // Sentiment magnitude
+  const sentMag = node.sentiment_score != null ? Math.abs(node.sentiment_score) : 0;
+  return 0.4 * recency + 0.35 * connectivity + 0.25 * sentMag;
+}
+
+function getNodeRadius(node: INewsGraphNode, importance: number): number {
   switch (node.type) {
     case 'ticker': return 22;
     case 'theme': return 18;
-    case 'article': return 12;
+    case 'article': return 8 + importance * 12; // 8-20px
     default: return 12;
   }
-}
-
-/** Build tooltip text for a graph node */
-function getNodeTooltip(node: GraphNode): string {
-  const parts: string[] = [node.label];
-  if (node.type === 'article') {
-    if (node.source) parts.push(`Source: ${getSourceDisplayName(node.source)}`);
-    if (node.published_at) parts.push(formatTimeAgo(node.published_at));
-    if (node.sentiment_score != null) parts.push(`Sentiment: ${node.sentiment_score >= 0 ? '+' : ''}${node.sentiment_score.toFixed(2)}`);
-  } else {
-    if (node.article_count) parts.push(`${node.article_count} article${node.article_count !== 1 ? 's' : ''}`);
-  }
-  return parts.join('\n');
 }
 
 export function NewsNetworkGraph({
@@ -79,6 +84,7 @@ export function NewsNetworkGraph({
   onSelectTicker,
 }: NewsNetworkGraphProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
   const [nodePositions, setNodePositions] = useState<GraphNode[]>([]);
   const nodePositionsRef = useRef<GraphNode[]>([]);
@@ -91,6 +97,22 @@ export function NewsNetworkGraph({
   const panStart = useRef({ x: 0, y: 0 });
   const simRef = useRef<ReturnType<typeof forceSimulation<GraphNode>> | null>(null);
   const tickCountRef = useRef(0);
+
+  // Fullscreen
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Focus mode
+  const [focusNode, setFocusNode] = useState<string | null>(null);
+
+  // Insights panel
+  const [showInsights, setShowInsights] = useState(false);
+
+  // Tooltip
+  const [tooltipData, setTooltipData] = useState<{
+    node: GraphNode;
+    x: number;
+    y: number;
+  } | null>(null);
 
   // Responsive sizing
   useEffect(() => {
@@ -107,19 +129,124 @@ export function NewsNetworkGraph({
     return () => observer.disconnect();
   }, []);
 
-  // Build simulation — pure React rendering, no d3-selection DOM manipulation
+  // Fullscreen listeners
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handler);
+    return () => document.removeEventListener('fullscreenchange', handler);
+  }, []);
+
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !document.fullscreenElement) setIsFullscreen(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [isFullscreen]);
+
+  // Passive-false wheel zoom
+  useEffect(() => {
+    const el = svgRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      const delta = e.deltaY > 0 ? -0.1 : 0.1;
+      setZoom((z) => Math.max(0.3, Math.min(3, z + delta)));
+    };
+    el.addEventListener('wheel', handler, { passive: false });
+    return () => el.removeEventListener('wheel', handler);
+  }, []);
+
+  // Connected nodes map
+  const connectedMap = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const e of edges) {
+      if (!map.has(e.source)) map.set(e.source, new Set());
+      if (!map.has(e.target)) map.set(e.target, new Set());
+      map.get(e.source)!.add(e.target);
+      map.get(e.target)!.add(e.source);
+    }
+    return map;
+  }, [edges]);
+
+  // Edge counts per node (for importance)
+  const edgeCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of edges) {
+      counts.set(e.source, (counts.get(e.source) || 0) + 1);
+      counts.set(e.target, (counts.get(e.target) || 0) + 1);
+    }
+    return counts;
+  }, [edges]);
+
+  // Compute insights
+  const insights: NetworkInsights = useMemo(() => {
+    const tickerCounts = new Map<string, number>();
+    const themeCounts = new Map<string, number>();
+    let bullish = 0, bearish = 0, neutral = 0, totalScore = 0, articleCount = 0;
+
+    for (const n of nodes) {
+      if (n.type === 'ticker') {
+        tickerCounts.set(n.id, edgeCounts.get(n.id) || 0);
+      }
+      if (n.type === 'theme') {
+        themeCounts.set(n.id, edgeCounts.get(n.id) || 0);
+      }
+      if (n.type === 'article') {
+        const cls = classifySentiment(n.sentiment_score);
+        if (cls === 'bullish') bullish++;
+        else if (cls === 'bearish') bearish++;
+        else neutral++;
+        totalScore += n.sentiment_score ?? 0;
+        articleCount++;
+      }
+    }
+
+    const tickerMentions = Array.from(tickerCounts.entries())
+      .map(([ticker, count]) => ({ ticker, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const themeDistribution = Array.from(themeCounts.entries())
+      .map(([theme, count]) => ({ theme, count }))
+      .sort((a, b) => b.count - a.count);
+
+    const coOccurringPairs: Array<{ pair: [string, string]; weight: number }> = [];
+    for (const e of edges) {
+      if (e.relationship === 'co_occurrence') {
+        coOccurringPairs.push({ pair: [e.source, e.target], weight: e.weight });
+      }
+    }
+    coOccurringPairs.sort((a, b) => b.weight - a.weight);
+
+    return {
+      tickerMentions,
+      themeDistribution,
+      sentiment: { bullish, neutral, bearish, avgScore: articleCount > 0 ? totalScore / articleCount : 0 },
+      coOccurringPairs,
+      stats: { nodes: nodes.length, edges: edges.length },
+    };
+  }, [nodes, edges, edgeCounts]);
+
+  // Build simulation
   useEffect(() => {
     if (nodes.length === 0) return;
 
     const w = dimensions.width;
     const h = dimensions.height;
+    const nowMs = Date.now();
+    const maxEdgeCount = Math.max(1, ...Array.from(edgeCounts.values()));
 
-    const graphNodes: GraphNode[] = nodes.map((n) => ({
-      ...n,
-      radius: getNodeRadius(n),
-      x: w / 2 + (Math.random() - 0.5) * 200,
-      y: h / 2 + (Math.random() - 0.5) * 200,
-    }));
+    const graphNodes: GraphNode[] = nodes.map((n) => {
+      const imp = computeImportance(n, edgeCounts.get(n.id) || 0, maxEdgeCount, nowMs);
+      return {
+        ...n,
+        radius: getNodeRadius(n, imp),
+        importance: imp,
+        x: w / 2 + (Math.random() - 0.5) * 200,
+        y: h / 2 + (Math.random() - 0.5) * 200,
+      };
+    });
 
     const nodeMap = new Map(graphNodes.map((n) => [n.id, n]));
 
@@ -132,7 +259,6 @@ export function NewsNetworkGraph({
         weight: e.weight,
       }));
 
-    // Clean up old sim
     simRef.current?.stop();
     tickCountRef.current = 0;
 
@@ -159,47 +285,74 @@ export function NewsNetworkGraph({
         tickCountRef.current++;
         nodePositionsRef.current = graphNodes;
         simLinksRef.current = simLinks;
-        // Throttle React state updates to every 3rd tick (~30fps)
         if (tickCountRef.current % 3 === 0) {
           setNodePositions([...graphNodes]);
         }
       })
       .on('end', () => {
-        // Final sync to ensure positions are exact
         setNodePositions([...graphNodes]);
       });
 
-    // Set initial positions
     setNodePositions([...graphNodes]);
     nodePositionsRef.current = graphNodes;
     simLinksRef.current = simLinks;
     simRef.current = sim;
 
-    return () => {
-      sim.stop();
-    };
-  }, [nodes, edges, dimensions]);
-
-  // Connected nodes for hover highlighting
-  const connectedMap = useMemo(() => {
-    const map = new Map<string, Set<string>>();
-    for (const e of edges) {
-      if (!map.has(e.source)) map.set(e.source, new Set());
-      if (!map.has(e.target)) map.set(e.target, new Set());
-      map.get(e.source)!.add(e.target);
-      map.get(e.target)!.add(e.source);
-    }
-    return map;
-  }, [edges]);
+    return () => { sim.stop(); };
+  }, [nodes, edges, dimensions, edgeCounts]);
 
   const isHighlighted = useCallback(
     (nodeId: string) => {
+      if (focusNode) {
+        return nodeId === focusNode || (connectedMap.get(focusNode)?.has(nodeId) ?? false);
+      }
       if (!hoveredNode) return true;
       if (nodeId === hoveredNode) return true;
       return connectedMap.get(hoveredNode)?.has(nodeId) ?? false;
     },
-    [hoveredNode, connectedMap]
+    [hoveredNode, focusNode, connectedMap]
   );
+
+  // Visible nodes/edges based on focus mode
+  const visibleNodes = useMemo(() => {
+    if (!focusNode) return new Set(nodePositions.map((n) => n.id));
+    const visible = new Set<string>([focusNode]);
+    const connected = connectedMap.get(focusNode);
+    if (connected) {
+      Array.from(connected).forEach((id) => visible.add(id));
+    }
+    return visible;
+  }, [focusNode, nodePositions, connectedMap]);
+
+  // Tooltip context for ticker/theme nodes
+  const getTooltipContext = useCallback((node: GraphNode) => {
+    const connected = connectedMap.get(node.id);
+    if (!connected) return {};
+    const connectedThemes: string[] = [];
+    const connectedTickers: string[] = [];
+    let bullish = 0, bearish = 0, neutral = 0;
+
+    const connectedArr = Array.from(connected);
+    for (let ci = 0; ci < connectedArr.length; ci++) {
+      const id = connectedArr[ci];
+      if (id.startsWith('theme:')) connectedThemes.push(id);
+      if (id.startsWith('ticker:')) connectedTickers.push(id);
+      // Check article sentiments
+      const articleNode = nodePositionsRef.current.find((n) => n.id === id && n.type === 'article');
+      if (articleNode) {
+        const cls = classifySentiment(articleNode.sentiment_score);
+        if (cls === 'bullish') bullish++;
+        else if (cls === 'bearish') bearish++;
+        else neutral++;
+      }
+    }
+
+    return {
+      connectedThemes: node.type === 'ticker' ? connectedThemes : undefined,
+      connectedTickers: node.type === 'theme' ? connectedTickers : undefined,
+      sentimentBreakdown: (bullish + bearish + neutral > 0) ? { bullish, bearish, neutral } : undefined,
+    };
+  }, [connectedMap]);
 
   // Drag handlers
   const handleMouseDown = useCallback(
@@ -253,14 +406,48 @@ export function NewsNetworkGraph({
     [onSelectArticle, onSelectTicker]
   );
 
-  // Build node position map for edges — derived from positions state (always in sync)
+  const handleNodeHover = useCallback((node: GraphNode, e: React.MouseEvent) => {
+    if (dragging) return;
+    setHoveredNode(node.id);
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (rect) {
+      setTooltipData({
+        node,
+        x: e.clientX - rect.left,
+        y: e.clientY - rect.top,
+      });
+    }
+  }, [dragging]);
+
+  const handleNodeLeave = useCallback(() => {
+    setHoveredNode(null);
+    setTooltipData(null);
+  }, []);
+
+  const toggleFullscreen = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (!document.fullscreenElement) {
+      el.requestFullscreen().catch(() => setIsFullscreen(true));
+    } else {
+      document.exitFullscreen();
+    }
+  }, []);
+
+  const resetView = useCallback(() => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+    setFocusNode(null);
+  }, []);
+
+  // Node position map for edges
   const nodePositionMap = useMemo(() => {
     const map = new Map<string, GraphNode>();
     for (const n of nodePositions) map.set(n.id, n);
     return map;
   }, [nodePositions]);
 
-  // Resolve edge endpoints from simLinks (after d3 resolves source/target to objects)
+  // Resolve edge endpoints
   const resolvedEdges = useMemo(() => {
     return simLinksRef.current.map((link) => {
       const source = typeof link.source === 'object' ? link.source : nodePositionMap.get(link.source as string);
@@ -278,9 +465,22 @@ export function NewsNetworkGraph({
     }).filter((e) => e.sourceNode && e.targetNode && e.sourceNode.x != null && e.targetNode.x != null);
   }, [nodePositionMap]);
 
+  // Focus node label for chip
+  const focusLabel = useMemo(() => {
+    if (!focusNode) return '';
+    const n = nodePositionMap.get(focusNode);
+    if (!n) return focusNode;
+    if (n.type === 'ticker') return n.label;
+    if (n.type === 'theme') {
+      const key = n.id.replace('theme:', '');
+      return THEME_LABELS[key] || key;
+    }
+    return n.label;
+  }, [focusNode, nodePositionMap]);
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] h-[60vh] max-h-[700px]">
+      <div className={cn('flex items-center justify-center min-h-[300px]', isFullscreen ? 'h-screen' : 'h-[60vh] max-h-[700px]')}>
         <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
       </div>
     );
@@ -288,16 +488,29 @@ export function NewsNetworkGraph({
 
   if (nodes.length === 0) {
     return (
-      <div className="flex items-center justify-center min-h-[300px] h-[60vh] max-h-[700px] text-muted-foreground text-sm">
+      <div className={cn('flex items-center justify-center min-h-[300px] text-muted-foreground text-sm', isFullscreen ? 'h-screen' : 'h-[60vh] max-h-[700px]')}>
         No graph data available. Try a different time range.
       </div>
     );
   }
 
   return (
-    <div ref={containerRef} className="relative w-full min-h-[300px] h-[60vh] max-h-[700px] rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden">
-      {/* Zoom controls */}
+    <div
+      ref={containerRef}
+      className={cn(
+        'relative w-full rounded-xl border border-white/10 bg-[#0d1117] overflow-hidden',
+        isFullscreen ? 'fixed inset-0 z-50 h-screen rounded-none border-none' : 'min-h-[300px] h-[60vh] max-h-[700px]',
+      )}
+    >
+      {/* Controls — top right */}
       <div className="absolute top-3 right-3 z-20 flex flex-col gap-1">
+        <button
+          onClick={() => setShowInsights((v) => !v)}
+          className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+          title={showInsights ? 'Hide insights' : 'Show insights'}
+        >
+          {showInsights ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
+        </button>
         <button
           onClick={() => setZoom((z) => Math.min(z + 0.2, 3))}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
@@ -313,37 +526,55 @@ export function NewsNetworkGraph({
           <ZoomOut className="h-3.5 w-3.5" />
         </button>
         <button
-          onClick={() => {
-            setZoom(1);
-            setPan({ x: 0, y: 0 });
-          }}
+          onClick={resetView}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Reset view"
         >
-          <Maximize2 className="h-3.5 w-3.5" />
+          <RotateCcw className="h-3.5 w-3.5" />
+        </button>
+        <button
+          onClick={toggleFullscreen}
+          className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
+          title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+        >
+          {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
       </div>
 
-      {/* Legend — with card background for visibility */}
-      <div className="absolute bottom-3 left-3 z-20 flex items-center gap-3 px-2.5 py-1.5 rounded-lg bg-black/60 border border-white/10 text-[10px] text-muted-foreground backdrop-blur-sm">
-        {(['article', 'ticker', 'theme'] as const).map((type) => (
-          <span key={type} className="flex items-center gap-1">
-            <span
-              className={cn(
-                type === 'article' ? 'w-2.5 h-2.5 rounded-full' :
-                type === 'ticker' ? 'w-3 h-2.5 rounded-sm' :
-                'w-2.5 h-2.5 rotate-45'
-              )}
-              style={{ backgroundColor: NODE_TYPE_COLORS[type] }}
-            />
-            <span className="capitalize">{type}</span>
-          </span>
-        ))}
-        <span className="text-white/30">|</span>
-        <span className="text-white/50">Click to explore</span>
-      </div>
+      {/* Focus mode chip */}
+      {focusNode && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-medium backdrop-blur-sm">
+          Focus: {focusLabel}
+          <button
+            onClick={() => setFocusNode(null)}
+            className="p-0.5 rounded-full hover:bg-white/10 transition-colors"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      )}
 
+      {/* Insights Panel */}
+      <NetworkInsightsPanel
+        insights={insights}
+        open={showInsights}
+        onClose={() => setShowInsights(false)}
+        onFocusTicker={(ticker) => {
+          setFocusNode(ticker);
+          setShowInsights(false);
+        }}
+        onFocusTheme={(theme) => {
+          setFocusNode(theme);
+          setShowInsights(false);
+        }}
+      />
+
+      {/* Legend */}
+      <NetworkLegend />
+
+      {/* SVG Canvas */}
       <svg
+        ref={svgRef}
         width={dimensions.width}
         height={dimensions.height}
         className="cursor-grab active:cursor-grabbing"
@@ -356,28 +587,25 @@ export function NewsNetworkGraph({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={(e) => {
-          e.preventDefault();
-          const delta = e.deltaY > 0 ? -0.1 : 0.1;
-          setZoom((z) => Math.max(0.3, Math.min(3, z + delta)));
-        }}
       >
-        {/* Glow filter */}
+        {/* Defs */}
         <defs>
-          <filter id="news-glow">
+          <filter id="news-glow" x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feComposite in="SourceGraphic" in2="blur" operator="over" />
           </filter>
         </defs>
 
         <g transform={`translate(${pan.x}, ${pan.y}) scale(${zoom})`}>
-          {/* Edges — rendered from resolved simulation links */}
+          {/* Edges */}
           {resolvedEdges.map((edge, i) => {
             const { sourceNode, targetNode } = edge;
             if (!sourceNode || !targetNode) return null;
+            if (!visibleNodes.has(edge.source) || !visibleNodes.has(edge.target)) return null;
 
             const style = EDGE_STYLES[edge.relationship] || EDGE_STYLES.mentions;
             const highlighted = isHighlighted(edge.source) && isHighlighted(edge.target);
+            const isActive = !hoveredNode || highlighted;
 
             return (
               <line
@@ -386,42 +614,46 @@ export function NewsNetworkGraph({
                 y1={sourceNode.y ?? 0}
                 x2={targetNode.x ?? 0}
                 y2={targetNode.y ?? 0}
-                stroke={hoveredNode ? (highlighted ? '#94A3B8' : '#1e293b') : '#475569'}
-                strokeWidth={Math.max(1, edge.weight * 2)}
-                strokeOpacity={hoveredNode ? (highlighted ? style.opacity * 2 : 0.05) : style.opacity}
+                stroke={isActive ? style.color : '#1e293b'}
+                strokeWidth={edge.relationship === 'co_occurrence' ? Math.max(2, edge.weight * 3) : Math.max(1, edge.weight * 2)}
+                strokeOpacity={hoveredNode ? (highlighted ? style.opacity * 2.5 : 0.04) : style.opacity}
                 strokeDasharray={style.dash}
+                style={{ transition: 'stroke-opacity 0.2s' }}
               />
             );
           })}
 
-          {/* Nodes — all positions from React state, always in sync */}
+          {/* Nodes */}
           {nodePositions.map((node) => {
             if (node.x == null || node.y == null) return null;
+            if (!visibleNodes.has(node.id)) return null;
+
             const highlighted = isHighlighted(node.id);
             const isHovered = hoveredNode === node.id;
+            const fillOpacity = node.type === 'article'
+              ? 0.5 + node.importance * 0.4
+              : 0.8;
 
             return (
               <g
                 key={node.id}
                 className="cursor-pointer"
                 transform={`translate(${node.x}, ${node.y})`}
-                opacity={hoveredNode ? (highlighted ? 1 : 0.15) : 1}
-                onMouseEnter={() => setHoveredNode(node.id)}
-                onMouseLeave={() => setHoveredNode(null)}
+                opacity={hoveredNode ? (highlighted ? 1 : 0.12) : (focusNode && !visibleNodes.has(node.id) ? 0.08 : 1)}
+                onMouseEnter={(e) => handleNodeHover(node, e)}
+                onMouseLeave={handleNodeLeave}
                 onMouseDown={(e) => handleMouseDown(e, node.id)}
                 onClick={() => handleNodeClick(node)}
               >
-                {/* Tooltip via SVG title */}
-                <title>{getNodeTooltip(node)}</title>
-
                 {/* Node shape */}
                 {node.type === 'article' ? (
                   <circle
                     r={node.radius}
                     fill={getSentimentColor(node.sentiment, node.sentiment_score)}
-                    fillOpacity={0.7}
-                    stroke={isHovered ? '#fff' : 'transparent'}
-                    strokeWidth={isHovered ? 2 : 0}
+                    fillOpacity={fillOpacity}
+                    stroke={isHovered ? '#fff' : getSentimentColor(node.sentiment, node.sentiment_score)}
+                    strokeWidth={isHovered ? 2 : 0.6}
+                    strokeOpacity={isHovered ? 1 : 0.4}
                     filter={isHovered ? 'url(#news-glow)' : undefined}
                   />
                 ) : node.type === 'ticker' ? (
@@ -433,8 +665,8 @@ export function NewsNetworkGraph({
                     rx={5}
                     fill={NODE_TYPE_COLORS.ticker}
                     fillOpacity={0.8}
-                    stroke={isHovered ? '#fff' : 'transparent'}
-                    strokeWidth={isHovered ? 2 : 0}
+                    stroke={isHovered ? '#fff' : 'rgba(255,255,255,0.2)'}
+                    strokeWidth={isHovered ? 2 : 0.8}
                     filter={isHovered ? 'url(#news-glow)' : undefined}
                   />
                 ) : (
@@ -447,8 +679,8 @@ export function NewsNetworkGraph({
                     transform="rotate(45)"
                     fill={THEME_COLORS[(node.id || '').replace('theme:', '')] || NODE_TYPE_COLORS.theme}
                     fillOpacity={0.7}
-                    stroke={isHovered ? '#fff' : 'transparent'}
-                    strokeWidth={isHovered ? 2 : 0}
+                    stroke={isHovered ? '#fff' : 'rgba(255,255,255,0.15)'}
+                    strokeWidth={isHovered ? 2 : 0.5}
                     filter={isHovered ? 'url(#news-glow)' : undefined}
                   />
                 )}
@@ -465,12 +697,14 @@ export function NewsNetworkGraph({
                 >
                   {node.type === 'ticker'
                     ? node.label
-                    : node.label.length > 20
-                    ? node.label.slice(0, 18) + '...'
+                    : node.type === 'theme'
+                    ? (THEME_LABELS[(node.id || '').replace('theme:', '')] || node.label).slice(0, 18)
+                    : node.label.length > 22
+                    ? node.label.slice(0, 20) + '...'
                     : node.label}
                 </text>
 
-                {/* Article count badge for ticker/theme nodes */}
+                {/* Article count badge for ticker/theme */}
                 {node.article_count != null && node.article_count > 0 && node.type !== 'article' && (
                   <>
                     <circle
@@ -500,6 +734,23 @@ export function NewsNetworkGraph({
           })}
         </g>
       </svg>
+
+      {/* Custom Tooltip */}
+      {tooltipData && !dragging && (
+        <NetworkTooltip
+          node={tooltipData.node}
+          x={tooltipData.x}
+          y={tooltipData.y}
+          containerWidth={dimensions.width}
+          containerHeight={dimensions.height}
+          {...getTooltipContext(tooltipData.node)}
+          onFocus={
+            (tooltipData.node.type === 'ticker' || tooltipData.node.type === 'theme')
+              ? () => { setFocusNode(tooltipData.node.id); setTooltipData(null); setHoveredNode(null); }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }
