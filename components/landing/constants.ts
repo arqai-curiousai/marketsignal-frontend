@@ -11,17 +11,17 @@ import {
 // -- Hero Section --
 export const HERO = {
   badge: 'arQai Intelligence',
-  headline: ['Indian Markets,', 'Decoded by AI'],
-  sub: 'Dual-agent intelligence pipeline analyzing NSE, Forex, and MCX commodities. Real-time signals, pattern detection, and institutional-grade research — without the noise.',
+  headline: ['Global Markets,', 'Decoded by AI'],
+  sub: 'Dual-agent intelligence pipeline spanning 6 global exchanges, Forex, and Commodities. Real-time signals, pattern detection, and institutional-grade research — without the noise.',
   primaryCta: { label: 'Start Exploring', href: '/signals' },
   secondaryCta: { label: 'See the Platform', href: '#dashboards' },
 };
 
 // -- Proof Bar --
 export const PROOF_STATS = [
-  { value: '50', suffix: '', label: 'NIFTY Stocks' },
-  { value: '5', suffix: '', label: 'INR Pairs' },
-  { value: '5', suffix: '', label: 'MCX Commodities' },
+  { value: '6', suffix: '', label: 'Global Exchanges' },
+  { value: '260', suffix: '+', label: 'Stocks Tracked' },
+  { value: '5', suffix: '', label: 'Commodities' },
   { value: '2', suffix: '', label: 'AI Agents' },
   { value: '5', suffix: 'min', label: 'Refresh Rate' },
 ];
@@ -30,7 +30,7 @@ export const PROOF_STATS = [
 export const SHOWCASE = {
   label: 'THE PLATFORM',
   headline: 'Six dashboards. One unified view.',
-  sub: 'From sector intelligence to options Greeks, every tool an Indian market participant needs — in a single workspace.',
+  sub: 'From sector intelligence to options Greeks, every tool a global market participant needs — in a single workspace.',
   image: '/landing/platform-hero.png',
   fallbackImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1400&q=80',
 };
@@ -58,7 +58,7 @@ export const DASHBOARDS: DashboardShowcase[] = [
     headlineAccent: 'Every angle.',
     description: 'Interactive heatmaps, relative rotation graphs, and Mansfield relative strength reveal where capital is flowing. FII/DII ownership trends, valuation aggregates (PE/PB/DY/EV-EBITDA), and earnings calendars give you the institutional edge.',
     features: [
-      'Market-cap weighted valuation aggregates across NIFTY sectors',
+      'Market-cap weighted valuation aggregates across all tracked sectors',
       'FII/DII/Promoter/Retail quarterly ownership time series',
       'Revenue, EBITDA, PAT with YoY growth at sector level',
       'Relative Rotation Graph with equal-weight compounded returns',
@@ -77,7 +77,7 @@ export const DASHBOARDS: DashboardShowcase[] = [
     features: [
       'Multi-timeframe support: 5m, 15m, 30m, 1h, daily, weekly',
       'Candlestick confirmation with one-bar-ahead validation',
-      'Quality scoring based on Bulkowski win rates + Indian market adjustments',
+      'Quality scoring based on Bulkowski win rates + regional market adjustments',
       'Trendline, Fibonacci, horizontal, rectangle drawing tools with keyboard shortcuts',
     ],
     href: '/signals',
@@ -92,7 +92,7 @@ export const DASHBOARDS: DashboardShowcase[] = [
     headlineAccent: 'markets. Not noise.',
     description: 'AI-curated market news with sentiment scoring and impact analysis. Every story is evaluated for relevance to your tracked instruments. Sentiment trends surface emerging narratives before they become consensus.',
     features: [
-      'Google News as primary source, FCSAPI as fallback',
+      'RSS feeds + Google News for Indian markets, EODHD for global',
       'Per-ticker sentiment scoring with impact magnitude',
       'Automatic 30-minute cache to conserve API credits',
       'Cross-reference with price action for event-driven signals',
@@ -127,7 +127,7 @@ export const DASHBOARDS: DashboardShowcase[] = [
     description: 'DCC-GARCH dynamic correlations across equities, forex, and commodities. Cross-asset matrices reveal hidden relationships. Spot regime changes as they form — before the correlation break leads to opportunity or risk.',
     features: [
       'DCC-GARCH (Engle 2002) with EWMA fallback',
-      'Cross-asset matrix spanning NSE, FX, and MCX instruments',
+      'Cross-asset matrix spanning equities, FX, and commodity instruments',
       'Colorblind-safe Blue-Orange palette for accessibility',
       'CSV matrix and PNG screenshot export',
     ],
@@ -157,23 +157,23 @@ export const DASHBOARDS: DashboardShowcase[] = [
 // -- Market Coverage --
 export const COVERAGE = {
   label: 'COVERAGE',
-  headline: 'Built for Indian markets.',
-  headlineLine2: 'Tuned for Indian traders.',
+  headline: 'Built for global markets.',
+  headlineLine2: 'Tuned for serious traders.',
   cards: [
     {
-      title: 'NSE / NIFTY 50',
-      bigNumber: '50',
-      description: 'Complete NIFTY 50 coverage with sector-level analytics, fundamentals aggregation, and earnings calendar.',
+      title: '6 Global Exchanges',
+      bigNumber: '260+',
+      description: 'NSE, NASDAQ, NYSE, LSE, SGX, and HKSE — sector analytics, fundamentals aggregation, and earnings calendars across all exchanges.',
       color: 'emerald' as const,
     },
     {
-      title: 'Forex / INR Pairs',
+      title: 'Forex Pairs',
       bigNumber: '5',
-      description: 'USD/INR, EUR/INR, GBP/INR, JPY/INR, AUD/INR with 5-minute OHLCV and correlation tracking.',
+      description: 'Major currency pairs with 5-minute OHLCV and cross-asset correlation tracking.',
       color: 'blue' as const,
     },
     {
-      title: 'MCX Commodities',
+      title: 'Commodities',
       bigNumber: '5',
       description: 'Gold, Silver, Crude Oil, Natural Gas, Copper with real-time price sync and cross-asset analysis.',
       color: 'violet' as const,
@@ -186,21 +186,21 @@ export const ALGO = {
   label: 'ALGO PLAYGROUND',
   headline: 'Test strategies.',
   headlineLine2: 'Trust the math.',
-  body: 'Run MACD, RSI, and SMA crossover strategies against live Indian market data. Circuit breaker protection auto-disables failing strategies. Outcome tracking compares every prediction to reality.',
+  body: 'Run MACD, RSI, and SMA crossover strategies against live market data across 6 global exchanges. Circuit breaker protection auto-disables failing strategies. Outcome tracking compares every prediction to reality.',
   cta: { label: 'Open Playground', href: '/playground' },
   codeBlock: [
     { key: 'Strategy', value: 'MACD Crossover' },
     { key: 'Fast Period', value: '12' },
     { key: 'Slow Period', value: '26' },
     { key: 'Signal Period', value: '9' },
-    { key: 'Market', value: 'NSE / NIFTY 50' },
+    { key: 'Market', value: '6 Global Exchanges' },
     { key: 'Status', value: 'Active' },
   ],
 };
 
 // -- Final CTA --
 export const FINAL_CTA = {
-  headline: 'Your edge in Indian markets.',
+  headline: 'Your edge in global markets.',
   sub: 'Join the next generation of market intelligence.',
   cta: { label: 'Get Started Free', href: '/login' },
 };

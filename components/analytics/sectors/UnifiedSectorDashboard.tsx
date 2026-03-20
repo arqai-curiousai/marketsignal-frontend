@@ -17,6 +17,7 @@ import { SectorDrillSheet } from './SectorDrillSheet';
 import { PyramidView } from '../pyramid/PyramidView';
 import { PyramidMobileFallback } from '../pyramid/PyramidMobileFallback';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { getExchangeConfig } from '@/src/lib/exchange/config';
 
 // ─── URL param helpers ─────────────────────────────────────────────────
 const VALID_VIEWS = new Set<SectorViewMode>(['treemap', 'heatmap', 'table', 'flow', 'pyramid']);
@@ -45,7 +46,11 @@ function writeUrlParams(params: Record<string, string | null>) {
   window.history.replaceState({}, '', url.toString());
 }
 
-export function UnifiedSectorDashboard() {
+interface UnifiedSectorDashboardProps {
+  exchange: string;
+}
+
+export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps) {
   const {
     sectors,
     pyramidSectors,
@@ -54,7 +59,7 @@ export function UnifiedSectorDashboard() {
     computedAt,
     refreshing,
     refetch,
-  } = useUnifiedSectorData();
+  } = useUnifiedSectorData(exchange);
 
   // Read initial state from URL params
   const urlParams = readUrlParams();
@@ -110,26 +115,33 @@ export function UnifiedSectorDashboard() {
     writeUrlParams({ tf: tf === '1d' ? null : tf });
   }, []);
 
-  // ─── Auto-refresh: poll every 5 min during NSE hours ─────────────────
+  // ─── Auto-refresh: poll every 5 min during market hours ─────────────────
   useEffect(() => {
     const POLL_MS = 5 * 60 * 1000;
+    const cfg = getExchangeConfig(exchange);
 
-    function isNSEHours(): boolean {
+    function isMarketOpen(): boolean {
       const now = new Date();
-      // Convert to IST (UTC+5:30)
-      const istOffset = 5.5 * 60 * 60 * 1000;
-      const ist = new Date(now.getTime() + istOffset + now.getTimezoneOffset() * 60 * 1000);
-      const day = ist.getDay();
-      if (day === 0 || day === 6) return false; // weekend
-      const minutes = ist.getHours() * 60 + ist.getMinutes();
-      return minutes >= 9 * 60 + 15 && minutes <= 15 * 60 + 30; // 9:15 AM – 3:30 PM IST
+      const tz = cfg.timezone;
+      const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: tz,
+        hour: 'numeric', minute: 'numeric', hour12: false, weekday: 'short',
+      }).formatToParts(now);
+      const weekday = parts.find(p => p.type === 'weekday')?.value ?? '';
+      if (['Sat', 'Sun'].includes(weekday)) return false;
+      const hour = parseInt(parts.find(p => p.type === 'hour')?.value ?? '0', 10);
+      const minute = parseInt(parts.find(p => p.type === 'minute')?.value ?? '0', 10);
+      const nowMin = hour * 60 + minute;
+      const [openH, openM] = cfg.marketOpen.split(':').map(Number);
+      const [closeH, closeM] = cfg.marketClose.split(':').map(Number);
+      return nowMin >= openH * 60 + openM && nowMin <= closeH * 60 + closeM;
     }
 
     const interval = setInterval(() => {
-      if (isNSEHours()) refetch();
+      if (isMarketOpen()) refetch();
     }, POLL_MS);
     return () => clearInterval(interval);
-  }, [refetch]);
+  }, [refetch, exchange]);
 
   // Drill sheet
   const [drillSector, setDrillSector] = useState<ISectorAnalytics | null>(null);
@@ -313,6 +325,7 @@ export function UnifiedSectorDashboard() {
             selectedSector={selectedSector}
             selectedStock={selectedStock}
             timeframe={timeframe}
+            exchange={exchange}
             onSectorSelect={setSelectedSector}
             onDrillOpen={handleDrillOpen}
             onStockClose={handleStockClose}

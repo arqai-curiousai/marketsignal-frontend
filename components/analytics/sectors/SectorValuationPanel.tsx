@@ -6,6 +6,7 @@ import type { ISectorValuation, ISectorValuationMetric } from '@/types/analytics
 
 interface SectorValuationPanelProps {
   sector: string;
+  exchange: string;
 }
 
 interface MetricCardProps {
@@ -58,7 +59,7 @@ function SkeletonCard() {
   );
 }
 
-export function SectorValuationPanel({ sector }: SectorValuationPanelProps) {
+export function SectorValuationPanel({ sector, exchange }: SectorValuationPanelProps) {
   const [data, setData] = useState<ISectorValuation | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export function SectorValuationPanel({ sector }: SectorValuationPanelProps) {
     setLoading(true);
     setError(null);
 
-    getSectorValuation(sector)
+    getSectorValuation(sector, exchange)
       .then((r) => {
         if (cancelled) return;
         if (r.success && r.data) {
@@ -90,7 +91,7 @@ export function SectorValuationPanel({ sector }: SectorValuationPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) {
     return (

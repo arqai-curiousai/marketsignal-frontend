@@ -100,7 +100,7 @@ export async function getActiveSignals(): Promise<ApiResult<{ items: IActiveSign
 // =============================================================================
 
 export async function getInstruments(
-    type: 'nse' | 'currency' | 'commodity'
+    type: 'nse' | 'nasdaq' | 'nyse' | 'lse' | 'sgx' | 'hkse' | 'currency' | 'commodity'
 ): Promise<ApiResult<IInstrument[]>> {
     const result = await apiClient.get<Array<{
         ticker: string;

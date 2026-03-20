@@ -15,6 +15,7 @@ interface UnifiedDetailPanelProps {
   selectedSector: ISectorAnalytics | null;
   selectedStock: string | null;
   timeframe: SectorTimeframe;
+  exchange: string;
   onSectorSelect: (sector: ISectorAnalytics | null) => void;
   onDrillOpen: (sector: ISectorAnalytics) => void;
   onStockClose: () => void;
@@ -26,6 +27,7 @@ export function UnifiedDetailPanel({
   selectedSector,
   selectedStock,
   timeframe,
+  exchange,
   onSectorSelect,
   onDrillOpen,
   onStockClose,
@@ -66,6 +68,7 @@ export function UnifiedDetailPanel({
       selectedSector={selectedSector}
       allSectors={sectors}
       timeframe={timeframe}
+      exchange={exchange}
       onSectorSelect={onSectorSelect}
       onDrillOpen={onDrillOpen}
     />

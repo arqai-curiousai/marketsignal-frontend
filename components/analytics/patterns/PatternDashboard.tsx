@@ -20,6 +20,8 @@ import {
   Layers,
 } from 'lucide-react';
 import { getPatternsV2, getPatternMTF } from '@/src/lib/api/analyticsApi';
+import { getExchangeConfig } from '@/src/lib/exchange/config';
+import { getStockAssets } from '@/components/analytics/correlation/constants';
 import type { IPatternDetectionV2, IPatternV2, IMTFAlignment } from '@/types/analytics';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -40,26 +42,17 @@ import { RegimeTimeline } from './RegimeTimeline';
 import { ScannerView } from './ScannerView';
 import { PatternErrorBoundary } from './PatternErrorBoundary';
 
-const DEFAULT_TICKER = 'RELIANCE';
+function getDefaultTicker(exchange: string): string {
+  return getExchangeConfig(exchange).defaultTicker;
+}
 
-const POPULAR_TICKERS = [
-  'RELIANCE', 'HDFCBANK', 'TCS', 'INFY', 'ICICIBANK',
-  'SBIN', 'TATASTEEL', 'WIPRO', 'MARUTI', 'TITAN',
-];
+function getTickerUniverse(exchange: string): string[] {
+  return getStockAssets(exchange).map(a => a.ticker);
+}
 
-// Full NIFTY 50 universe for autocomplete (Fix 8)
-const NIFTY_50 = [
-  'ADANIENT', 'ADANIPORTS', 'APOLLOHOSP', 'ASIANPAINT', 'AXISBANK',
-  'BAJAJ-AUTO', 'BAJFINANCE', 'BAJAJFINSV', 'BPCL', 'BHARTIARTL',
-  'BRITANNIA', 'CIPLA', 'COALINDIA', 'DIVISLAB', 'DRREDDY',
-  'EICHERMOT', 'GRASIM', 'HCLTECH', 'HDFCBANK', 'HDFCLIFE',
-  'HEROMOTOCO', 'HINDALCO', 'HINDUNILVR', 'ICICIBANK', 'ITC',
-  'INDUSINDBK', 'INFY', 'JSWSTEEL', 'KOTAKBANK', 'LT',
-  'M&M', 'MARUTI', 'NESTLEIND', 'NTPC', 'ONGC',
-  'POWERGRID', 'RELIANCE', 'SBILIFE', 'SBIN', 'SUNPHARMA',
-  'TCS', 'TATACONSUM', 'TATAMOTORS', 'TATASTEEL', 'TECHM',
-  'TITAN', 'ULTRACEMCO', 'UPL', 'WIPRO', 'LTIM',
-];
+function getPopularTickers(exchange: string): string[] {
+  return getTickerUniverse(exchange).slice(0, 10);
+}
 
 type PatternCategory = 'all' | 'candlestick' | 'chart' | 'momentum' | 'volatility' | 'volume' | 'regime' | 'matrix_profile';
 
@@ -88,12 +81,17 @@ const TIMEFRAME_OPTIONS: { label: string; value: string }[] = [
 // Quality grade ranking for sort (Fix 10)
 const GRADE_RANK: Record<string, number> = { 'A+': 0, 'A': 1, 'B': 2, 'C': 3 };
 
-export function PatternDashboard() {
+interface PatternDashboardProps {
+  exchange: string;
+}
+
+export function PatternDashboard({ exchange }: PatternDashboardProps) {
+  const defaultTicker = getDefaultTicker(exchange);
   const [viewMode, setViewMode] = useState<ViewMode>('analyze');
   const [data, setData] = useState<IPatternDetectionV2 | null>(null);
   const [loading, setLoading] = useState(false);
-  const [ticker, setTicker] = useState(DEFAULT_TICKER);
-  const [searchInput, setSearchInput] = useState(DEFAULT_TICKER);
+  const [ticker, setTicker] = useState(defaultTicker);
+  const [searchInput, setSearchInput] = useState(defaultTicker);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<PatternCategory>('all');
   const [timeframe, setTimeframe] = useState<string>('daily');
@@ -101,6 +99,19 @@ export function PatternDashboard() {
   const [mtfLoading, setMtfLoading] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // Reset ticker when exchange changes
+  const prevExchangeRef = React.useRef(exchange);
+  useEffect(() => {
+    if (prevExchangeRef.current !== exchange) {
+      prevExchangeRef.current = exchange;
+      const newDefault = getDefaultTicker(exchange);
+      setTicker(newDefault);
+      setSearchInput(newDefault);
+      setData(null);
+      setMtfData(null);
+    }
+  }, [exchange]);
 
   // ── Chart-Table connection state ──
   const [focusedPattern, setFocusedPattern] = useState<IPatternV2 | null>(null);
@@ -117,7 +128,7 @@ export function PatternDashboard() {
     setLoading(true);
     setError(null);
     try {
-      const result = await getPatternsV2(t, 'NSE', tf);
+      const result = await getPatternsV2(t, exchange, tf);
       if (signal?.aborted) return;
       if (result.success && result.data) {
         if ('error' in result.data && result.data.error) {
@@ -140,12 +151,12 @@ export function PatternDashboard() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [exchange]);
 
   const fetchMTF = useCallback(async (t: string, signal?: AbortSignal) => {
     setMtfLoading(true);
     try {
-      const result = await getPatternMTF(t);
+      const result = await getPatternMTF(t, exchange);
       if (signal?.aborted) return;
       if (result.success && result.data) {
         setMtfData(result.data);
@@ -157,7 +168,7 @@ export function PatternDashboard() {
     } finally {
       setMtfLoading(false);
     }
-  }, []);
+  }, [exchange]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -183,11 +194,13 @@ export function PatternDashboard() {
     fetchMTF(ticker);
   }, [ticker, timeframe, fetchPatterns, fetchMTF]);
 
-  // Autocomplete suggestions (Fix 8) — show popular tickers when empty
+  // Autocomplete suggestions — show popular tickers when empty
+  const tickerUniverse = useMemo(() => getTickerUniverse(exchange), [exchange]);
+  const popularTickers = useMemo(() => getPopularTickers(exchange), [exchange]);
   const filteredSuggestions = useMemo(() => {
-    if (!searchInput.trim()) return POPULAR_TICKERS.filter((t) => t !== ticker);
+    if (!searchInput.trim()) return popularTickers.filter((t) => t !== ticker);
     const query = searchInput.trim().toUpperCase();
-    return NIFTY_50.filter((t) => t.startsWith(query) && t !== query).slice(0, 8);
+    return tickerUniverse.filter((t) => t.startsWith(query) && t !== query).slice(0, 8);
   }, [searchInput, ticker]);
 
   const showPopularHeader = !searchInput.trim() && showSuggestions;
@@ -394,7 +407,7 @@ export function PatternDashboard() {
 
       {/* ─── Scanner Mode ─── */}
       {viewMode === 'scan' && (
-        <ScannerView onSelectTicker={handleScannerSelect} />
+        <ScannerView onSelectTicker={handleScannerSelect} exchange={exchange} />
       )}
 
       {/* ─── Analyze Mode ─── */}

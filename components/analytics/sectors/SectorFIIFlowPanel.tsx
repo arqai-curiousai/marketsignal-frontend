@@ -16,6 +16,7 @@ import type { ISectorFIIFlow } from '@/types/analytics';
 
 interface SectorFIIFlowPanelProps {
   sector: string;
+  exchange: string;
 }
 
 const COLORS = {
@@ -142,7 +143,7 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
   );
 }
 
-export function SectorFIIFlowPanel({ sector }: SectorFIIFlowPanelProps) {
+export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps) {
   const [data, setData] = useState<ISectorFIIFlow | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -154,7 +155,7 @@ export function SectorFIIFlowPanel({ sector }: SectorFIIFlowPanelProps) {
     setLoading(true);
     setError(null);
 
-    getSectorFIIFlow(sector)
+    getSectorFIIFlow(sector, undefined, exchange)
       .then((r) => {
         if (cancelled) return;
         if (r.success && r.data) {
@@ -174,7 +175,7 @@ export function SectorFIIFlowPanel({ sector }: SectorFIIFlowPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) {
     return <SkeletonChart />;

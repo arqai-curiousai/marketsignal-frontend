@@ -78,7 +78,7 @@ export const SOURCE_DISPLAY_NAMES: Record<string, string> = {
   hindu_businessline: 'The Hindu BusinessLine',
   google_news_rss: 'Google News',
   searchapi: 'Google News',
-  fcsapi: 'FCSAPI',
+  eodhd: 'EODHD',
 };
 
 /** Returns a user-friendly display name for a source identifier. */

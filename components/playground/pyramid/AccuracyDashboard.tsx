@@ -27,7 +27,6 @@ import type { IStrategyPerformance, IStrategySignal } from '@/types/strategy';
 import {
   S,
   T,
-  L,
   SIGNAL,
   LAYER,
   TOOLTIP_STYLE,

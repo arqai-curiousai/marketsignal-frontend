@@ -1,14 +1,12 @@
 'use client';
 
 import React from 'react';
-import { cn } from '@/lib/utils';
 import {
   getSentimentColor,
   getSourceDisplayName,
   formatTimeAgo,
   THEME_COLORS,
   THEME_LABELS,
-  classifySentiment,
 } from './constants';
 
 interface TooltipNode {

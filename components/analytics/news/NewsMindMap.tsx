@@ -11,7 +11,6 @@ import {
   THEME_COLORS,
   THEME_LABELS,
   SENTIMENT_COLORS,
-  NODE_TYPE_COLORS,
   formatTimeAgo,
   classifySentiment,
 } from './constants';

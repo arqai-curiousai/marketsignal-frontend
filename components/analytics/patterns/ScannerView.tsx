@@ -62,9 +62,10 @@ type SortKey = 'quality' | 'patterns' | 'ticker';
 
 interface ScannerViewProps {
   onSelectTicker: (ticker: string) => void;
+  exchange: string;
 }
 
-export function ScannerView({ onSelectTicker }: ScannerViewProps) {
+export function ScannerView({ onSelectTicker, exchange }: ScannerViewProps) {
   const [data, setData] = useState<IScannerResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +80,7 @@ export function ScannerView({ onSelectTicker }: ScannerViewProps) {
         categories: preset.categories,
         direction: preset.direction,
         min_quality: preset.min_quality,
+        exchange,
       });
       if (result.success && result.data) {
         setData(result.data);

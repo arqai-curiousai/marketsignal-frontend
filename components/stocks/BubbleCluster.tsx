@@ -7,6 +7,8 @@ import { hierarchy, pack, type HierarchyCircularNode } from 'd3-hierarchy';
 import { getStocks } from '@/src/lib/api/stockApi';
 import type { IStock } from '@/types/stock';
 import { SECTOR_COLORS } from '@/types/analytics';
+import { getSectorColors } from '@/lib/exchange/sectors';
+import type { ExchangeCode } from '@/lib/exchange/config';
 import { BubbleTooltip } from './BubbleTooltip';
 import { SectorLegend } from './SectorLegend';
 
@@ -44,7 +46,11 @@ interface TooltipState {
   y: number;
 }
 
-export function BubbleCluster() {
+interface BubbleClusterProps {
+  exchange?: ExchangeCode;
+}
+
+export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [stocks, setStocks] = useState<IStock[]>([]);
@@ -59,18 +65,21 @@ export function BubbleCluster() {
   const [dimensions, setDimensions] = useState({ width: 800, height: 500 });
   const [mounted, setMounted] = useState(false);
 
+  // Dynamic sector colors based on exchange
+  const sectorColorMap = useMemo(() => getSectorColors(exchange), [exchange]);
+
   // Fetch stocks
   useEffect(() => {
     async function load() {
       setLoading(true);
-      const res = await getStocks({ exchange: 'NSE', pageSize: 50 });
+      const res = await getStocks({ exchange, pageSize: 50 });
       if (res.success && res.data) {
         setStocks(res.data.items);
       }
       setLoading(false);
     }
     load();
-  }, []);
+  }, [exchange]);
 
   // Measure container
   useEffect(() => {
@@ -209,9 +218,9 @@ export function BubbleCluster() {
 
   const handleBubbleClick = useCallback(
     (ticker: string) => {
-      router.push(`/stocks/${ticker}`);
+      router.push(`/stocks/${encodeURIComponent(ticker)}?exchange=${exchange}`);
     },
-    [router],
+    [router, exchange],
   );
 
   if (loading) {
@@ -265,7 +274,7 @@ export function BubbleCluster() {
 
           {/* Layer 1: Sector background circles */}
           {sectorNodes.map((node) => {
-            const color = SECTOR_COLORS[node.data.sector ?? ''] || '#64748B';
+            const color = sectorColorMap[node.data.sector ?? ''] || SECTOR_COLORS[node.data.sector ?? ''] || '#64748B';
             const sectorIdx = sectorIndexMap.get(node.data.sector ?? '') ?? 0;
             const hasFilteredStocks = activeSector === null || activeSector === node.data.sector;
 
@@ -325,7 +334,7 @@ export function BubbleCluster() {
             if (!stock) return null;
 
             const ticker = node.data.ticker ?? '';
-            const color = SECTOR_COLORS[node.data.sector ?? ''] || '#64748B';
+            const color = sectorColorMap[node.data.sector ?? ''] || SECTOR_COLORS[node.data.sector ?? ''] || '#64748B';
             const isFiltered = filteredIds.has(ticker);
             const isHovered = hoveredId === ticker;
             const changePercent = stock.changePercent ?? 0;

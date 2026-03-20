@@ -123,7 +123,7 @@ function biasOpacity(confidence: number): number {
 export function SignalPyramid({
   layers,
   finalSignal,
-  finalConfidence,
+  finalConfidence: _finalConfidence,
   selectedLayer,
   onLayerClick,
   className,

@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { ILayerResult, StrategySignal } from '@/types/strategy';
 import { LAYERS } from './constants';
-import { SIGNAL, signalColor, layerColor, T, S, fmtPct } from './tokens';
+import { signalColor, layerColor, T, S, fmtPct } from './tokens';
 
 interface SignalPyramidMobileProps {
   layers: Record<string, ILayerResult>;
@@ -68,7 +68,7 @@ function ConfidenceBar({
 export function SignalPyramidMobile({
   layers,
   finalSignal,
-  finalConfidence,
+  finalConfidence: _finalConfidence,
   selectedLayer,
   onLayerClick,
 }: SignalPyramidMobileProps) {

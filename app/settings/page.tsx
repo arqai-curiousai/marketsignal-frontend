@@ -24,8 +24,8 @@ export default function SettingsPage() {
                     </div>
                     <Card className="bg-white/5 border-white/10 divide-y divide-white/5">
                         {[
-                            { name: 'FCSAPI', type: 'MARKET_DATA', desc: 'Forex, commodities, fundamentals, news' },
                             { name: 'Kite Connect', type: 'NSE', desc: 'NSE live quotes, historical data, F&O' },
+                            { name: 'EODHD', type: 'GLOBAL', desc: 'Global exchanges (NASDAQ, NYSE, LSE, SGX, HKSE) + Forex' },
                             { name: 'Qdrant Cloud', type: 'VECTOR_STORE', desc: 'Vector embeddings for RAG search' },
                         ].map((source) => (
                             <div key={source.name} className="p-6 flex items-center justify-between">

@@ -4,7 +4,6 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, BarChart3, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { ILayerResult, ILayerDefinition, StrategySignal } from '@/types/strategy';
 import { S, T, L, signalColor, layerColor, fmtPct } from './tokens';

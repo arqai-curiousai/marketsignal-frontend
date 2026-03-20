@@ -15,6 +15,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useWatchlist } from '@/src/hooks/useWatchlist';
 import { getActiveSignals } from '@/src/lib/api/signalApi';
+import { useExchange } from '@/context/ExchangeContext';
 import type { IAISignal } from '@/types/stock';
 import type { WatchlistItem } from '@/src/lib/api/watchlistApi';
 import Link from 'next/link';
@@ -34,6 +35,7 @@ import {
  */
 export default function StocksDashboard() {
     const router = useRouter();
+    const { selectedExchange, exchangeConfig } = useExchange();
     const [view, setView] = useState<'bubble' | 'list'>('bubble');
     const [mobilePortfolioOpen, setMobilePortfolioOpen] = useState(false);
 
@@ -49,9 +51,10 @@ export default function StocksDashboard() {
 
     const [activeSignalsMap, setActiveSignalsMap] = useState<Record<string, IAISignal>>({});
 
-    const handleStockSelect = useCallback((ticker: string, exchange: string = 'NSE') => {
-        router.push(`/stocks/${encodeURIComponent(ticker)}?exchange=${exchange}`);
-    }, [router]);
+    const handleStockSelect = useCallback((ticker: string, exchange?: string) => {
+        const ex = exchange || selectedExchange;
+        router.push(`/stocks/${encodeURIComponent(ticker)}?exchange=${ex}`);
+    }, [router, selectedExchange]);
 
     const fetchActiveSignals = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -93,7 +96,7 @@ export default function StocksDashboard() {
                         variant="outline"
                         className="px-2.5 py-0.5 border-brand-emerald/30 bg-brand-emerald/5 text-brand-emerald text-[10px] uppercase tracking-widest"
                     >
-                        NSE Live Data
+                        {exchangeConfig.name} Live Data
                     </Badge>
 
                     {/* View Toggle */}
@@ -126,12 +129,12 @@ export default function StocksDashboard() {
                 </div>
 
                 <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">
-                    NIFTY 50 Stocks
+                    {exchangeConfig.indexName} Stocks
                 </h1>
                 <p className="text-sm md:text-base text-muted-foreground max-w-xl">
                     {view === 'bubble'
                         ? 'Interactive bubble visualization — size by market cap, color by sector, glow by momentum.'
-                        : 'Real-time prices and historical data for India\u2019s top 50 stocks.'}
+                        : `Real-time prices and historical data for ${exchangeConfig.indexName} stocks.`}
                 </p>
 
                 {/* Stats Row */}
@@ -139,22 +142,22 @@ export default function StocksDashboard() {
                     <StatItem
                         icon={<TrendingUp className="h-4 w-4 text-brand-blue" />}
                         label="Index"
-                        value="NIFTY 50"
+                        value={exchangeConfig.indexName}
                     />
                     <StatItem
                         icon={<Activity className="h-4 w-4 text-brand-emerald" />}
                         label="Stocks"
-                        value="50"
+                        value={String(exchangeConfig.stockCount)}
                     />
                     <StatItem
                         icon={<Clock className="h-4 w-4 text-brand-violet" />}
                         label="Market Hours"
-                        value="9:15 - 15:30"
+                        value={`${exchangeConfig.marketOpen} - ${exchangeConfig.marketClose}`}
                     />
                     <StatItem
                         icon={<BarChart3 className="h-4 w-4 text-yellow-400" />}
                         label="Exchange"
-                        value="NSE India"
+                        value={exchangeConfig.fullName}
                     />
                 </div>
             </motion.div>
@@ -210,9 +213,9 @@ export default function StocksDashboard() {
                     transition={{ delay: 0.1 }}
                 >
                     {view === 'bubble' ? (
-                        <BubbleCluster />
+                        <BubbleCluster exchange={selectedExchange} />
                     ) : (
-                        <StockList initialExchange="NSE" pageSize={50} />
+                        <StockList initialExchange={selectedExchange} pageSize={exchangeConfig.stockCount} />
                     )}
                 </motion.div>
             </div>

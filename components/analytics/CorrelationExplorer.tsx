@@ -21,7 +21,7 @@ import type {
   ICommunityDetection,
   ICorrelationMover,
 } from '@/types/analytics';
-import { type CorrelationMethod, type ViewMode, type AssetScope } from './correlation/constants';
+import { type CorrelationMethod, type ViewMode, type AssetScope, getStockAssets, getAllAssets } from './correlation/constants';
 import { CorrelationToolbar, type ColorMode } from './correlation/CorrelationToolbar';
 import { NetworkGraph } from './correlation/NetworkGraph';
 import { HeatmapMatrix } from './correlation/HeatmapMatrix';
@@ -76,16 +76,22 @@ function timeAgo(dateStr: string): string {
   return `${Math.floor(hrs / 24)}d ago`;
 }
 
-export function CorrelationExplorer() {
+interface CorrelationExplorerProps {
+  exchange: string;
+}
+
+export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
   // ── Read initial state from URL ──
   const urlParams = readUrlParams();
   const initialView: ViewMode = urlParams.view === 'asset' ? 'explorer' : (VALID_VIEWS.has(urlParams.view as ViewMode) ? urlParams.view as ViewMode : 'network');
   const initialWindow = VALID_WINDOWS.has(urlParams.window ?? '') ? urlParams.window! : '90d';
   const initialMethod = VALID_METHODS.has(urlParams.method as CorrelationMethod) ? urlParams.method! : 'pearson';
   const initialScope = VALID_SCOPES.has(urlParams.scope as AssetScope) ? urlParams.scope! : 'equity';
+  const exchangeStocks = getStockAssets(exchange);
+  const defaultTickers = exchangeStocks.slice(0, 5).map(a => a.ticker);
   const initialAssets = urlParams.assets
     ? urlParams.assets.split(',').filter(Boolean)
-    : ['HDFCBANK', 'ICICIBANK', 'SBIN', 'TCS', 'INFY'];
+    : defaultTickers;
 
   // ── Data state ──
   const [equityMatrix, setEquityMatrix] = useState<ICorrelationMatrix | null>(null);
@@ -113,6 +119,17 @@ export function CorrelationExplorer() {
   const [mstData, setMstData] = useState<IMST | null>(null);
   const [colorMode, setColorMode] = useState<ColorMode>('type');
   const [communityData, setCommunityData] = useState<ICommunityDetection | null>(null);
+
+  // Reset selected assets when exchange changes
+  const prevExchangeRef = React.useRef(exchange);
+  useEffect(() => {
+    if (prevExchangeRef.current !== exchange) {
+      prevExchangeRef.current = exchange;
+      const stocks = getStockAssets(exchange);
+      setSelectedAssets(stocks.slice(0, 5).map(a => a.ticker));
+      setSelectedPair(null);
+    }
+  }, [exchange]);
 
   // ═══════════════════════════════════════════════════════════════
   // URL State Persistence (E2)
@@ -143,8 +160,8 @@ export function CorrelationExplorer() {
 
       try {
         const [corrResult, enhancedResult, crossResult, globalResult] = await Promise.all([
-          getCorrelations(windowValue, assetScope),
-          getEnhancedMatrix(windowValue, assetScope, method),
+          getCorrelations(windowValue, assetScope, exchange),
+          getEnhancedMatrix(windowValue, assetScope, method, exchange),
           assetScope === 'cross_asset'
             ? getCrossAsset(undefined, undefined, 0.1)
             : Promise.resolve({ success: false as const, data: null }),
@@ -167,7 +184,7 @@ export function CorrelationExplorer() {
         }
 
         // Fetch correlation change leaders (non-blocking)
-        getCorrelationChanges(windowValue, 3).then((changesResult) => {
+        getCorrelationChanges(windowValue, 3, exchange).then((changesResult) => {
           if (cancelled) return;
           if (changesResult.success && changesResult.data?.movers) {
             setCorrelationMovers(changesResult.data.movers);
@@ -195,7 +212,7 @@ export function CorrelationExplorer() {
 
     fetchAll();
     return () => { cancelled = true; };
-  }, [windowValue, method, assetScope, retryCount]);
+  }, [windowValue, method, assetScope, retryCount, exchange]);
 
   // MST fetch
   useEffect(() => {
@@ -317,6 +334,7 @@ export function CorrelationExplorer() {
         mstEnabled={mstEnabled}
         colorMode={colorMode}
         assetScope={assetScope}
+        exchange={exchange}
         equityMatrix={equityMatrix}
         enhancedMatrix={enhancedMatrix}
         lastUpdatedLabel={lastUpdatedLabel}
@@ -495,6 +513,7 @@ export function CorrelationExplorer() {
             pairCorrelation={pairCorrelation}
             window={windowValue}
             method={method}
+            exchange={exchange}
           />
         </SheetContent>
       </Sheet>

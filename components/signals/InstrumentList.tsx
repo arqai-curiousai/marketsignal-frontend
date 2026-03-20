@@ -9,8 +9,10 @@ import { getInstruments } from '@/src/lib/api/signalApi';
 import type { IInstrument } from '@/types/stock';
 import type { IRealtimePrice } from '@/types/websocket';
 
+type InstrumentType = 'nse' | 'nasdaq' | 'nyse' | 'lse' | 'sgx' | 'hkse' | 'currency' | 'commodity';
+
 interface InstrumentListProps {
-    type: 'nse' | 'currency' | 'commodity';
+    type: InstrumentType;
     onAddToPortfolio?: (ticker: string, exchange: string, instrumentType: string) => void;
     /** Real-time prices keyed by symbol (e.g. "FX:USDINR"). When present, overlays REST data. */
     realtimePrices?: Record<string, IRealtimePrice>;
@@ -40,7 +42,16 @@ export function InstrumentList({ type, onAddToPortfolio, realtimePrices }: Instr
         if (inst.instrumentType === 'commodity') {
             return 'CMDTY:' + inst.name;
         }
-        return 'NSE:' + inst.ticker;
+        // Map exchange-specific prefixes
+        const exchangePrefix = inst.exchange?.toUpperCase() ?? 'NSE';
+        switch (exchangePrefix) {
+            case 'NASDAQ': return 'NASDAQ:' + inst.ticker;
+            case 'NYSE': return 'NYSE:' + inst.ticker;
+            case 'LSE': return 'LSE:' + inst.ticker;
+            case 'SGX': return 'SGX:' + inst.ticker;
+            case 'HKSE': return 'HKSE:' + inst.ticker;
+            default: return 'NSE:' + inst.ticker;
+        }
     };
 
     /** Overlay WS price onto an instrument if available. */

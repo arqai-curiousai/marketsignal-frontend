@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { NODE_TYPE_COLORS, EDGE_STYLES } from './constants';
-import { cn } from '@/lib/utils';
 
 export function NetworkLegend() {
   return (

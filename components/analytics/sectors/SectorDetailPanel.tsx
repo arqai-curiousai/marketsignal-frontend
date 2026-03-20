@@ -43,6 +43,7 @@ interface SectorDetailPanelProps {
   selectedSector: ISectorAnalytics | null;
   allSectors: ISectorAnalytics[];
   timeframe: SectorTimeframe;
+  exchange: string;
   onSectorSelect: (sector: ISectorAnalytics | null) => void;
   onDrillOpen: (sector: ISectorAnalytics) => void;
 }
@@ -133,13 +134,13 @@ function SectionGroupLabel({ label }: { label: string }) {
 // ─── Self-fetching lazy sections ──────────────────────────────
 // Each mounts only when its accordion opens, fetches its own data.
 
-function LazyRiskSection({ sector, sectorColor }: { sector: string; sectorColor: string }) {
+function LazyRiskSection({ sector, sectorColor, exchange }: { sector: string; sectorColor: string; exchange: string }) {
   const [data, setData] = useState<ISectorRiskScorecard | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getSectorRisk(sector)
+    getSectorRisk(sector, exchange)
       .then((r) => {
         if (!cancelled && r.success && r.data) setData(r.data);
         if (!cancelled) setLoading(false);
@@ -148,20 +149,20 @@ function LazyRiskSection({ sector, sectorColor }: { sector: string; sectorColor:
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) return <LoadingSpinner />;
   if (!data) return <NoData />;
   return <RiskRadarChart data={data} sectorColor={sectorColor} />;
 }
 
-function LazyHistorySection({ sector, sectorColor }: { sector: string; sectorColor: string }) {
+function LazyHistorySection({ sector, sectorColor, exchange }: { sector: string; sectorColor: string; exchange: string }) {
   const [data, setData] = useState<ISectorHistory | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getSectorHistory(sector, 252)
+    getSectorHistory(sector, 252, exchange)
       .then((r) => {
         if (!cancelled && r.success && r.data) setData(r.data);
         if (!cancelled) setLoading(false);
@@ -170,20 +171,20 @@ function LazyHistorySection({ sector, sectorColor }: { sector: string; sectorCol
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) return <LoadingSpinner />;
   if (!data) return <NoData />;
   return <HistoryChart data={data} sectorColor={sectorColor} />;
 }
 
-function LazySeasonalitySection({ sector }: { sector: string }) {
+function LazySeasonalitySection({ sector, exchange }: { sector: string; exchange: string }) {
   const [data, setData] = useState<ISectorSeasonality | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getSectorSeasonality(sector)
+    getSectorSeasonality(sector, exchange)
       .then((r) => {
         if (!cancelled && r.success && r.data) setData(r.data);
         if (!cancelled) setLoading(false);
@@ -192,20 +193,20 @@ function LazySeasonalitySection({ sector }: { sector: string }) {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) return <LoadingSpinner />;
   if (!data) return <NoData />;
   return <SeasonalityCalendar data={data} />;
 }
 
-function LazyMansfieldSection({ sector, sectorColor }: { sector: string; sectorColor: string }) {
+function LazyMansfieldSection({ sector, sectorColor, exchange }: { sector: string; sectorColor: string; exchange: string }) {
   const [data, setData] = useState<ISectorMansfieldRS | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getSectorMansfield(sector, 252)
+    getSectorMansfield(sector, 252, exchange)
       .then((r) => {
         if (!cancelled && r.success && r.data) setData(r.data);
         if (!cancelled) setLoading(false);
@@ -214,20 +215,20 @@ function LazyMansfieldSection({ sector, sectorColor }: { sector: string; sectorC
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) return <LoadingSpinner />;
   if (!data) return <NoData />;
   return <MansfieldRSChart data={data} sectorColor={sectorColor} />;
 }
 
-function LazyFlowSection({ sector }: { sector: string }) {
+function LazyFlowSection({ sector, exchange }: { sector: string; exchange: string }) {
   const [data, setData] = useState<ISectorVolumeFlow | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
-    getSectorFlow(sector)
+    getSectorFlow(sector, exchange)
       .then((r) => {
         if (!cancelled && r.success && r.data) setData(r.data);
         if (!cancelled) setLoading(false);
@@ -236,7 +237,7 @@ function LazyFlowSection({ sector }: { sector: string }) {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) return <LoadingSpinner />;
   if (!data) return <NoData />;
@@ -249,6 +250,7 @@ export function SectorDetailPanel({
   selectedSector,
   allSectors,
   timeframe,
+  exchange,
   onSectorSelect,
   onDrillOpen,
 }: SectorDetailPanelProps) {
@@ -543,45 +545,45 @@ export function SectorDetailPanel({
         <SectionGroupLabel label="Fundamentals" />
 
         <LazySection title="Valuation" description="PE, PB, DY, EV/EBITDA, ROE — market-cap weighted">
-          <SectorValuationPanel sector={selectedSector.sector} />
+          <SectorValuationPanel sector={selectedSector.sector} exchange={exchange} />
         </LazySection>
 
         <LazySection title="Financials" description="Revenue, EBITDA, PAT with YoY growth">
-          <SectorFinancialsPanel sector={selectedSector.sector} />
+          <SectorFinancialsPanel sector={selectedSector.sector} exchange={exchange} />
         </LazySection>
 
         <LazySection title="Earnings Calendar" description="Upcoming and recent earnings dates">
-          <SectorEarningsCalendar sector={selectedSector.sector} />
+          <SectorEarningsCalendar sector={selectedSector.sector} exchange={exchange} />
         </LazySection>
 
         {/* ─── Institutional ─── */}
         <SectionGroupLabel label="Institutional" />
 
         <LazySection title="FII / FPI Sector Flow" description="Quarterly ownership trends across investor categories">
-          <SectorFIIFlowPanel sector={selectedSector.sector} />
+          <SectorFIIFlowPanel sector={selectedSector.sector} exchange={exchange} />
         </LazySection>
 
-        <LazySection title="Performance vs NIFTY 50" description="Cumulative returns and drawdown vs benchmark">
-          <LazyHistorySection sector={selectedSector.sector} sectorColor={sectorColor} />
+        <LazySection title="Performance vs Benchmark" description="Cumulative returns and drawdown vs benchmark">
+          <LazyHistorySection sector={selectedSector.sector} sectorColor={sectorColor} exchange={exchange} />
         </LazySection>
 
         {/* ─── Technical ─── */}
         <SectionGroupLabel label="Technical" />
 
         <LazySection title="Risk Scorecard" description="Sharpe, Sortino, Calmar ratios and max drawdown">
-          <LazyRiskSection sector={selectedSector.sector} sectorColor={sectorColor} />
+          <LazyRiskSection sector={selectedSector.sector} sectorColor={sectorColor} exchange={exchange} />
         </LazySection>
 
-        <LazySection title="Mansfield RS" description="Relative strength stage analysis vs NIFTY 50">
-          <LazyMansfieldSection sector={selectedSector.sector} sectorColor={sectorColor} />
+        <LazySection title="Mansfield RS" description="Relative strength stage analysis vs benchmark">
+          <LazyMansfieldSection sector={selectedSector.sector} sectorColor={sectorColor} exchange={exchange} />
         </LazySection>
 
         <LazySection title="Seasonality" description="Monthly return patterns and hit rates">
-          <LazySeasonalitySection sector={selectedSector.sector} />
+          <LazySeasonalitySection sector={selectedSector.sector} exchange={exchange} />
         </LazySection>
 
         <LazySection title="Volume Flow" description="OBV-based accumulation/distribution analysis">
-          <LazyFlowSection sector={selectedSector.sector} />
+          <LazyFlowSection sector={selectedSector.sector} exchange={exchange} />
         </LazySection>
       </motion.div>
     </AnimatePresence>

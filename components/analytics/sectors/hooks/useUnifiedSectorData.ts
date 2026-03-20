@@ -24,7 +24,7 @@ interface UnifiedSectorData {
   refetch: () => void;
 }
 
-export function useUnifiedSectorData(): UnifiedSectorData {
+export function useUnifiedSectorData(exchange: string = 'NSE'): UnifiedSectorData {
   const [sectors, setSectors] = useState<ISectorAnalytics[]>([]);
   const [indiaVix, setIndiaVix] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ export function useUnifiedSectorData(): UnifiedSectorData {
       setLoading(true);
     }
     setError(null);
-    getSectorAnalytics()
+    getSectorAnalytics(exchange)
       .then((res) => {
         if (res.success && res.data) {
           setSectors(res.data.items);
@@ -56,7 +56,7 @@ export function useUnifiedSectorData(): UnifiedSectorData {
         setLoading(false);
         setRefreshing(false);
       });
-  }, []);
+  }, [exchange]);
 
   useEffect(() => {
     fetchData();

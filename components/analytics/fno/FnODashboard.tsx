@@ -9,6 +9,7 @@ import { getFnOSnapshot, getFnOUnderlyings } from '@/src/lib/api/analyticsApi';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadCSV } from '@/src/lib/utils/export';
 import type { IFnOSnapshot, IFnOUnderlying } from '@/types/analytics';
+import { useExchange } from '@/context/ExchangeContext';
 import { FOCUS_RING, TAB_ACTIVE, TAB_INACTIVE, T, S } from './tokens';
 import { UnderlyingSelector } from './UnderlyingSelector';
 import { MarketPulseCard } from './MarketPulseCard';
@@ -60,6 +61,7 @@ const REFRESH_INTERVAL_MS = 60_000; // Poll every 60 seconds
 // ─── Dashboard ──────────────────────────────────────────────────────────
 
 export function FnODashboard() {
+  const { exchangeConfig, setExchange } = useExchange();
   const [underlyings, setUnderlyings] = useState<IFnOUnderlying[]>([]);
   const [selectedUnderlying, setSelectedUnderlying] = useState('NIFTY');
   const [selectedExpiry, setSelectedExpiry] = useState<string | null>(null);
@@ -141,6 +143,23 @@ export function FnODashboard() {
     setSelectedExpiry(expiry);
   };
 
+  // Guard: F&O is only available for exchanges that support it (currently NSE)
+  if (!exchangeConfig.hasFnO) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-center">
+        <Activity className="h-12 w-12 mx-auto mb-3 opacity-30 text-muted-foreground" />
+        <p className="text-lg font-medium text-muted-foreground">
+          F&O analytics are currently available for NSE only.
+        </p>
+        <button
+          onClick={() => setExchange('NSE')}
+          className="mt-4 px-4 py-2 text-xs font-medium rounded-lg bg-white/10 text-white hover:bg-white/15 transition-colors"
+        >
+          Switch to NSE
+        </button>
+      </div>
+    );
+  }
 
   // Loading state — skeleton preview instead of spinner
   if (loading && !snapshot) {

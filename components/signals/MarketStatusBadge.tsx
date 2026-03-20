@@ -6,15 +6,23 @@ import { getMarketStatus } from '@/src/lib/api/signalApi';
 import type { IMarketStatus } from '@/types/stock';
 
 interface MarketStatusBadgeProps {
-    market: 'nse' | 'forex' | 'commodity';
+    market: string;
     className?: string;
 }
 
 const MARKET_LABELS: Record<string, string> = {
     nse: 'NSE',
+    nasdaq: 'NASDAQ',
+    nyse: 'NYSE',
+    lse: 'LSE',
+    sgx: 'SGX',
+    hkse: 'HKSE',
     forex: 'Forex',
     commodity: 'MCX',
 };
+
+/** Equity exchange keys that may appear in status.exchanges */
+const EQUITY_EXCHANGES = new Set(['nse', 'nasdaq', 'nyse', 'lse', 'sgx', 'hkse']);
 
 export function MarketStatusBadge({ market, className }: MarketStatusBadgeProps) {
     const [status, setStatus] = useState<IMarketStatus | null>(null);
@@ -33,7 +41,20 @@ export function MarketStatusBadge({ market, className }: MarketStatusBadgeProps)
         return () => clearInterval(interval);
     }, []);
 
-    const isOpen = status?.[market]?.is_open ?? false;
+    // For equity exchanges, try the multi-exchange status shape first, then fall back
+    const isOpen = (() => {
+        if (EQUITY_EXCHANGES.has(market)) {
+            const exchangeKey = market.toUpperCase();
+            // New multi-exchange shape: status.exchanges.NSE.is_open
+            const multiExchange = (status as Record<string, unknown>)?.exchanges as
+                Record<string, { is_open?: boolean }> | undefined;
+            if (multiExchange?.[exchangeKey]?.is_open !== undefined) {
+                return multiExchange[exchangeKey].is_open;
+            }
+        }
+        // Backward-compatible: status.nse.is_open / status.forex.is_open
+        return (status as Record<string, { is_open?: boolean }>)?.[market]?.is_open ?? false;
+    })();
 
     return (
         <div className={cn(

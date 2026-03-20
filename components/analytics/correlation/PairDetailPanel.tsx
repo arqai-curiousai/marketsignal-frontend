@@ -42,6 +42,7 @@ interface PairDetailPanelProps {
   pairCorrelation: number | null;
   window: string;
   method: string;
+  exchange: string;
 }
 
 export function PairDetailPanel({
@@ -49,6 +50,7 @@ export function PairDetailPanel({
   pairCorrelation,
   window: windowValue,
   method,
+  exchange,
 }: PairDetailPanelProps) {
   // ── Overview tab data (fetched immediately) ──
   const [enhancedData, setEnhancedData] = useState<IEnhancedCorrelation | null>(null);
@@ -77,8 +79,8 @@ export function PairDetailPanel({
   // Derive exchange info
   const assetA = selectedPair ? ASSET_MAP.get(selectedPair[0]) : null;
   const assetB = selectedPair ? ASSET_MAP.get(selectedPair[1]) : null;
-  const exA = assetA?.type === 'currency' ? 'FX' : assetA?.type === 'commodity' ? 'CMDTY' : 'NSE';
-  const exB = assetB?.type === 'currency' ? 'FX' : assetB?.type === 'commodity' ? 'CMDTY' : 'NSE';
+  const exA = assetA?.type === 'currency' ? 'FX' : assetA?.type === 'commodity' ? 'CMDTY' : exchange;
+  const exB = assetB?.type === 'currency' ? 'FX' : assetB?.type === 'commodity' ? 'CMDTY' : exchange;
   const bothStocks = assetA?.type === 'stock' && assetB?.type === 'stock';
   const windowDays = parseInt(windowValue) || 90;
 

@@ -1,5 +1,8 @@
 /** Sector dashboard shared constants, colors, and configuration. */
 
+import { type ExchangeCode } from '@/lib/exchange/config';
+import { formatMarketCap as exchangeFormatMarketCap } from '@/lib/exchange/formatting';
+
 export { SECTOR_COLORS } from '@/types/analytics';
 
 export type SectorViewMode = 'treemap' | 'heatmap' | 'table' | 'flow' | 'pyramid';
@@ -55,13 +58,10 @@ export function perfTextClass(pct: number): string {
   return 'text-muted-foreground';
 }
 
-/** Format ₹ values compactly. */
-export function formatMarketCap(val: number | null): string {
+/** Format market cap values compactly, exchange-aware. */
+export function formatMarketCap(val: number | null, exchange: ExchangeCode = 'NSE'): string {
   if (val == null) return '—';
-  if (val >= 1e12) return `₹${(val / 1e12).toFixed(1)}T`;
-  if (val >= 1e9) return `₹${(val / 1e9).toFixed(1)}B`;
-  if (val >= 1e6) return `₹${(val / 1e6).toFixed(0)}M`;
-  return `₹${val.toLocaleString()}`;
+  return exchangeFormatMarketCap(val, exchange);
 }
 
 /** Format volume compactly. */

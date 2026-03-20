@@ -11,6 +11,9 @@ import { apiClient } from '@/lib/api/client';
 import { getStockNews } from '@/src/lib/api/analyticsApi';
 import type { INewsArticle } from '@/types/analytics';
 import { ArticleCard } from '@/components/analytics/news/ArticleCard';
+import { getExchangeConfig } from '@/lib/exchange/config';
+import { getCurrencySymbol as getExchangeCurrencySymbol } from '@/lib/exchange/formatting';
+import type { ExchangeCode } from '@/lib/exchange/config';
 
 interface StockOHLCV {
     timestamp: string;
@@ -42,14 +45,12 @@ function getInstrumentType(exchange: string): string {
 }
 
 function getCurrencySymbol(exchange: string): string {
-    switch (exchange) {
-        case 'CMDTY': return '$';
-        default: return '₹';
-    }
+    return getExchangeCurrencySymbol(exchange as ExchangeCode);
 }
 
-function formatPrice(value: number): string {
-    return new Intl.NumberFormat('en-IN', {
+function formatPrice(value: number, exchange?: string): string {
+    const config = getExchangeConfig(exchange ?? 'NSE');
+    return new Intl.NumberFormat(config.locale, {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
     }).format(value);
@@ -94,7 +95,7 @@ export default function StockAnalyticsPage() {
 
     // Fetch stock news
     useEffect(() => {
-        if (!ticker || exchange !== 'NSE') return;
+        if (!ticker) return;
         async function fetchNews() {
             setNewsLoading(true);
             try {
@@ -283,7 +284,7 @@ export default function StockAnalyticsPage() {
                                             <span className="text-muted-foreground">Volume</span>
                                             <span className="text-white font-mono">
                                                 {(quote?.volume ?? latestBar?.volume) != null
-                                                    ? (quote?.volume ?? latestBar!.volume).toLocaleString('en-IN')
+                                                    ? (quote?.volume ?? latestBar!.volume).toLocaleString(getExchangeConfig(exchange).locale)
                                                     : '--'}
                                             </span>
                                         </div>
@@ -324,34 +325,32 @@ export default function StockAnalyticsPage() {
                 </div>
 
                 {/* Stock News Section */}
-                {exchange === 'NSE' && (
-                    <div className="mt-8">
-                        <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                            <Newspaper className="h-5 w-5 text-brand-blue" />
-                            Latest News
-                        </h2>
-                        {newsLoading ? (
-                            <div className="flex items-center justify-center py-12">
-                                <Loader2 className="h-6 w-6 animate-spin text-brand-blue" />
-                            </div>
-                        ) : newsArticles.length === 0 ? (
-                            <div className="text-center py-12 text-muted-foreground rounded-xl border border-white/10 bg-white/[0.02]">
-                                <Newspaper className="h-10 w-10 mx-auto mb-2 opacity-50" />
-                                <p className="text-sm">No recent news found for {ticker}</p>
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {newsArticles.map((article, idx) => (
-                                    <ArticleCard
-                                        key={article.id}
-                                        article={article}
-                                        index={idx}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                )}
+                <div className="mt-8">
+                    <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                        <Newspaper className="h-5 w-5 text-brand-blue" />
+                        Latest News
+                    </h2>
+                    {newsLoading ? (
+                        <div className="flex items-center justify-center py-12">
+                            <Loader2 className="h-6 w-6 animate-spin text-brand-blue" />
+                        </div>
+                    ) : newsArticles.length === 0 ? (
+                        <div className="text-center py-12 text-muted-foreground rounded-xl border border-white/10 bg-white/[0.02]">
+                            <Newspaper className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                            <p className="text-sm">No recent news found for {ticker}</p>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {newsArticles.map((article, idx) => (
+                                <ArticleCard
+                                    key={article.id}
+                                    article={article}
+                                    index={idx}
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
             </motion.div>
         </div>
     );

@@ -16,6 +16,7 @@ import type { ISectorFinancials } from '@/types/analytics';
 
 interface SectorFinancialsPanelProps {
   sector: string;
+  exchange: string;
 }
 
 const COLORS = {
@@ -99,7 +100,7 @@ function YoYBadge({ value }: { value: number | null }) {
   );
 }
 
-export function SectorFinancialsPanel({ sector }: SectorFinancialsPanelProps) {
+export function SectorFinancialsPanel({ sector, exchange }: SectorFinancialsPanelProps) {
   const [data, setData] = useState<ISectorFinancials | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,7 +112,7 @@ export function SectorFinancialsPanel({ sector }: SectorFinancialsPanelProps) {
     setLoading(true);
     setError(null);
 
-    getSectorFinancials(sector)
+    getSectorFinancials(sector, undefined, exchange)
       .then((r) => {
         if (cancelled) return;
         if (r.success && r.data) {
@@ -131,7 +132,7 @@ export function SectorFinancialsPanel({ sector }: SectorFinancialsPanelProps) {
     return () => {
       cancelled = true;
     };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) {
     return <SkeletonChart />;

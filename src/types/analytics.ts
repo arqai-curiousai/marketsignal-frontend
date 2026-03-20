@@ -1225,3 +1225,267 @@ export interface INewsTimeline {
   price_series: Record<string, Array<{ timestamp: string; close: number; volume: number }>>;
   impact_markers: Array<{ event_id: string; ticker: string; price_change_1d: number | null }>;
 }
+
+// ─── Currency Dashboard ─────────────────────────────────────
+
+export interface ICurrencyPairSnapshot {
+  ticker: string;
+  price: number;
+  change_pct: number;
+  high: number | null;
+  low: number | null;
+  high_52w: number | null;
+  low_52w: number | null;
+  sparkline: number[];
+}
+
+export interface ICurrencyOverview {
+  pairs: ICurrencyPairSnapshot[];
+  computed_at: string;
+}
+
+export interface ICorrelationMatrix {
+  tickers: string[];
+  matrix: number[][];
+  computed_at: string;
+}
+
+// ─── Currency Dashboard — Pro Analytics ──────────────────────
+
+export interface ICurrencyTechnicals {
+  pair: string;
+  price: number;
+  sma: { sma20: number; sma50: number; sma200: number | null };
+  ema: { ema9: number; ema21: number };
+  rsi: { value: number; signal: 'overbought' | 'oversold' | 'neutral' };
+  macd: { macd: number; signal: number; histogram: number; crossover: string | null };
+  bollinger: { upper: number; middle: number; lower: number; pctB: number; bandwidth: number };
+  atr: { value: number; paise: number };
+  adx: { value: number; trend_strength: 'weak' | 'moderate' | 'strong' };
+  stochastic: { k: number; d: number; signal: string };
+  pivots: {
+    classic: Record<string, number>;
+    camarilla: Record<string, number>;
+    fibonacci: Record<string, number>;
+  };
+  summary: 'BUY' | 'SELL' | 'NEUTRAL';
+  computed_at: string;
+}
+
+export interface ICurrencyVolWindow {
+  window: string;
+  close_to_close: number;
+  parkinson: number;
+  yang_zhang: number;
+}
+
+export interface ICurrencyVolatility {
+  pair: string;
+  windows: ICurrencyVolWindow[];
+  percentile_rank: number;
+  regime: 'LOW' | 'NORMAL' | 'HIGH' | 'EXTREME';
+  term_structure: Array<{ window: number; rv: number }>;
+  squeeze: boolean;
+  current_bandwidth: number;
+  computed_at: string;
+}
+
+export interface ICurrencyStrength {
+  currencies: Record<string, { '1d': number; '1w': number; '1m': number; '3m': number }>;
+  computed_at: string;
+}
+
+export interface ICurrencyCarryPair {
+  pair: string;
+  base_currency: string;
+  quote_currency: string;
+  base_rate: number;
+  quote_rate: number;
+  differential_pct: number;
+  spot: number;
+  forward_1y: number | null;
+  forward_premium_pct: number;
+  carry_risk_ratio: number;
+  breakeven_depreciation_pct: number;
+}
+
+export interface ICurrencyCarry {
+  pairs: ICurrencyCarryPair[];
+  computed_at: string;
+}
+
+export interface ICurrencySession {
+  name: string;
+  is_active: boolean;
+  open: number | null;
+  high: number | null;
+  low: number | null;
+  close: number | null;
+  range_paise: number;
+  return_pct: number;
+  bar_count: number;
+}
+
+export interface ICurrencySessions {
+  pair: string;
+  sessions: ICurrencySession[];
+  asian_breakout: { high: number; low: number } | null;
+  hourly_returns: Array<{ hour: number; avg_return: number; bar_count: number }>;
+  computed_at: string;
+}
+
+export interface ICurrencyMeanReversion {
+  pair: string;
+  z_score: number;
+  half_life_days: number | null;
+  hurst: number;
+  hurst_regime: 'trending' | 'random_walk' | 'mean_reverting';
+  bb_pctB: number;
+  bb_bandwidth: number;
+  squeeze: boolean;
+  computed_at: string;
+}
+
+// ─── Currency Dashboard — Global Forex Extensions ──────────
+
+export interface IForexPair {
+  pair: string;
+  base: string;
+  quote: string;
+  category: 'major' | 'inr' | 'cross' | 'exotic';
+}
+
+export interface IForexPairList {
+  pairs: IForexPair[];
+  total: number;
+}
+
+export interface ICrossRatesCell {
+  rate: number | null;
+  change_pct: number;
+}
+
+export interface ICrossRatesMatrix {
+  currencies: string[];
+  matrix: ICrossRatesCell[][];
+  timeframe: string;
+  computed_at: string;
+}
+
+export interface ITopMover {
+  pair: string;
+  price: number;
+  change_pct: number;
+}
+
+export interface ITopMovers {
+  gainers: ITopMover[];
+  losers: ITopMover[];
+  computed_at: string;
+}
+
+export interface IMarketSession {
+  name: string;
+  city: string;
+  start_utc: string;
+  end_utc: string;
+  is_active: boolean;
+  hours_remaining: number;
+}
+
+export interface ISessionOverlap {
+  sessions: string[];
+  label: string;
+}
+
+export interface IMarketClock {
+  sessions: IMarketSession[];
+  active_count: number;
+  overlaps: ISessionOverlap[];
+  is_weekend: boolean;
+  current_utc: string;
+  computed_at: string;
+}
+
+export interface ICentralBankRate {
+  currency: string;
+  bank_name: string;
+  bank_code: string;
+  current_rate: number;
+  previous_rate: number;
+  last_change_date: string | null;
+  last_change_bps: number;
+  next_meeting_date: string | null;
+  rate_history: Array<{ date: string; rate: number }>;
+}
+
+export interface ICentralBankRates {
+  rates: ICentralBankRate[];
+  computed_at: string;
+}
+
+export interface IRateDifferentialMatrix {
+  currencies: string[];
+  matrix: (number | null)[][];
+  computed_at: string;
+}
+
+export interface IUpcomingMeeting {
+  date: string;
+  currency: string;
+  bank_name: string;
+  bank_code: string;
+  current_rate: number;
+  days_until: number;
+}
+
+export interface IUpcomingMeetings {
+  meetings: IUpcomingMeeting[];
+  computed_at: string;
+}
+
+export interface IEconomicEvent {
+  event_date: string;
+  currency: string;
+  event_name: string;
+  impact: 'high' | 'medium' | 'low';
+  previous: string | null;
+  forecast: string | null;
+  actual: string | null;
+  days_until: number;
+}
+
+export interface IEconomicCalendar {
+  events: IEconomicEvent[];
+  computed_at: string;
+}
+
+// ─── Commodity Dashboard ────────────────────────────────────
+
+export interface ICommoditySnapshot {
+  ticker: string;
+  price_usd: number;
+  price_inr: number | null;
+  change_pct: number;
+  high_52w: number | null;
+  low_52w: number | null;
+  sparkline: number[];
+}
+
+export interface ICommodityOverview {
+  commodities: ICommoditySnapshot[];
+  computed_at: string;
+}
+
+export interface IMonthlyReturn {
+  month: number;
+  avg_1y: number;
+  avg_3y: number;
+  avg_5y: number;
+  win_rate_5y: number;
+}
+
+export interface ICommoditySeasonality {
+  ticker: string;
+  monthly_returns: IMonthlyReturn[];
+}

@@ -13,8 +13,9 @@ import { LayerDetailCard } from '@/components/playground/pyramid/LayerDetailCard
 import { SignalTimeline } from '@/components/playground/pyramid/SignalTimeline';
 import { AccuracyDashboard } from '@/components/playground/pyramid/AccuracyDashboard';
 import { FeatureInspector } from '@/components/playground/pyramid/FeatureInspector';
-import { LAYERS, NIFTY50_TICKERS, REFRESH_INTERVAL_MS } from '@/components/playground/pyramid/constants';
+import { LAYERS, REFRESH_INTERVAL_MS } from '@/components/playground/pyramid/constants';
 import { strategyApi } from '@/lib/api/strategyApi';
+import { useExchange } from '@/context/ExchangeContext';
 import type {
   IStrategyDashboard,
   IStrategySignal,
@@ -26,12 +27,13 @@ import type {
 // ─── Main Page Component ───────────────────────────────────────────
 
 export default function PlaygroundPage() {
+  const { exchangeConfig } = useExchange();
   const [dashboard, setDashboard] = useState<IStrategyDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [selectedTicker, setSelectedTicker] = useState('RELIANCE');
+  const [selectedTicker, setSelectedTicker] = useState(exchangeConfig.defaultTicker);
   const [selectedLayer, setSelectedLayer] = useState<string | null>(null);
   const [featureData, setFeatureData] = useState<IFeatureInspection | null>(null);
   const [featureLoading, setFeatureLoading] = useState(false);
@@ -75,6 +77,10 @@ export default function PlaygroundPage() {
   }, []);
 
   // ── Effects ────────────────────────────────────────────────────
+
+  useEffect(() => {
+    setSelectedTicker(exchangeConfig.defaultTicker);
+  }, [exchangeConfig.defaultTicker]);
 
   useEffect(() => {
     fetchDashboard();

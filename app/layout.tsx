@@ -4,6 +4,7 @@ import './globals.css';
 import { Shell } from '@/components/layout/Shell';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/context/AuthContext';
+import { ExchangeProvider } from '@/context/ExchangeContext';
 
 const inter = Inter({ subsets: ['latin'] });
 const sora = Sora({
@@ -27,7 +28,9 @@ export default function RootLayout({
         <html lang="en" className="dark">
             <body className={`${inter.className} ${sora.variable}`}>
                 <AuthProvider>
-                    <Shell>{children}</Shell>
+                    <ExchangeProvider>
+                        <Shell>{children}</Shell>
+                    </ExchangeProvider>
                 </AuthProvider>
                 <Toaster position="top-right" />
             </body>

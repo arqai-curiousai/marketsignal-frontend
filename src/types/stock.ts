@@ -124,6 +124,16 @@ export interface IInstrument {
     currency: string;
 }
 
+export interface IExchangeStatus {
+    is_open: boolean;
+    timezone: string;
+    market_open?: string;
+    market_close?: string;
+    next_open?: string;
+    next_close?: string;
+    note?: string;
+}
+
 export interface IMarketStatus {
     nse: {
         is_open: boolean;
@@ -136,6 +146,7 @@ export interface IMarketStatus {
     forex: {
         is_open: boolean;
         timezone: string;
+        note?: string;
     };
     commodity: {
         is_open: boolean;
@@ -143,6 +154,7 @@ export interface IMarketStatus {
         market_open: string;
         market_close: string;
     };
+    exchanges?: Record<string, IExchangeStatus>;
 }
 
 export interface IActiveSignalItem {

@@ -14,6 +14,7 @@ import { StockListItem } from '@/components/signals/StockListItem';
 import { StockChatSheet } from '@/components/stocks/StockChatSheet';
 import { ViewToggle, ViewMode } from '@/components/ui/ViewToggle';
 import { SignalType } from '@/components/signals/SignalOrb';
+import { useExchange } from '@/context/ExchangeContext';
 
 interface StockListProps {
     initialExchange?: string;
@@ -35,8 +36,9 @@ export function StockList({
     initialExchange = 'NSE',
     pageSize = 50,
 }: StockListProps) {
+    const { selectedExchange, exchangeConfig } = useExchange();
     const [stocks, setStocks] = useState<IStock[]>([]);
-    const [currentExchange] = useState(initialExchange);
+    const currentExchange = initialExchange || selectedExchange;
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState('');
@@ -119,10 +121,10 @@ export function StockList({
                             variant="outline"
                             className="px-3 py-1.5 border-brand-blue/30 bg-brand-blue/5 text-brand-blue font-mono text-xs"
                         >
-                            NSE
+                            {exchangeConfig.name}
                         </Badge>
                         <span className="text-sm text-muted-foreground">
-                            {total > 0 ? `${total} stocks` : 'NIFTY 50'}
+                            {total > 0 ? `${total} stocks` : exchangeConfig.indexName}
                         </span>
                         {hasAnyPrice && (
                             <span className="flex items-center gap-1 text-[10px] text-emerald-400">

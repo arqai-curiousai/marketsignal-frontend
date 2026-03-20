@@ -27,7 +27,6 @@ import {
   signalColor,
   fmtPct,
   fmtNum,
-  fmtConfidence,
 } from './tokens';
 
 interface LiveSignalPanelProps {

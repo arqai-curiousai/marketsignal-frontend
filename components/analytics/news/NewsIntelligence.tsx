@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   getNewsClusters,
@@ -21,7 +21,7 @@ import type {
   INewsArticle,
   INewsImpact,
 } from '@/types/analytics';
-import { ALL_ASSETS } from '@/components/analytics/correlation/constants';
+import { getAllAssets } from '@/components/analytics/correlation/constants';
 import { NewsToolbar } from './NewsToolbar';
 import { NewsFeedView } from './NewsFeedView';
 import { NewsNetworkGraph } from './NewsNetworkGraph';
@@ -37,10 +37,15 @@ import {
 } from '@/components/ui/sheet';
 import { SENTIMENT_THRESHOLDS, type NewsViewMode } from './constants';
 
-const TICKER_OPTIONS = ALL_ASSETS.map((a) => a.ticker);
 const NEWS_REFRESH_INTERVAL_MS = 300_000; // 5 minutes
 
-export function NewsIntelligence() {
+interface NewsIntelligenceProps {
+  exchange: string;
+}
+
+export function NewsIntelligence({ exchange }: NewsIntelligenceProps) {
+  const tickerOptions = useMemo(() => getAllAssets(exchange).map((a) => a.ticker), [exchange]);
+
   // View state
   const [activeView, setActiveView] = useState<NewsViewMode>('feed');
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
@@ -103,9 +108,9 @@ export function NewsIntelligence() {
     setFeedError(false);
     try {
       const [clustersRes, articlesRes, impactRes] = await Promise.all([
-        getNewsClusters(timeRange, 10),
-        getMarketNews(timeRange, 50),
-        getNewsImpact(timeRange, undefined, 50),
+        getNewsClusters(timeRange, 10, exchange),
+        getMarketNews(timeRange, 50, exchange),
+        getNewsImpact(timeRange, undefined, 50, exchange),
       ]);
 
       if (clustersRes.success && clustersRes.data?.clusters) {
@@ -128,7 +133,7 @@ export function NewsIntelligence() {
     } finally {
       setFeedLoading(false);
     }
-  }, [timeRange]);
+  }, [timeRange, exchange]);
 
   useEffect(() => {
     fetchFeed();
@@ -242,7 +247,7 @@ export function NewsIntelligence() {
     }
     setSearchLoading(true);
     try {
-      const res = await searchNews(query, 20);
+      const res = await searchNews(query, 20, exchange);
       if (res.success && res.data?.items) {
         setSearchResults(res.data.items);
       } else {
@@ -253,14 +258,14 @@ export function NewsIntelligence() {
     } finally {
       setSearchLoading(false);
     }
-  }, []);
+  }, [exchange]);
 
   // Fetch graph when switching to graph view (72h window for meaningful network)
   const fetchGraph = useCallback(async () => {
     setGraphLoading(true);
     setGraphError(false);
     try {
-      const res = await getNewsGraph(Math.max(timeRange, 72), selectedTicker || undefined);
+      const res = await getNewsGraph(Math.max(timeRange, 72), selectedTicker || undefined, exchange);
       if (res.success && res.data) {
         setGraph(res.data);
       }
@@ -270,7 +275,7 @@ export function NewsIntelligence() {
     } finally {
       setGraphLoading(false);
     }
-  }, [selectedTicker, timeRange]);
+  }, [selectedTicker, timeRange, exchange]);
 
   useEffect(() => {
     if (activeView === 'graph') {
@@ -309,7 +314,7 @@ export function NewsIntelligence() {
     setTimelineLoading(true);
     setTimelineError(false);
     try {
-      const res = await getNewsTimeline(Math.max(timeRange, 168), selectedTicker || undefined);
+      const res = await getNewsTimeline(Math.max(timeRange, 168), selectedTicker || undefined, exchange);
       if (res.success && res.data) {
         setTimeline(res.data);
       }
@@ -319,7 +324,7 @@ export function NewsIntelligence() {
     } finally {
       setTimelineLoading(false);
     }
-  }, [selectedTicker, timeRange]);
+  }, [selectedTicker, timeRange, exchange]);
 
   useEffect(() => {
     if (activeView === 'timeline') {
@@ -509,7 +514,7 @@ export function NewsIntelligence() {
         onTickerChange={setSelectedTicker}
         sentimentFilter={sentimentFilter}
         onSentimentChange={setSentimentFilter}
-        tickerOptions={TICKER_OPTIONS}
+        tickerOptions={tickerOptions}
         sourceFilter={sourceFilter}
         onSourceChange={setSourceFilter}
         timeRange={timeRange}
@@ -614,7 +619,7 @@ export function NewsIntelligence() {
               ticker={selectedTicker}
               onSelectTicker={handleMindMapSelectTicker}
               onSelectArticle={handleSelectArticleById}
-              tickerOptions={TICKER_OPTIONS}
+              tickerOptions={tickerOptions}
             />
           )}
 

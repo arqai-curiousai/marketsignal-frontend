@@ -7,7 +7,6 @@ import {
   THEME_COLORS,
   THEME_LABELS,
   SENTIMENT_COLORS,
-  classifySentiment,
 } from './constants';
 
 export interface NetworkInsights {

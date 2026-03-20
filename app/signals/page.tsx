@@ -9,10 +9,13 @@ import {
   ArrowRightLeft,
   Activity,
   BarChart3,
+  DollarSign,
+  Diamond,
 } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useExchange } from '@/context/ExchangeContext';
 import { MarketStatusBadge } from '@/components/signals/MarketStatusBadge';
 
 import dynamic from 'next/dynamic';
@@ -52,14 +55,26 @@ const FnODashboard = dynamic(
   { ssr: false, loading: TabLoadingFallback },
 );
 
+const CurrencyDashboard = dynamic(
+  () => import('@/components/analytics/currency/CurrencyDashboard').then(m => ({ default: m.CurrencyDashboard })),
+  { ssr: false, loading: TabLoadingFallback },
+);
+
+const CommodityDashboard = dynamic(
+  () => import('@/components/analytics/commodity/CommodityDashboard').then(m => ({ default: m.CommodityDashboard })),
+  { ssr: false, loading: TabLoadingFallback },
+);
+
 /**
- * Markets Hub — India-first analytics dashboard
+ * Markets Hub — AI-powered analytics dashboard
  *
- * 5 tabs:
+ * 7 tabs:
  * - Sectors: Finviz-style sector heatmap
  * - News: News feed + impact analysis
  * - Correlation: Interactive correlation explorer (stocks, currencies, commodities, global)
  * - Statistical Patterns: Technical pattern detection
+ * - Currency: Forex pairs dashboard
+ * - Commodity: Commodities dashboard
  * - F&O: Volatility, risk, and futures & options metrics
  */
 
@@ -68,6 +83,8 @@ const ANALYTICS_TABS = [
   { id: 'news', label: 'News', icon: Newspaper, premium: false },
   { id: 'correlation', label: 'Correlation', icon: ArrowRightLeft, premium: false },
   { id: 'patterns', label: 'Patterns', icon: Activity, premium: false },
+  { id: 'currency', label: 'Currency', icon: DollarSign, premium: false },
+  { id: 'commodity', label: 'Commodity', icon: Diamond, premium: false },
   { id: 'fno', label: 'F&O', icon: BarChart3, premium: false },
 ];
 
@@ -82,6 +99,7 @@ export default function MarketsHub() {
 }
 
 function MarketsHubInner() {
+  const { selectedExchange, exchangeConfig } = useExchange();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') || 'sectors';
   // Redirect legacy tab values to sectors
@@ -109,12 +127,12 @@ function MarketsHubInner() {
           <div>
             <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">Markets</h1>
             <p className="text-sm text-muted-foreground">
-              India-first analytics powered by dual AI agents
+              AI-powered analytics driven by dual AI agents
             </p>
           </div>
 
           <div className="flex items-center gap-3">
-            <MarketStatusBadge market="nse" />
+            <MarketStatusBadge market={selectedExchange.toLowerCase()} />
             <MarketStatusBadge market="forex" />
             <MarketStatusBadge market="commodity" />
           </div>
@@ -150,7 +168,7 @@ function MarketsHubInner() {
         <TabsContent value="sectors" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <TabErrorBoundary tabName="Sectors">
-              <UnifiedSectorDashboard />
+              <UnifiedSectorDashboard exchange={selectedExchange} />
             </TabErrorBoundary>
           </motion.div>
         </TabsContent>
@@ -159,7 +177,7 @@ function MarketsHubInner() {
         <TabsContent value="news" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <TabErrorBoundary tabName="News">
-              <NewsIntelligence />
+              <NewsIntelligence exchange={selectedExchange} />
             </TabErrorBoundary>
           </motion.div>
         </TabsContent>
@@ -168,7 +186,7 @@ function MarketsHubInner() {
         <TabsContent value="correlation" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <TabErrorBoundary tabName="Correlation">
-              <CorrelationExplorer />
+              <CorrelationExplorer exchange={selectedExchange} />
             </TabErrorBoundary>
           </motion.div>
         </TabsContent>
@@ -177,7 +195,25 @@ function MarketsHubInner() {
         <TabsContent value="patterns" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <TabErrorBoundary tabName="Patterns">
-              <PatternDashboard />
+              <PatternDashboard exchange={selectedExchange} />
+            </TabErrorBoundary>
+          </motion.div>
+        </TabsContent>
+
+        {/* ─── Tab: Currency ─── */}
+        <TabsContent value="currency" className="mt-0">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <TabErrorBoundary tabName="Currency">
+              <CurrencyDashboard />
+            </TabErrorBoundary>
+          </motion.div>
+        </TabsContent>
+
+        {/* ─── Tab: Commodity ─── */}
+        <TabsContent value="commodity" className="mt-0">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
+            <TabErrorBoundary tabName="Commodity">
+              <CommodityDashboard />
             </TabErrorBoundary>
           </motion.div>
         </TabsContent>
@@ -186,7 +222,18 @@ function MarketsHubInner() {
         <TabsContent value="fno" className="mt-0">
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
             <TabErrorBoundary tabName="F&amp;O">
-              <FnODashboard />
+              {exchangeConfig.hasFnO ? (
+                <FnODashboard />
+              ) : (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <p className="text-lg font-medium text-muted-foreground">
+                    F&O analytics are currently available for NSE only.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Switch to NSE to access Futures & Options data.
+                  </p>
+                </div>
+              )}
             </TabErrorBoundary>
           </motion.div>
         </TabsContent>

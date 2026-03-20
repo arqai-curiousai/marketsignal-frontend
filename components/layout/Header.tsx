@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu, CircleDot } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { ExchangeSelector } from '@/components/layout/ExchangeSelector';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -135,6 +136,8 @@ export function Header() {
                             <span className="text-[11px] font-semibold tracking-wider text-white/50">ai</span>
                         </div>
                     </Link>
+
+                    <ExchangeSelector />
 
                     <nav className="hidden md:flex items-center space-x-1">
                         {navItems.map((item) => {

@@ -8,6 +8,7 @@ import type { ISectorEarningsCalendar, ISectorEarningsEntry } from '@/types/anal
 
 interface SectorEarningsCalendarProps {
   sector: string;
+  exchange: string;
 }
 
 function SkeletonList() {
@@ -100,7 +101,7 @@ function EarningsEntry({
   );
 }
 
-export function SectorEarningsCalendar({ sector }: SectorEarningsCalendarProps) {
+export function SectorEarningsCalendar({ sector, exchange }: SectorEarningsCalendarProps) {
   const [data, setData] = useState<ISectorEarningsCalendar | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -112,7 +113,7 @@ export function SectorEarningsCalendar({ sector }: SectorEarningsCalendarProps) 
     setLoading(true);
     setError(null);
 
-    getSectorEarningsCalendar(sector)
+    getSectorEarningsCalendar(sector, exchange)
       .then((r) => {
         if (cancelled) return;
         if (r.success && r.data) {
@@ -132,7 +133,7 @@ export function SectorEarningsCalendar({ sector }: SectorEarningsCalendarProps) 
     return () => {
       cancelled = true;
     };
-  }, [sector]);
+  }, [sector, exchange]);
 
   if (loading) {
     return <SkeletonList />;

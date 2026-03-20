@@ -184,9 +184,9 @@ export async function getPerformance(
 }
 
 export async function triggerRun(
-  _exchange: string = 'NSE'
+  exchange: string = 'NSE'
 ): Promise<ApiResult<{ success: boolean; signals_created: number }>> {
-  return apiClient.post('/api/playground/run', undefined);
+  return apiClient.post('/api/playground/run', { exchange });
 }
 
 // =============================================================================

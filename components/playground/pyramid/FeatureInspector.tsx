@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { IFeatureInspection, IFeatureDetail } from '@/types/strategy';
-import { S, T, LAYER, layerColor, fmtNum } from './tokens';
+import { S, T, layerColor, fmtNum } from './tokens';
 import { LAYERS } from './constants';
 
 interface FeatureInspectorProps {

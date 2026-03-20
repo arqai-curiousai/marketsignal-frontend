@@ -9,12 +9,12 @@ import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadMatrixCSV, downloadPNG } from '@/src/lib/utils/export';
 import type { ICorrelationMatrix, IEnhancedMatrix } from '@/types/analytics';
 import {
-  ALL_ASSETS,
-  QUICK_GROUPS,
   WINDOWS,
   TYPE_COLORS,
   ASSET_MAP,
   corrColor,
+  getAllAssets,
+  getQuickGroups,
   type CorrelationMethod,
   type ViewMode,
   type AssetScope,
@@ -31,6 +31,7 @@ interface CorrelationToolbarProps {
   mstEnabled: boolean;
   colorMode: ColorMode;
   assetScope: AssetScope;
+  exchange: string;
   equityMatrix: ICorrelationMatrix | null;
   enhancedMatrix: IEnhancedMatrix | null;
   lastUpdatedLabel: string | null;
@@ -57,6 +58,7 @@ export function CorrelationToolbar({
   mstEnabled,
   colorMode,
   assetScope,
+  exchange,
   equityMatrix,
   enhancedMatrix,
   lastUpdatedLabel,
@@ -79,15 +81,18 @@ export function CorrelationToolbar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
+  const allAssets = useMemo(() => getAllAssets(exchange), [exchange]);
+  const quickGroups = useMemo(() => getQuickGroups(exchange), [exchange]);
+
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const q = searchQuery.toLowerCase();
-    return ALL_ASSETS.filter(
+    return allAssets.filter(
       (a) =>
         !selectedAssets.includes(a.ticker) &&
         (a.ticker.toLowerCase().includes(q) || a.name.toLowerCase().includes(q)),
     ).slice(0, 8);
-  }, [searchQuery, selectedAssets]);
+  }, [searchQuery, selectedAssets, allAssets]);
 
   // ── Inline KPI metrics ──
   const kpi = useMemo(() => {
@@ -243,7 +248,7 @@ export function CorrelationToolbar({
                 exit={{ opacity: 0, y: -4 }}
                 className="absolute z-50 top-full mt-1 right-0 w-48 bg-[#1a1f2e] border border-white/10 rounded-lg shadow-2xl overflow-hidden"
               >
-                {QUICK_GROUPS.map((g) => (
+                {quickGroups.map((g) => (
                   <button
                     key={g.label}
                     onClick={() => {
