@@ -15,7 +15,8 @@ export function Footer() {
                     <div>
                         <h4 className="text-sm font-semibold text-white mb-4">Platform</h4>
                         <ul className="space-y-2 text-sm text-muted-foreground">
-                            <li><Link href="/signals" className="hover:text-white transition-colors">Signals Hub</Link></li>
+                            <li><Link href="/signals" className="hover:text-white transition-colors">Pulse</Link></li>
+                            <li><Link href="/forex" className="hover:text-white transition-colors">Forex</Link></li>
                             <li><Link href="/assistant" className="hover:text-white transition-colors">AI Assistant</Link></li>
                             <li><Link href="/research" className="hover:text-white transition-colors">Research Library</Link></li>
                         </ul>

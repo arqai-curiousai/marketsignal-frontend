@@ -35,7 +35,7 @@ function changeColor(bps: number): string {
 function changeBgColor(bps: number): string {
   if (bps > 0) return 'bg-rose-500/10 border-rose-500/20';
   if (bps < 0) return 'bg-emerald-500/10 border-emerald-500/20';
-  return 'bg-muted/50 border-border/30';
+  return 'bg-white/[0.03] border-white/[0.06]';
 }
 
 function daysUntilText(dateStr: string | null): string | null {
@@ -54,7 +54,7 @@ function RateCard({ rate }: { rate: ICentralBankRate }) {
   const meetingBadge = daysUntilText(rate.next_meeting_date);
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-2 hover:border-primary/30 transition-colors">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 flex flex-col gap-2 hover:border-white/[0.12] transition-all duration-300 shadow-[0_2px_12px_rgba(0,0,0,0.1)]">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -135,7 +135,7 @@ function MeetingTimeline({ meetings }: { meetings: IUpcomingMeeting[] }) {
         return (
           <div
             key={`${m.bank_code}-${m.date}-${i}`}
-            className="flex items-center gap-3 py-2 border-b border-border/20 last:border-0"
+            className="flex items-center gap-3 py-2 border-b border-white/[0.04] last:border-0"
           >
             {/* Timeline dot */}
             <div className="flex flex-col items-center shrink-0">
@@ -241,7 +241,7 @@ export function CentralBankDashboard() {
 
   if (error && !rates && !meetings) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6 text-center">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6 text-center">
         <Landmark className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
         <p className="text-sm text-muted-foreground mb-3">{error}</p>
         <button
@@ -274,7 +274,7 @@ export function CentralBankDashboard() {
 
       {/* Upcoming meetings timeline */}
       {meetings?.meetings && (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
           <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
             <Calendar className="h-4 w-4 text-primary" />
             Upcoming Meetings (90 days)

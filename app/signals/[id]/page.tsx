@@ -89,7 +89,7 @@ export default function SignalDetailPage() {
         <Link href="/signals">
           <Button variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Markets
+            Back to Pulse
           </Button>
         </Link>
       </div>
@@ -107,7 +107,7 @@ export default function SignalDetailPage() {
         className="inline-flex items-center text-sm text-muted-foreground hover:text-white mb-8 transition-colors group"
       >
         <ArrowLeft className="h-4 w-4 mr-2 transform group-hover:-translate-x-1 transition-transform" />
-        Back to Markets
+        Back to Pulse
       </Link>
 
       {/* Header */}

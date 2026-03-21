@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import { AlertTriangle, TrendingUp, TrendingDown, RefreshCw, Triangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyStrength } from '@/src/lib/api/analyticsApi';
@@ -25,29 +25,59 @@ interface CurrencyValues {
   '3m': number;
 }
 
+/** Colorblind-safe: Blue for positive, Orange for negative */
+function strengthBarColor(value: number): string {
+  if (value >= 0) return 'bg-sky-500/70';
+  return 'bg-orange-500/70';
+}
+
+function strengthTextColor(value: number): string {
+  if (value >= 0) return 'text-sky-400';
+  return 'text-orange-400';
+}
+
+/** Momentum arrow: compare 1D vs 1W to determine direction change */
+function MomentumArrow({ values }: { values: CurrencyValues }) {
+  const d = values['1d'];
+  const w = values['1w'];
+
+  // If same sign and day is stronger in magnitude → accelerating
+  if (d > 0 && d > w) {
+    return <Triangle className="h-3 w-3 text-sky-400 fill-sky-400" />;
+  }
+  if (d < 0 && d < w) {
+    return <Triangle className="h-3 w-3 text-orange-400 fill-orange-400 rotate-180" />;
+  }
+  // Diverging or decelerating → flat
+  return <div className="h-3 w-3 flex items-center justify-center"><div className="w-2 h-px bg-white/20" /></div>;
+}
+
 function StrengthBar({
   currency,
   value,
   maxAbsValue,
+  values,
 }: {
   currency: string;
   value: number;
   maxAbsValue: number;
+  values: CurrencyValues;
 }) {
   const positive = value >= 0;
   const normalizedWidth = maxAbsValue > 0 ? (Math.abs(value) / maxAbsValue) * 50 : 0;
 
   return (
-    <div className="flex items-center gap-2 py-1.5">
+    <div className="flex items-center gap-2 py-1.5 group">
       <span className="text-xs font-semibold w-8 shrink-0">{currency}</span>
-      <div className="flex-1 h-5 relative bg-muted/30 rounded-sm overflow-hidden">
+      <MomentumArrow values={values} />
+      <div className="flex-1 h-5 relative bg-muted/20 rounded-sm overflow-hidden">
         {/* Center line */}
-        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border z-10" />
+        <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/50 z-10" />
         {/* Bar */}
         <div
           className={cn(
-            'absolute top-0.5 bottom-0.5 rounded-sm transition-all duration-500',
-            positive ? 'bg-emerald-500/70' : 'bg-rose-500/70'
+            'absolute top-0.5 bottom-0.5 rounded-sm transition-all duration-700 ease-out',
+            strengthBarColor(value),
           )}
           style={{
             left: positive ? '50%' : `${50 - normalizedWidth}%`,
@@ -57,8 +87,8 @@ function StrengthBar({
       </div>
       <span
         className={cn(
-          'text-xs font-mono w-14 text-right shrink-0',
-          positive ? 'text-emerald-400' : 'text-rose-400'
+          'text-xs font-mono w-14 text-right shrink-0 tabular-nums',
+          strengthTextColor(value),
         )}
       >
         {positive ? '+' : ''}
@@ -124,7 +154,7 @@ export function CurrencyStrengthMeter() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6 text-center">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6 text-center">
         <p className="text-sm text-muted-foreground mb-3">{error}</p>
         <button
           onClick={fetchData}
@@ -139,7 +169,7 @@ export function CurrencyStrengthMeter() {
 
   if (!data?.currencies) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6">
         <p className="text-sm text-muted-foreground">No strength data available</p>
       </div>
     );
@@ -175,9 +205,9 @@ export function CurrencyStrengthMeter() {
   return (
     <div className="space-y-4">
       {/* Header + Timeframe selector */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold">Currency Strength Meter</h3>
+          <h3 className="text-sm font-semibold">Currency Strength</h3>
           <div className="flex gap-0.5">
             {TIMEFRAMES.map((tf) => (
               <button
@@ -187,7 +217,7 @@ export function CurrencyStrengthMeter() {
                   'px-2.5 py-1 text-[11px] rounded-full font-medium transition-colors',
                   selectedTf === tf.id
                     ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                    : 'bg-white/[0.04] text-muted-foreground hover:bg-white/[0.06]'
                 )}
               >
                 {tf.label}
@@ -204,12 +234,13 @@ export function CurrencyStrengthMeter() {
               currency={item.currency}
               value={item.sortValue}
               maxAbsValue={maxAbsValue}
+              values={item.values}
             />
           ))}
         </div>
 
         {/* Multi-timeframe grid */}
-        <div className="mt-4 pt-3 border-t border-border/30">
+        <div className="mt-4 pt-3 border-t border-white/[0.04]">
           <p className="text-[10px] text-muted-foreground mb-2 uppercase tracking-wider font-medium">
             Multi-Timeframe Grid
           </p>
@@ -240,17 +271,18 @@ export function CurrencyStrengthMeter() {
                     {TIMEFRAMES.map((tf) => {
                       const val = item.values[tf.id] ?? 0;
                       const intensity = Math.min(Math.abs(val) / 100, 1);
+                      // Blue-Orange colorblind safe
                       const bg =
                         val > 0
-                          ? `rgba(16, 185, 129, ${intensity * 0.45})`
+                          ? `rgba(56, 189, 248, ${intensity * 0.45})`
                           : val < 0
-                            ? `rgba(239, 68, 68, ${intensity * 0.45})`
+                            ? `rgba(251, 146, 60, ${intensity * 0.45})`
                             : 'transparent';
                       return (
                         <td key={tf.id} className="text-center py-0.5">
                           <span
                             className={cn(
-                              'inline-block w-12 rounded py-0.5 font-mono',
+                              'inline-block w-12 rounded py-0.5 font-mono tabular-nums',
                               selectedTf === tf.id && 'ring-1 ring-primary/40'
                             )}
                             style={{ backgroundColor: bg }}
@@ -271,7 +303,7 @@ export function CurrencyStrengthMeter() {
 
       {/* Divergence alerts */}
       {divergences.length > 0 && (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
           <h4 className="text-xs font-semibold mb-2 text-amber-400">
             Timeframe Divergences
           </h4>
@@ -289,26 +321,26 @@ export function CurrencyStrengthMeter() {
 
       {/* Trade suggestion */}
       {strongest && weakest && strongest.currency !== weakest.currency && (
-        <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+        <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
           <h4 className="text-xs font-semibold mb-2">Trade Suggestion</h4>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
-              <TrendingUp className="h-4 w-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-emerald-400">
+              <TrendingUp className="h-4 w-4 text-sky-400" />
+              <span className="text-sm font-semibold text-sky-400">
                 {strongest.currency}
               </span>
-              <span className="text-xs text-muted-foreground font-mono">
+              <span className="text-xs text-muted-foreground font-mono tabular-nums">
                 ({strongest.sortValue > 0 ? '+' : ''}
                 {strongest.sortValue.toFixed(1)})
               </span>
             </div>
             <span className="text-xs text-muted-foreground">vs</span>
             <div className="flex items-center gap-1">
-              <TrendingDown className="h-4 w-4 text-rose-400" />
-              <span className="text-sm font-semibold text-rose-400">
+              <TrendingDown className="h-4 w-4 text-orange-400" />
+              <span className="text-sm font-semibold text-orange-400">
                 {weakest.currency}
               </span>
-              <span className="text-xs text-muted-foreground font-mono">
+              <span className="text-xs text-muted-foreground font-mono tabular-nums">
                 ({weakest.sortValue > 0 ? '+' : ''}
                 {weakest.sortValue.toFixed(1)})
               </span>

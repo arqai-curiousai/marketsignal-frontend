@@ -18,15 +18,16 @@ const REGIME_COLORS: Record<string, string> = {
 };
 
 function PercentileBar({ value }: { value: number }) {
-  const color = value < 25 ? 'bg-emerald-500' : value < 75 ? 'bg-amber-500' : value < 90 ? 'bg-orange-500' : 'bg-red-500';
+  const v = value ?? 0;
+  const color = v < 25 ? 'bg-emerald-500' : v < 75 ? 'bg-amber-500' : v < 90 ? 'bg-orange-500' : 'bg-red-500';
   return (
     <div className="w-full">
       <div className="flex justify-between text-[10px] text-muted-foreground mb-1">
         <span>Percentile Rank</span>
-        <span className="font-mono font-semibold">{value.toFixed(0)}th</span>
+        <span className="font-mono font-semibold">{v.toFixed(0)}th</span>
       </div>
       <div className="h-2.5 rounded-full bg-muted overflow-hidden">
-        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${value}%` }} />
+        <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${v}%` }} />
       </div>
       <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-0.5">
         <span>Low</span><span>Normal</span><span>High</span>
@@ -64,7 +65,7 @@ export function CurrencyVolatility({ pair }: Props) {
   return (
     <div className="space-y-4">
       {/* Regime Badge + Percentile */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Volatility Regime</h3>
           <span className={cn(
@@ -74,7 +75,7 @@ export function CurrencyVolatility({ pair }: Props) {
             {data.regime}
           </span>
         </div>
-        <PercentileBar value={data.percentile_rank} />
+        <PercentileBar value={data.percentile_rank ?? 0} />
 
         {data.squeeze && (
           <div className="mt-3 rounded-md bg-amber-500/10 border border-amber-500/20 px-3 py-2 text-xs text-amber-400 animate-pulse">
@@ -84,12 +85,13 @@ export function CurrencyVolatility({ pair }: Props) {
       </div>
 
       {/* Multi-Window Realized Volatility */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      {data.windows && data.windows.length > 0 && (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-semibold mb-3">Realized Volatility (Annualized %)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border/50">
+              <tr className="border-b border-white/[0.06]">
                 <th className="text-left py-1.5 text-muted-foreground font-medium">Window</th>
                 <th className="text-right py-1.5 text-muted-foreground font-medium">Close-Close</th>
                 <th className="text-right py-1.5 text-muted-foreground font-medium">Parkinson</th>
@@ -98,7 +100,7 @@ export function CurrencyVolatility({ pair }: Props) {
             </thead>
             <tbody>
               {data.windows.map(w => (
-                <tr key={w.window} className="border-b border-border/20">
+                <tr key={w.window} className="border-b border-white/[0.04]">
                   <td className="py-1.5 font-medium">{w.window}</td>
                   <td className="text-right font-mono">{w.close_to_close.toFixed(2)}%</td>
                   <td className="text-right font-mono">{w.parkinson.toFixed(2)}%</td>
@@ -109,9 +111,11 @@ export function CurrencyVolatility({ pair }: Props) {
           </table>
         </div>
       </div>
+      )}
 
       {/* Vol Term Structure */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      {data.term_structure && data.term_structure.length > 0 && (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-semibold mb-3">Volatility Term Structure</h3>
         <div className="flex items-end gap-1 h-32">
           {data.term_structure.map((ts, i) => {
@@ -140,14 +144,17 @@ export function CurrencyVolatility({ pair }: Props) {
             : 'Normal contango — long-term vol exceeds short-term'}
         </p>
       </div>
+      )}
 
       {/* Bandwidth */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      {data.current_bandwidth != null && (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold">Bollinger Bandwidth</h3>
           <span className="text-xs font-mono">{data.current_bandwidth.toFixed(2)}%</span>
         </div>
       </div>
+      )}
     </div>
   );
 }

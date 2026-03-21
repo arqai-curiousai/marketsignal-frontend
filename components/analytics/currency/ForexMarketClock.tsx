@@ -34,14 +34,14 @@ function SessionCard({ session }: { session: IMarketSession }) {
   const meta = SESSION_META[session.city] ?? {
     emoji: '',
     color: 'text-muted-foreground',
-    bgColor: 'border-border bg-muted/5',
+    bgColor: 'border-white/[0.06] bg-white/[0.03]',
   };
 
   return (
     <div
       className={cn(
         'rounded-lg border p-3 transition-all',
-        session.is_active ? meta.bgColor : 'border-border/50 bg-card opacity-60'
+        session.is_active ? meta.bgColor : 'border-white/[0.04] bg-white/[0.02] opacity-60'
       )}
     >
       <div className="flex items-center justify-between mb-2">
@@ -138,7 +138,7 @@ export function ForexMarketClock() {
 
   if (loading && !data) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-3">
         <Skeleton className="h-5 w-32" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -151,7 +151,7 @@ export function ForexMarketClock() {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4 text-center text-muted-foreground">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 text-center text-muted-foreground">
         <Clock className="h-6 w-6 mx-auto mb-2 opacity-30" />
         <p className="text-xs">{error}</p>
       </div>
@@ -163,7 +163,7 @@ export function ForexMarketClock() {
   const isWeekend = data?.is_weekend ?? false;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <Clock className="h-4 w-4 text-muted-foreground" />

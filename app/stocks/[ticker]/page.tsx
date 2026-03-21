@@ -159,7 +159,7 @@ export default function StockAnalyticsPage() {
                 <NextLink href="/signals">
                     <Button variant="ghost" className="text-muted-foreground hover:text-white pl-0 gap-2">
                         <ArrowLeft className="h-4 w-4" />
-                        Back to Markets
+                        Back to Pulse
                     </Button>
                 </NextLink>
             </motion.div>

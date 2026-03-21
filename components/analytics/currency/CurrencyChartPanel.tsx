@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import type { IChartApi } from 'lightweight-charts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import { getCurrencyPatterns } from '@/src/lib/api/analyticsApi';
+import { getCurrencyCandles, getCurrencyPatterns } from '@/src/lib/api/analyticsApi';
+import type { ICurrencyCandlesResponse, ICurrencyCandle } from '@/src/lib/api/analyticsApi';
 import type { IPatternDetectionV2, ICurrencyTechnicals } from '@/src/types/analytics';
 
 interface Props {
@@ -13,8 +14,27 @@ interface Props {
   technicals?: ICurrencyTechnicals | null;
 }
 
+/** Map UI timeframe labels to backend interval param */
+function toBackendInterval(tf: string): string {
+  if (tf === '1D' || tf === '1W') return '1D';
+  return tf; // 1m, 5m, 15m, 1h pass through
+}
+
+/** Candle limit per timeframe */
+function getCandleLimit(tf: string): number {
+  switch (tf) {
+    case '1m': return 500;
+    case '5m': return 500;
+    case '15m': return 500;
+    case '1h': return 500;
+    case '1D': return 365;
+    default: return 500;
+  }
+}
+
 export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
-  const [data, setData] = useState<IPatternDetectionV2 | null>(null);
+  const [candles, setCandles] = useState<ICurrencyCandle[]>([]);
+  const [patterns, setPatterns] = useState<IPatternDetectionV2 | null>(null);
   const [loading, setLoading] = useState(true);
   const [showBB, setShowBB] = useState(false);
   const [showSMA, setShowSMA] = useState(false);
@@ -24,13 +44,28 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const tf = timeframe === '1D' ? 'daily' : timeframe === '1W' ? 'weekly' : timeframe;
-      const res = await getCurrencyPatterns(pair, tf);
-      if (res.success) {
-        setData(res.data);
+      const interval = toBackendInterval(timeframe);
+      const limit = getCandleLimit(timeframe);
+
+      // Primary: candles from dedicated endpoint
+      const candleRes = await getCurrencyCandles(pair, interval, limit);
+      if (candleRes.success && candleRes.data?.candles) {
+        setCandles(candleRes.data.candles);
       }
-    } catch {
-      // silent
+
+      // Secondary: patterns overlay (only for daily/weekly)
+      if (timeframe === '1D' || timeframe === '1W') {
+        const tf = timeframe === '1D' ? 'daily' : 'weekly';
+        const patRes = await getCurrencyPatterns(pair, tf);
+        if (patRes.success) {
+          setPatterns(patRes.data);
+        }
+      } else {
+        setPatterns(null);
+      }
+    } catch (err) {
+      console.error('[CurrencyChartPanel] Failed to fetch data:', err);
+      setCandles([]);
     } finally {
       setLoading(false);
     }
@@ -42,7 +77,7 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
 
   // Render chart with lightweight-charts
   useEffect(() => {
-    if (!chartRef.current || !data?.chart_data?.length) return;
+    if (!chartRef.current || !candles.length) return;
 
     let isMounted = true;
 
@@ -59,7 +94,7 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
 
       const chart = createChart(chartRef.current, {
         width: chartRef.current.clientWidth,
-        height: 400,
+        height: 480,
         layout: {
           background: { color: 'transparent' },
           textColor: '#9ca3af',
@@ -77,7 +112,7 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
         },
         timeScale: {
           borderColor: 'rgba(255,255,255,0.1)',
-          timeVisible: true,
+          timeVisible: timeframe !== '1D' && timeframe !== '1W',
         },
       });
 
@@ -90,8 +125,8 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
         wickDownColor: '#ef4444',
       });
 
-      const bars = data.chart_data.map((b) => ({
-        time: b.date,
+      const bars = candles.map((b) => ({
+        time: b.time as string,
         open: b.open,
         high: b.high,
         low: b.low,
@@ -109,7 +144,6 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
             priceLineVisible: false,
             lastValueVisible: false,
           });
-          // Use the last value as a horizontal reference
           if (bars.length > 0) {
             sma20Series.setData([
               { time: bars[0].time, value: technicals.sma.sma20 },
@@ -184,16 +218,23 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
         chartInstance.current = null;
       }
     };
-  }, [data, showBB, showSMA, technicals]);
+  }, [candles, showBB, showSMA, technicals, timeframe]);
 
-  if (loading && !data) {
-    return <Skeleton className="h-[400px] w-full rounded-lg" />;
+  if (loading && !candles.length) {
+    return <Skeleton className="h-[480px] w-full rounded-lg" />;
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-medium">{pair} — {timeframe}</h3>
+        <h3 className="text-sm font-medium">
+          {pair} — {timeframe}
+          {candles.length > 0 && (
+            <span className="text-muted-foreground font-normal ml-2 text-xs">
+              {candles.length} candles
+            </span>
+          )}
+        </h3>
         <div className="flex items-center gap-1.5">
           {/* Overlay toggles */}
           <button
@@ -214,17 +255,17 @@ export function CurrencyChartPanel({ pair, timeframe, technicals }: Props) {
           >
             BB
           </button>
-          {data?.patterns && data.patterns.length > 0 && (
+          {patterns?.patterns && patterns.patterns.length > 0 && (
             <span className="text-xs text-muted-foreground ml-2">
-              {data.patterns.length} pattern{data.patterns.length !== 1 ? 's' : ''}
+              {patterns.patterns.length} pattern{patterns.patterns.length !== 1 ? 's' : ''}
             </span>
           )}
         </div>
       </div>
       <div ref={chartRef} className="w-full" />
-      {data?.patterns && data.patterns.length > 0 && (
+      {patterns?.patterns && patterns.patterns.length > 0 && (
         <div className="mt-3 space-y-1">
-          {data.patterns.slice(0, 5).map((p, i) => (
+          {patterns.patterns.slice(0, 5).map((p, i) => (
             <div key={i} className="flex items-center justify-between text-xs px-1">
               <span className="text-muted-foreground">{p.type}</span>
               <div className="flex items-center gap-2">

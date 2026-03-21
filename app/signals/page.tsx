@@ -1,35 +1,34 @@
 'use client';
 
-import React, { useState, useCallback, Suspense } from 'react';
+import React, { useState, useCallback, Suspense, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Grid3X3,
   Newspaper,
   ArrowRightLeft,
-  Activity,
-  BarChart3,
-  DollarSign,
-  Diamond,
+  Loader2,
+  type LucideIcon,
 } from 'lucide-react';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import { useExchange } from '@/context/ExchangeContext';
 import { MarketStatusBadge } from '@/components/signals/MarketStatusBadge';
-
-import dynamic from 'next/dynamic';
-import { Loader2 } from 'lucide-react';
 import { TabErrorBoundary } from '@/components/ui/TabErrorBoundary';
+import dynamic from 'next/dynamic';
 
-// Loading fallback for lazy-loaded analytics tabs
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Lazy-loaded dashboard components
+ * ─────────────────────────────────────────────────────────────────────────── */
+
 const TabLoadingFallback = () => (
-  <div className="flex items-center justify-center py-20">
-    <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
+  <div className="flex items-center justify-center py-24">
+    <div className="flex flex-col items-center gap-3">
+      <Loader2 className="h-7 w-7 animate-spin text-white/20" />
+      <span className="text-xs text-white/30 tracking-wide">Loading module</span>
+    </div>
   </div>
 );
 
-// Lazy-loaded analytics tab components (ssr: false — all use browser APIs)
 const UnifiedSectorDashboard = dynamic(
   () => import('@/components/analytics/sectors/UnifiedSectorDashboard').then(m => ({ default: m.UnifiedSectorDashboard })),
   { ssr: false, loading: TabLoadingFallback },
@@ -45,199 +44,334 @@ const NewsIntelligence = dynamic(
   { ssr: false, loading: TabLoadingFallback },
 );
 
-const PatternDashboard = dynamic(
-  () => import('@/components/analytics/patterns/PatternDashboard').then(m => ({ default: m.PatternDashboard })),
-  { ssr: false, loading: TabLoadingFallback },
-);
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Module Configuration
+ * ─────────────────────────────────────────────────────────────────────────── */
 
-const FnODashboard = dynamic(
-  () => import('@/components/analytics/fno/FnODashboard').then(m => ({ default: m.FnODashboard })),
-  { ssr: false, loading: TabLoadingFallback },
-);
+interface PulseModule {
+  id: string;
+  label: string;
+  tagline: string;
+  description: string;
+  icon: LucideIcon;
+  accentFrom: string;       // gradient start
+  accentTo: string;         // gradient end
+  glowColor: string;        // CSS rgba for glow effects
+  borderColor: string;      // CSS rgba for border
+}
 
-const CurrencyDashboard = dynamic(
-  () => import('@/components/analytics/currency/CurrencyDashboard').then(m => ({ default: m.CurrencyDashboard })),
-  { ssr: false, loading: TabLoadingFallback },
-);
-
-const CommodityDashboard = dynamic(
-  () => import('@/components/analytics/commodity/CommodityDashboard').then(m => ({ default: m.CommodityDashboard })),
-  { ssr: false, loading: TabLoadingFallback },
-);
-
-/**
- * Markets Hub — AI-powered analytics dashboard
- *
- * 7 tabs:
- * - Sectors: Finviz-style sector heatmap
- * - News: News feed + impact analysis
- * - Correlation: Interactive correlation explorer (stocks, currencies, commodities, global)
- * - Statistical Patterns: Technical pattern detection
- * - Currency: Forex pairs dashboard
- * - Commodity: Commodities dashboard
- * - F&O: Volatility, risk, and futures & options metrics
- */
-
-const ANALYTICS_TABS = [
-  { id: 'sectors', label: 'Sectors', icon: Grid3X3, premium: false },
-  { id: 'news', label: 'News', icon: Newspaper, premium: false },
-  { id: 'correlation', label: 'Correlation', icon: ArrowRightLeft, premium: false },
-  { id: 'patterns', label: 'Patterns', icon: Activity, premium: false },
-  { id: 'currency', label: 'Currency', icon: DollarSign, premium: false },
-  { id: 'commodity', label: 'Commodity', icon: Diamond, premium: false },
-  { id: 'fno', label: 'F&O', icon: BarChart3, premium: false },
+const MODULES: PulseModule[] = [
+  {
+    id: 'sectors',
+    label: 'Sectors',
+    tagline: 'Sector Intelligence',
+    description: 'Heatmaps, relative strength & sector rotation across Nifty 50',
+    icon: Grid3X3,
+    accentFrom: '#6EE7B7',
+    accentTo: '#34D399',
+    glowColor: 'rgba(110, 231, 183, 0.35)',
+    borderColor: 'rgba(110, 231, 183, 0.2)',
+  },
+  {
+    id: 'correlation',
+    label: 'Correlation',
+    tagline: 'Cross-Asset Matrix',
+    description: 'Dynamic correlations, DCC-GARCH & regime detection',
+    icon: ArrowRightLeft,
+    accentFrom: '#7DD3FC',
+    accentTo: '#38BDF8',
+    glowColor: 'rgba(56, 189, 248, 0.35)',
+    borderColor: 'rgba(56, 189, 248, 0.2)',
+  },
+  {
+    id: 'news',
+    label: 'News',
+    tagline: 'Market Intelligence',
+    description: 'AI-curated news feed with sentiment & impact scoring',
+    icon: Newspaper,
+    accentFrom: '#FDE68A',
+    accentTo: '#FBBF24',
+    glowColor: 'rgba(251, 191, 36, 0.35)',
+    borderColor: 'rgba(251, 191, 36, 0.2)',
+  },
 ];
 
-const VALID_TAB_IDS = new Set(ANALYTICS_TABS.map((t) => t.id));
+const VALID_IDS = new Set(MODULES.map(m => m.id));
 
-export default function MarketsHub() {
+/* ─────────────────────────────────────────────────────────────────────────────
+ * Main Component
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+export default function PulsePage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-brand-blue" /></div>}>
-      <MarketsHubInner />
+    <Suspense
+      fallback={
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-white/20" />
+        </div>
+      }
+    >
+      <PulseInner />
     </Suspense>
   );
 }
 
-function MarketsHubInner() {
-  const { selectedExchange, exchangeConfig } = useExchange();
+function PulseInner() {
+  const { selectedExchange } = useExchange();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get('tab') || 'sectors';
-  // Redirect legacy tab values to sectors
   const initialTab = rawTab === 'pyramid' || rawTab === 'my-portfolio' ? 'sectors' : rawTab;
-  const [activeTab, setActiveTab] = useState(
-    VALID_TAB_IDS.has(initialTab) ? initialTab : 'sectors'
+  const [activeId, setActiveId] = useState(
+    VALID_IDS.has(initialTab) ? initialTab : 'sectors'
   );
 
-  const handleTabChange = useCallback((tab: string) => {
-    setActiveTab(tab);
+  const activeModule = useMemo(
+    () => MODULES.find(m => m.id === activeId)!,
+    [activeId]
+  );
+
+  const handleModuleChange = useCallback((id: string) => {
+    setActiveId(id);
     const url = new URL(window.location.href);
-    url.searchParams.set('tab', tab);
+    url.searchParams.set('tab', id);
     window.history.replaceState({}, '', url.toString());
   }, []);
 
   return (
-    <div className="container py-8 md:py-12 px-4 md:px-6 max-w-[1440px] mx-auto">
-      {/* Header */}
+    <div className="container py-6 md:py-10 px-4 md:px-6 max-w-[1440px] mx-auto">
+
+      {/* ━━━ Header ━━━ */}
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        className="mb-6"
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-10"
       >
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold text-white mb-1">Markets</h1>
-            <p className="text-sm text-muted-foreground">
-              AI-powered analytics driven by dual AI agents
+            <div className="flex items-center gap-3 mb-1">
+              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
+                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white/90 to-white/50">
+                  Pulse
+                </span>
+              </h1>
+              {/* Live dot */}
+              <span className="relative flex h-2.5 w-2.5 mt-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground/70 tracking-wide max-w-md">
+              Real-time market intelligence &mdash; sectors, correlations & news in one view
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <MarketStatusBadge market={selectedExchange.toLowerCase()} />
-            <MarketStatusBadge market="forex" />
-            <MarketStatusBadge market="commodity" />
           </div>
         </div>
       </motion.div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <ScrollArea className="w-full mb-6">
-          <TabsList className="bg-white/5 border border-white/10 p-1 inline-flex w-auto min-w-full gap-0.5">
-            {ANALYTICS_TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
+      {/* ━━━ Module Selector — Three Cards ━━━ */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+        className="mb-10"
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {MODULES.map((mod, index) => {
+            const Icon = mod.icon;
+            const isActive = activeId === mod.id;
+
+            return (
+              <motion.button
+                key={mod.id}
+                onClick={() => handleModuleChange(mod.id)}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{
+                  duration: 0.5,
+                  delay: 0.15 + index * 0.08,
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+                className={cn(
+                  'group relative text-left rounded-2xl p-[1px] transition-all duration-500',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20 focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+                  isActive ? 'z-10' : 'z-0',
+                )}
+              >
+                {/* Gradient border — visible when active, faint on hover */}
+                <div
                   className={cn(
-                    'flex items-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap transition-all',
-                    'data-[state=active]:bg-white/10',
-                    'data-[state=active]:text-white',
+                    'absolute inset-0 rounded-2xl transition-opacity duration-500',
+                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-40',
                   )}
+                  style={{
+                    background: `linear-gradient(135deg, ${mod.accentFrom}30, ${mod.accentTo}10, transparent 60%)`,
+                  }}
+                />
+
+                {/* Outer glow when active */}
+                {isActive && (
+                  <motion.div
+                    layoutId="moduleGlow"
+                    className="absolute -inset-px rounded-2xl pointer-events-none"
+                    style={{
+                      boxShadow: `0 0 40px -8px ${mod.glowColor}, 0 0 80px -16px ${mod.glowColor.replace('0.35', '0.15')}`,
+                    }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                  />
+                )}
+
+                {/* Card surface */}
+                <div
+                  className={cn(
+                    'relative rounded-2xl px-5 py-5 md:px-6 md:py-6 transition-all duration-500 overflow-hidden',
+                    isActive
+                      ? 'bg-white/[0.06] backdrop-blur-xl'
+                      : 'bg-white/[0.02] hover:bg-white/[0.04] backdrop-blur-sm',
+                  )}
+                  style={isActive ? { borderColor: mod.borderColor } : undefined}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {tab.label}
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-          <ScrollBar orientation="horizontal" className="invisible" />
-        </ScrollArea>
+                  {/* Ambient gradient blob — top right */}
+                  <div
+                    className={cn(
+                      'absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl transition-opacity duration-700 pointer-events-none',
+                      isActive ? 'opacity-30' : 'opacity-0 group-hover:opacity-10',
+                    )}
+                    style={{
+                      background: `radial-gradient(circle, ${mod.accentFrom}, transparent 70%)`,
+                    }}
+                  />
 
-        {/* ─── Tab: Sectors (unified — includes Pyramid as view mode) ─── */}
-        <TabsContent value="sectors" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="Sectors">
-              <UnifiedSectorDashboard exchange={selectedExchange} />
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
+                  {/* Top row: icon + status */}
+                  <div className="relative flex items-center justify-between mb-4">
+                    <div
+                      className={cn(
+                        'flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-500',
+                        isActive
+                          ? 'bg-white/10'
+                          : 'bg-white/[0.04] group-hover:bg-white/[0.06]',
+                      )}
+                    >
+                      <Icon
+                        className="h-5 w-5 transition-colors duration-500"
+                        style={{ color: isActive ? mod.accentFrom : 'rgba(255,255,255,0.3)' }}
+                      />
+                    </div>
 
-        {/* ─── Tab: News ─── */}
-        <TabsContent value="news" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="News">
-              <NewsIntelligence exchange={selectedExchange} />
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
+                    {/* Active indicator chip */}
+                    <div
+                      className={cn(
+                        'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium tracking-wide uppercase transition-all duration-500',
+                        isActive
+                          ? 'opacity-100'
+                          : 'opacity-0 translate-x-2',
+                      )}
+                      style={isActive ? {
+                        color: mod.accentFrom,
+                        background: `${mod.accentFrom}12`,
+                      } : undefined}
+                    >
+                      <span
+                        className="h-1 w-1 rounded-full animate-pulse"
+                        style={{ backgroundColor: mod.accentFrom }}
+                      />
+                      Active
+                    </div>
+                  </div>
 
-        {/* ─── Tab: Correlation Explorer ─── */}
-        <TabsContent value="correlation" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="Correlation">
-              <CorrelationExplorer exchange={selectedExchange} />
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
+                  {/* Module title */}
+                  <h3
+                    className={cn(
+                      'text-base font-semibold tracking-tight transition-colors duration-500 mb-1',
+                      isActive ? 'text-white' : 'text-white/50 group-hover:text-white/70',
+                    )}
+                  >
+                    {mod.tagline}
+                  </h3>
 
-        {/* ─── Tab: Statistical Patterns ─── */}
-        <TabsContent value="patterns" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="Patterns">
-              <PatternDashboard exchange={selectedExchange} />
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
-
-        {/* ─── Tab: Currency ─── */}
-        <TabsContent value="currency" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="Currency">
-              <CurrencyDashboard />
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
-
-        {/* ─── Tab: Commodity ─── */}
-        <TabsContent value="commodity" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="Commodity">
-              <CommodityDashboard />
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
-
-        {/* ─── Tab: F&O ─── */}
-        <TabsContent value="fno" className="mt-0">
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <TabErrorBoundary tabName="F&amp;O">
-              {exchangeConfig.hasFnO ? (
-                <FnODashboard />
-              ) : (
-                <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <p className="text-lg font-medium text-muted-foreground">
-                    F&O analytics are currently available for NSE only.
+                  {/* Description */}
+                  <p
+                    className={cn(
+                      'text-xs leading-relaxed transition-all duration-500',
+                      isActive
+                        ? 'text-white/50'
+                        : 'text-white/20 group-hover:text-white/30',
+                    )}
+                  >
+                    {mod.description}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Switch to NSE to access Futures & Options data.
-                  </p>
+
+                  {/* Bottom accent bar */}
+                  <div className="mt-5">
+                    <div className="h-0.5 w-full rounded-full bg-white/[0.04] overflow-hidden">
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{
+                          background: `linear-gradient(90deg, ${mod.accentFrom}, ${mod.accentTo})`,
+                        }}
+                        initial={false}
+                        animate={{
+                          width: isActive ? '100%' : '0%',
+                          opacity: isActive ? 1 : 0,
+                        }}
+                        transition={{
+                          duration: 0.6,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
+                      />
+                    </div>
+                  </div>
                 </div>
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* ━━━ Content Area ━━━ */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeId}
+          initial={{ opacity: 0, y: 16, scale: 0.995 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -12, scale: 0.995 }}
+          transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* Content wrapper with subtle top border matching active module color */}
+          <div className="relative">
+            {/* Color accent line at top of content */}
+            <div
+              className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 pointer-events-none"
+              style={{
+                background: `linear-gradient(90deg, transparent, ${activeModule.accentFrom}20, ${activeModule.accentTo}20, transparent)`,
+              }}
+            />
+
+            <div className="pt-2">
+              {activeId === 'sectors' && (
+                <TabErrorBoundary tabName="Sectors">
+                  <UnifiedSectorDashboard exchange={selectedExchange} />
+                </TabErrorBoundary>
               )}
-            </TabErrorBoundary>
-          </motion.div>
-        </TabsContent>
-      </Tabs>
+
+              {activeId === 'correlation' && (
+                <TabErrorBoundary tabName="Correlation">
+                  <CorrelationExplorer exchange={selectedExchange} />
+                </TabErrorBoundary>
+              )}
+
+              {activeId === 'news' && (
+                <TabErrorBoundary tabName="News">
+                  <NewsIntelligence exchange={selectedExchange} />
+                </TabErrorBoundary>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

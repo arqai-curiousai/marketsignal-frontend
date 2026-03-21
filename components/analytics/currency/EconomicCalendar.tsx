@@ -93,11 +93,16 @@ function DaysUntilBadge({ days }: { days: number }) {
 }
 
 function EventRow({ event }: { event: IEconomicEvent }) {
+  const isINR = event.currency === 'INR';
+
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b border-border/20 last:border-0">
+    <div className={cn(
+      'flex items-center gap-3 py-2.5 border-b border-white/[0.04] last:border-0',
+      isINR && 'bg-amber-500/[0.03]',
+    )}>
       {/* Time */}
       <div className="w-14 shrink-0 text-right">
-        <span className="text-[11px] font-mono text-muted-foreground">
+        <span className="text-[11px] font-mono text-muted-foreground tabular-nums">
           {formatEventTime(event.event_date)}
         </span>
       </div>
@@ -109,7 +114,10 @@ function EventRow({ event }: { event: IEconomicEvent }) {
       />
 
       {/* Currency badge */}
-      <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-muted shrink-0">
+      <span className={cn(
+        'text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0',
+        isINR ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20' : 'bg-muted',
+      )}>
         {event.currency}
       </span>
 
@@ -204,7 +212,7 @@ export function EconomicCalendar() {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6 text-center">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6 text-center">
         <Calendar className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
         <p className="text-sm text-muted-foreground mb-3">{error}</p>
         <button
@@ -228,7 +236,7 @@ export function EconomicCalendar() {
           <select
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
-            className="text-xs bg-muted border border-border rounded-md px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            className="text-xs bg-white/[0.04] border border-white/[0.08] rounded-md px-2 py-1.5 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
           >
             {CURRENCIES.map((c) => (
               <option key={c} value={c}>
@@ -279,7 +287,7 @@ export function EconomicCalendar() {
 
       {/* Event groups by date */}
       {groupedEvents.size === 0 ? (
-        <div className="rounded-lg border border-border bg-card p-8 text-center">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-8 text-center">
           <Clock className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
           <p className="text-sm text-muted-foreground">
             No events found for the selected filters
@@ -287,9 +295,9 @@ export function EconomicCalendar() {
         </div>
       ) : (
         Array.from(groupedEvents.entries()).map(([dateLabel, events]) => (
-          <div key={dateLabel} className="rounded-lg border border-border bg-card overflow-hidden">
+          <div key={dateLabel} className="rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
             {/* Date header */}
-            <div className="px-4 py-2 bg-muted/30 border-b border-border/50 flex items-center justify-between">
+            <div className="px-4 py-2 bg-white/[0.02] border-b border-white/[0.06] flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Calendar className="h-3.5 w-3.5 text-primary" />
                 <span className="text-xs font-semibold">{dateLabel}</span>

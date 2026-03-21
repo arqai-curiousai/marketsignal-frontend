@@ -1,27 +1,25 @@
 import {
   BarChart3,
-  TrendingUp,
+  DollarSign,
   Newspaper,
-  Target,
   GitBranch,
-  MessageSquare,
   type LucideIcon,
 } from 'lucide-react';
 
 // -- Hero Section --
 export const HERO = {
-  badge: 'arQai Intelligence',
-  headline: ['Global Markets,', 'Decoded by AI'],
-  sub: 'Dual-agent intelligence pipeline spanning 6 global exchanges, Forex, and Commodities. Real-time signals, pattern detection, and institutional-grade research — without the noise.',
-  primaryCta: { label: 'Start Exploring', href: '/signals' },
+  badge: 'Forex Intelligence by arQai',
+  headline: ['Forex Analytics,', 'Powered by AI'],
+  sub: '28 global currency pairs with real-time technicals, volatility analysis, and AI-curated news impact scoring. Plus sector intelligence and correlation analysis across 6 exchanges — institutional-grade insight without the noise.',
+  primaryCta: { label: 'Explore Forex', href: '/signals?tab=currency' },
   secondaryCta: { label: 'See the Platform', href: '#dashboards' },
 };
 
 // -- Proof Bar --
 export const PROOF_STATS = [
+  { value: '28', suffix: '', label: 'Forex Pairs' },
   { value: '6', suffix: '', label: 'Global Exchanges' },
   { value: '260', suffix: '+', label: 'Stocks Tracked' },
-  { value: '5', suffix: '', label: 'Commodities' },
   { value: '2', suffix: '', label: 'AI Agents' },
   { value: '5', suffix: 'min', label: 'Refresh Rate' },
 ];
@@ -29,8 +27,8 @@ export const PROOF_STATS = [
 // -- Product Showcase --
 export const SHOWCASE = {
   label: 'THE PLATFORM',
-  headline: 'Six dashboards. One unified view.',
-  sub: 'From sector intelligence to options Greeks, every tool a global market participant needs — in a single workspace.',
+  headline: 'Four dashboards. One unified view.',
+  sub: 'From forex analytics to news impact, every tool a global market participant needs — in a single workspace.',
   image: '/landing/platform-hero.png',
   fallbackImage: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1400&q=80',
 };
@@ -45,7 +43,7 @@ export interface DashboardShowcase {
   description: string;
   features: string[];
   href: string;
-  visual: 'sectors' | 'patterns' | 'news' | 'fno' | 'correlation' | 'research';
+  visual: 'sectors' | 'currency' | 'news' | 'correlation';
   glowColor: 'emerald' | 'blue' | 'violet';
 }
 
@@ -68,20 +66,20 @@ export const DASHBOARDS: DashboardShowcase[] = [
     glowColor: 'emerald',
   },
   {
-    id: 'patterns',
-    icon: TrendingUp,
-    label: 'PATTERN DETECTION',
-    headline: 'Patterns spotted.',
-    headlineAccent: 'Across every timeframe.',
-    description: 'Candlestick formations, chart patterns, and Supertrend overlays detected automatically from 5-minute bars to weekly charts. Multi-timeframe alignment tells you when signals converge. Built-in drawing tools let you annotate freely.',
+    id: 'currency',
+    icon: DollarSign,
+    label: 'FOREX ANALYTICS',
+    headline: 'Every currency pair.',
+    headlineAccent: 'Every angle.',
+    description: 'Real-time heatmaps, currency strength meters, carry trade analysis, and session tracking across 28 global forex pairs. Multi-timeframe technicals from 5-minute to weekly with volatility regime detection and mean reversion scoring.',
     features: [
-      'Multi-timeframe support: 5m, 15m, 30m, 1h, daily, weekly',
-      'Candlestick confirmation with one-bar-ahead validation',
-      'Quality scoring based on Bulkowski win rates + regional market adjustments',
-      'Trendline, Fibonacci, horizontal, rectangle drawing tools with keyboard shortcuts',
+      'Heatmap overview with real-time cross-pair performance',
+      'Currency strength scoring with carry trade differentials',
+      'Multi-timeframe technicals: RSI, MACD, Bollinger, ADX, Stochastic',
+      'Session tracking across Asia, London, and New York',
     ],
-    href: '/signals',
-    visual: 'patterns',
+    href: '/signals?tab=currency',
+    visual: 'currency',
     glowColor: 'blue',
   },
   {
@@ -90,33 +88,16 @@ export const DASHBOARDS: DashboardShowcase[] = [
     label: 'NEWS INTELLIGENCE',
     headline: 'News that moves',
     headlineAccent: 'markets. Not noise.',
-    description: 'AI-curated market news with sentiment scoring and impact analysis. Every story is evaluated for relevance to your tracked instruments. Sentiment trends surface emerging narratives before they become consensus.',
+    description: 'AI-curated market news with sentiment scoring and impact analysis. Every story is evaluated for relevance to your tracked instruments — equities, forex, and commodities. Sentiment trends surface emerging narratives before they become consensus.',
     features: [
-      'RSS feeds + Google News for Indian markets, EODHD for global',
-      'Per-ticker sentiment scoring with impact magnitude',
-      'Automatic 30-minute cache to conserve API credits',
+      'Google News + RSS feeds for Indian markets, EODHD for global coverage',
+      'Per-ticker and per-pair sentiment scoring with impact magnitude',
+      'Forex-specific news filtering for central bank decisions and macro events',
       'Cross-reference with price action for event-driven signals',
     ],
     href: '/signals',
     visual: 'news',
     glowColor: 'violet',
-  },
-  {
-    id: 'fno',
-    icon: Target,
-    label: 'F&O ARENA',
-    headline: 'Options intelligence.',
-    headlineAccent: 'From chain to payoff.',
-    description: 'Full option chain visualization with Greeks computation, GEX analysis, and volatility cone. Build strategies with the interactive payoff diagram builder — Bull Call, Bear Put, Iron Condor, Straddle, Strangle — all with real-time P&L curves.',
-    features: [
-      'Auto-refreshing option chain with 60-second polling',
-      'IV Rank and IV Percentile with 400-day historical context',
-      'GEX regime detection, wall migration tracking, futures basis',
-      'Strategy builder with 5 presets and custom leg construction',
-    ],
-    href: '/signals',
-    visual: 'fno',
-    glowColor: 'emerald',
   },
   {
     id: 'correlation',
@@ -135,31 +116,20 @@ export const DASHBOARDS: DashboardShowcase[] = [
     visual: 'correlation',
     glowColor: 'blue',
   },
-  {
-    id: 'research',
-    icon: MessageSquare,
-    label: 'AI RESEARCH',
-    headline: 'Ask anything.',
-    headlineAccent: 'Get sourced answers.',
-    description: 'RAG-powered research assistant backed by Qdrant vector search. Every answer cites its sources with relevance scores. Stream responses in real-time via SSE. No hallucinated facts — just verifiable, sourced intelligence.',
-    features: [
-      'Retrieval-augmented generation with Qdrant Cloud vectors',
-      'SSE streaming for real-time response delivery',
-      'Source citations with relevance confidence scores',
-      'Compliance-filtered: no buy/sell recommendations in output',
-    ],
-    href: '/assistant',
-    visual: 'research',
-    glowColor: 'violet',
-  },
 ];
 
 // -- Market Coverage --
 export const COVERAGE = {
   label: 'COVERAGE',
-  headline: 'Built for global markets.',
-  headlineLine2: 'Tuned for serious traders.',
+  headline: 'Built for forex traders.',
+  headlineLine2: 'Powered by global data.',
   cards: [
+    {
+      title: 'Forex Pairs',
+      bigNumber: '28',
+      description: 'Major, minor, and INR crosses with 5-minute OHLCV, technicals, volatility analysis, carry trade metrics, and session tracking.',
+      color: 'blue' as const,
+    },
     {
       title: '6 Global Exchanges',
       bigNumber: '260+',
@@ -167,15 +137,9 @@ export const COVERAGE = {
       color: 'emerald' as const,
     },
     {
-      title: 'Forex Pairs',
-      bigNumber: '5',
-      description: 'Major currency pairs with 5-minute OHLCV and cross-asset correlation tracking.',
-      color: 'blue' as const,
-    },
-    {
-      title: 'Commodities',
-      bigNumber: '5',
-      description: 'Gold, Silver, Crude Oil, Natural Gas, Copper with real-time price sync and cross-asset analysis.',
+      title: 'News Sources',
+      bigNumber: '10+',
+      description: 'Google News, RSS feeds, and EODHD — curated for forex impact, central bank decisions, and macro events that move currency markets.',
       color: 'violet' as const,
     },
   ],
@@ -200,7 +164,7 @@ export const ALGO = {
 
 // -- Final CTA --
 export const FINAL_CTA = {
-  headline: 'Your edge in global markets.',
-  sub: 'Join the next generation of market intelligence.',
+  headline: 'Your edge in forex markets.',
+  sub: 'Join the next generation of forex intelligence.',
   cta: { label: 'Get Started Free', href: '/login' },
 };

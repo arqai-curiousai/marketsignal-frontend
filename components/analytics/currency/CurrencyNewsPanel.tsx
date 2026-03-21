@@ -43,7 +43,7 @@ export function CurrencyNewsPanel({ pair }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
       <h3 className="text-sm font-medium mb-3 flex items-center gap-1.5">
         <Newspaper className="h-3.5 w-3.5" />
         Currency News
@@ -53,7 +53,7 @@ export function CurrencyNewsPanel({ pair }: Props) {
       ) : (
         <div className="space-y-2">
           {news.map((item, i) => (
-            <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b border-border/30 last:border-0">
+            <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b border-white/[0.04] last:border-0">
               <div className="flex-1 min-w-0">
                 {item.url ? (
                   <a

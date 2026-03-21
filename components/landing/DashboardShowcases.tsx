@@ -66,77 +66,60 @@ function SectorsVisual() {
   );
 }
 
-function PatternsVisual() {
-  const candles = [
-    { o: 50, c: 58, h: 62, l: 48 },
-    { o: 58, c: 55, h: 60, l: 53 },
-    { o: 55, c: 63, h: 65, l: 54 },
-    { o: 63, c: 60, h: 66, l: 58 },
-    { o: 60, c: 68, h: 70, l: 59 },
-    { o: 68, c: 72, h: 75, l: 66 },
-    { o: 72, c: 69, h: 74, l: 67 },
-    { o: 69, c: 76, h: 78, l: 68 },
-    { o: 76, c: 74, h: 80, l: 72 },
-    { o: 74, c: 82, h: 84, l: 73 },
+function CurrencyVisual() {
+  const pairs = [
+    { name: 'EUR/USD', val: 0.32 },
+    { name: 'GBP/USD', val: -0.18 },
+    { name: 'USD/JPY', val: 0.45 },
+    { name: 'AUD/USD', val: -0.27 },
+    { name: 'EUR/GBP', val: 0.12 },
+    { name: 'USD/INR', val: 0.08 },
   ];
-  const W = 320;
-  const H = 120;
-  const cw = W / candles.length - 4;
-  const mn = 45;
-  const mx = 85;
-  const scaleY = (v: number) => H - ((v - mn) / (mx - mn)) * (H - 20) - 10;
-
-  // Supertrend line: follows below candles, switches color
-  const stLine = candles.map((c, i) => {
-    const x = i * (cw + 4) + 2 + cw / 2;
-    const y = scaleY(Math.min(c.o, c.c) - 3);
-    return `${i === 0 ? 'M' : 'L'}${x},${y}`;
-  }).join(' ');
-
+  const strengths = [
+    { currency: 'USD', score: 72, color: 'bg-blue-400' },
+    { currency: 'EUR', score: 58, color: 'bg-brand-emerald' },
+    { currency: 'GBP', score: 45, color: 'bg-violet-400' },
+    { currency: 'INR', score: 38, color: 'bg-orange-400' },
+  ];
   return (
     <div className="space-y-3">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto">
-        {candles.map((c, i) => {
-          const x = i * (cw + 4) + 2;
-          const bullish = c.c >= c.o;
-          const bodyTop = scaleY(Math.max(c.o, c.c));
-          const bodyBot = scaleY(Math.min(c.o, c.c));
-          return (
-            <g key={i}>
-              <line x1={x + cw / 2} y1={scaleY(c.h)} x2={x + cw / 2} y2={scaleY(c.l)} stroke={bullish ? '#4ade80' : '#f87171'} strokeWidth={1} strokeOpacity={0.6} />
-              <rect x={x} y={bodyTop} width={cw} height={Math.max(bodyBot - bodyTop, 1)} rx={2} fill={bullish ? '#4ade8050' : '#f8717150'} stroke={bullish ? '#4ade80' : '#f87171'} strokeWidth={0.5} />
-            </g>
-          );
-        })}
-
-        {/* Supertrend overlay */}
-        <motion.path
-          d={stLine}
-          fill="none"
-          stroke="#6EE7B7"
-          strokeWidth={1.5}
-          strokeDasharray="3 2"
-          opacity={0.5}
-          initial={{ pathLength: 0 }}
-          whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.5, delay: 0.5 }}
-        />
-
-        {/* Pattern annotation with animated dash */}
-        <rect x={5 * (cw + 4) - 4} y={2} width={(cw + 4) * 3 + 8} height={H - 4} rx={6} fill="none" stroke="#6EE7B7" strokeWidth={1} strokeDasharray="4 2" opacity={0.4}>
-          <animate attributeName="stroke-dashoffset" values="0;12" dur="2s" repeatCount="indefinite" />
-        </rect>
-        <text x={5 * (cw + 4) + (cw + 4) * 1.5} y={H - 4} textAnchor="middle" fill="#6EE7B7" fontSize={8} opacity={0.7}>Bullish Engulfing</text>
-      </svg>
-      <div className="flex gap-1.5 justify-center">
-        {['5m', '15m', '1H', '1D', '1W'].map((tf, i) => (
-          <div key={tf} className={`px-2.5 py-1 rounded-md text-[10px] font-medium transition-all ${
-            i === 3
-              ? 'gradient-border-animated text-brand-emerald'
-              : 'bg-white/[0.03] text-muted-foreground border border-white/[0.06] hover:bg-white/[0.05]'
-          }`}>
-            {tf}
+      <div className="grid grid-cols-3 gap-1.5">
+        {pairs.map((p, i) => (
+          <motion.div
+            key={p.name}
+            initial={{ opacity: 0, scale: 0.8 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            whileHover={{ scale: 1.06 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: i * 0.04 }}
+            className={`rounded-lg p-2.5 cursor-default transition-colors ${
+              p.val > 0
+                ? 'bg-green-500/10 border border-green-500/10 hover:bg-green-500/15'
+                : 'bg-red-500/10 border border-red-500/10 hover:bg-red-500/15'
+            }`}
+          >
+            <div className="text-[10px] text-muted-foreground">{p.name}</div>
+            <div className={`text-xs font-bold tabular-nums ${p.val > 0 ? 'text-green-400' : 'text-red-400'}`}>
+              {p.val > 0 ? '+' : ''}{p.val}%
+            </div>
+          </motion.div>
+        ))}
+      </div>
+      <div className="space-y-1.5 pt-1">
+        <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium px-1">Strength</div>
+        {strengths.map((s) => (
+          <div key={s.currency} className="flex items-center gap-2 px-1">
+            <span className="text-[10px] text-muted-foreground w-6 font-medium">{s.currency}</span>
+            <div className="flex-1 h-1.5 rounded-full bg-white/[0.04] overflow-hidden">
+              <motion.div
+                className={`h-full rounded-full ${s.color}`}
+                initial={{ width: 0 }}
+                whileInView={{ width: `${s.score}%` }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+              />
+            </div>
+            <span className="text-[10px] text-white/50 tabular-nums w-5 text-right">{s.score}</span>
           </div>
         ))}
       </div>
@@ -177,56 +160,6 @@ function NewsVisual() {
           </div>
         </motion.div>
       ))}
-    </div>
-  );
-}
-
-function FnOVisual() {
-  return (
-    <div className="space-y-3">
-      <div className="rounded-lg border border-white/[0.06] overflow-hidden text-[10px]">
-        <div className="grid grid-cols-5 gap-px bg-white/[0.04] px-2 py-1.5 text-muted-foreground font-medium border-b border-white/[0.06]">
-          <span>CE OI</span><span>CE LTP</span><span className="text-center text-brand-emerald">Strike</span><span>PE LTP</span><span>PE OI</span>
-        </div>
-        {[
-          { ceOi: '12.4L', ceLtp: '245', strike: '22000', peLtp: '180', peOi: '8.2L' },
-          { ceOi: '18.1L', ceLtp: '165', strike: '22100', peLtp: '225', peOi: '15.3L' },
-          { ceOi: '22.5L', ceLtp: '98', strike: '22200', peLtp: '310', peOi: '11.7L' },
-        ].map((row, i) => (
-          <div key={i} className={`grid grid-cols-5 gap-px px-2 py-1.5 transition-colors ${
-            i === 1
-              ? 'bg-brand-emerald/[0.06] shadow-[inset_0_0_20px_rgba(110,231,183,0.05)]'
-              : 'bg-white/[0.01] hover:bg-white/[0.03]'
-          }`}>
-            <span className="text-muted-foreground tabular-nums">{row.ceOi}</span>
-            <span className="text-green-400 tabular-nums">{row.ceLtp}</span>
-            <span className="text-center text-white font-medium tabular-nums">{row.strike}</span>
-            <span className="text-red-400 tabular-nums">{row.peLtp}</span>
-            <span className="text-muted-foreground tabular-nums">{row.peOi}</span>
-          </div>
-        ))}
-      </div>
-      <svg viewBox="0 0 200 60" className="w-full h-auto">
-        <defs>
-          <linearGradient id="payoffFill" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#6EE7B7" stopOpacity="0.15" />
-            <stop offset="100%" stopColor="#6EE7B7" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <line x1="0" y1="30" x2="200" y2="30" stroke="rgba(255,255,255,0.06)" strokeWidth={0.5} />
-        <motion.path
-          d="M0,50 L60,50 L80,30 L120,10 L140,10 L200,10"
-          fill="none"
-          stroke="#6EE7B7"
-          strokeWidth={1.5}
-          initial={{ pathLength: 0 }}
-          whileInView={{ pathLength: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 1.5, delay: 0.3 }}
-        />
-        <path d="M0,50 L60,50 L80,30 L120,10 L140,10 L200,10 L200,60 L0,60 Z" fill="url(#payoffFill)" opacity={0.6} />
-        <text x="100" y="56" textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize={7}>Bull Call Spread</text>
-      </svg>
     </div>
   );
 }
@@ -286,55 +219,13 @@ function CorrelationVisual() {
   );
 }
 
-function ResearchVisual() {
-  return (
-    <div className="space-y-2.5">
-      <div className="flex justify-end">
-        <div className="rounded-xl rounded-br-sm bg-brand-emerald/10 border border-brand-emerald/20 px-3.5 py-2 max-w-[85%] shadow-[0_0_20px_rgba(110,231,183,0.05)]">
-          <div className="text-xs text-white/90">What&apos;s driving IT sector momentum this quarter?</div>
-        </div>
-      </div>
-      <div className="flex justify-start">
-        <div className="rounded-xl rounded-bl-sm bg-white/[0.03] border border-white/[0.06] px-3.5 py-2.5 max-w-[90%] space-y-2">
-          <div className="text-xs text-white/80 leading-relaxed">
-            IT sector is up 8.2% QoQ driven by strong deal wins and USD/INR tailwinds. TCS and Infosys reported double-digit revenue growth...
-          </div>
-          <div className="flex gap-1.5 flex-wrap">
-            {['TCS Q3 Report', 'NSE Sectoral Data', 'RBI Forex Brief'].map((src) => (
-              <motion.span
-                key={src}
-                whileHover={{ y: -2 }}
-                className="text-[9px] px-2 py-0.5 rounded-full bg-brand-blue/10 text-brand-blue border border-brand-blue/20 cursor-default transition-colors hover:bg-brand-blue/15"
-              >
-                {src}
-              </motion.span>
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="flex gap-1.5 px-3">
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="w-1.5 h-1.5 rounded-full bg-brand-emerald/40"
-            animate={{ opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 1.2, repeat: Infinity, delay: i * 0.2 }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ─── Visual Selector ─────────────────────────────────────────────────────────
 
 const VISUALS: Record<string, React.FC> = {
   sectors: SectorsVisual,
-  patterns: PatternsVisual,
+  currency: CurrencyVisual,
   news: NewsVisual,
-  fno: FnOVisual,
   correlation: CorrelationVisual,
-  research: ResearchVisual,
 };
 
 // ─── Single Dashboard Section ────────────────────────────────────────────────
@@ -444,7 +335,7 @@ export function DashboardShowcases() {
             Every dashboard, in detail.
           </h2>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Six specialized views. Each built to give you an edge that generic platforms can&apos;t.
+            Four specialized views. Each built to give you an edge that generic platforms can&apos;t.
           </p>
         </motion.div>
 

@@ -259,3 +259,9 @@
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.25);
 }
+
+/* Forex ticker strip seamless scroll */
+@keyframes forexScroll {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}

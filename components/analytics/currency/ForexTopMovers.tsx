@@ -107,7 +107,7 @@ export function ForexTopMovers({ onSelectPair }: Props) {
   }
 
   return (
-    <div className="rounded-lg border border-border bg-card p-3">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
       <div className="flex items-center gap-3 overflow-x-auto scrollbar-thin pb-1">
         {/* Gainers */}
         {gainers.length > 0 && (
@@ -126,7 +126,7 @@ export function ForexTopMovers({ onSelectPair }: Props) {
 
         {/* Divider */}
         {gainers.length > 0 && losers.length > 0 && (
-          <div className="w-px h-6 bg-border shrink-0" />
+          <div className="w-px h-6 bg-white/[0.08] shrink-0" />
         )}
 
         {/* Losers */}

@@ -53,7 +53,7 @@ export function CurrencySessions({ pair }: Props) {
   return (
     <div className="space-y-4">
       {/* Session Timeline */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-semibold mb-3">Forex Sessions</h3>
         <div className="space-y-2">
           {data.sessions.map(s => (
@@ -108,12 +108,12 @@ export function CurrencySessions({ pair }: Props) {
       </div>
 
       {/* Session Range Decomposition */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-semibold mb-3">Session Ranges (Last 5 Days Avg)</h3>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border/50">
+              <tr className="border-b border-white/[0.06]">
                 <th className="text-left py-1.5 text-muted-foreground font-medium">Session</th>
                 <th className="text-right py-1.5 text-muted-foreground font-medium">Open</th>
                 <th className="text-right py-1.5 text-muted-foreground font-medium">High</th>
@@ -125,7 +125,7 @@ export function CurrencySessions({ pair }: Props) {
             </thead>
             <tbody>
               {data.sessions.map(s => (
-                <tr key={s.name} className="border-b border-border/20">
+                <tr key={s.name} className="border-b border-white/[0.04]">
                   <td className="py-1.5 font-medium">
                     <div className="flex items-center gap-1.5">
                       <div className={cn('w-1.5 h-1.5 rounded-full', SESSION_COLORS[s.name])} />
@@ -152,7 +152,7 @@ export function CurrencySessions({ pair }: Props) {
 
       {/* Asian Range Breakout */}
       {data.asian_breakout && (
-        <div className="rounded-lg border border-border bg-card p-4">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
           <h3 className="text-sm font-semibold mb-3">Asian Range Breakout Levels</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="text-center rounded-lg bg-emerald-500/5 border border-emerald-500/20 p-3">
@@ -170,7 +170,8 @@ export function CurrencySessions({ pair }: Props) {
       )}
 
       {/* Hourly Return Heatmap */}
-      <div className="rounded-lg border border-border bg-card p-4">
+      {data.hourly_returns && data.hourly_returns.length > 0 && (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-semibold mb-3">Hourly Return Pattern (IST)</h3>
         <div className="overflow-x-auto">
           <div className="flex gap-px min-w-[600px]">
@@ -207,6 +208,7 @@ export function CurrencySessions({ pair }: Props) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -137,7 +137,7 @@ export function CarryTradeTable() {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6 text-center">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6 text-center">
         <p className="text-sm text-muted-foreground mb-3">{error}</p>
         <button
           onClick={() => fetchData(category)}
@@ -174,18 +174,18 @@ export function CarryTradeTable() {
       </div>
 
       {/* Table */}
-      <div className="rounded-lg border border-border bg-card">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03]">
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-border/50">
+              <tr className="border-b border-white/[0.06]">
                 {COLUMNS.map((col) => (
                   <th
                     key={col.id}
                     className={cn(
                       'py-2.5 px-3 font-medium text-muted-foreground cursor-pointer hover:text-foreground transition-colors whitespace-nowrap',
                       col.align === 'left' ? 'text-left' : 'text-right',
-                      col.id === 'pair' && 'sticky left-0 z-10 bg-card'
+                      col.id === 'pair' && 'sticky left-0 z-10 bg-zinc-950'
                     )}
                     onClick={() => handleSort(col.id)}
                   >
@@ -212,9 +212,9 @@ export function CarryTradeTable() {
                 sortedPairs.map((p: ICurrencyCarryPair) => (
                   <tr
                     key={p.pair}
-                    className="border-b border-border/20 hover:bg-muted/30 transition-colors"
+                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors"
                   >
-                    <td className="py-2 px-3 font-semibold whitespace-nowrap sticky left-0 z-10 bg-card">
+                    <td className="py-2 px-3 font-semibold whitespace-nowrap sticky left-0 z-10 bg-zinc-950">
                       {p.pair}
                     </td>
                     <td className="py-2 px-3 text-right font-mono">

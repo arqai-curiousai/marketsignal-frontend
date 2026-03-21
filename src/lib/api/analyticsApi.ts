@@ -67,6 +67,7 @@ import type {
   IRateDifferentialMatrix,
   IUpcomingMeetings,
   IEconomicCalendar,
+  ICurrencyRegime,
   ICommodityOverview,
   ICommoditySeasonality,
 } from '@/types/analytics';
@@ -688,6 +689,32 @@ export async function getCurrencyPatterns(
   );
 }
 
+export interface ICurrencyCandle {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface ICurrencyCandlesResponse {
+  pair: string;
+  interval: string;
+  count: number;
+  candles: ICurrencyCandle[];
+}
+
+export async function getCurrencyCandles(
+  pair: string,
+  interval: string = '5m',
+  limit: number = 500
+): Promise<ApiResult<ICurrencyCandlesResponse>> {
+  return apiClient.get(
+    `/api/analytics/currency/${encodeURIComponent(pair)}/candles?interval=${interval}&limit=${limit}`
+  );
+}
+
 // =============================================================================
 // Currency Dashboard — Pro Analytics
 // =============================================================================
@@ -770,6 +797,12 @@ export async function getCurrencyCalendar(
   let url = `/api/analytics/currency/calendar?days=${days}`;
   if (currency) url += `&currency=${currency}`;
   return apiClient.get(url);
+}
+
+export async function getCurrencyRegime(
+  pair: string = 'USD/INR'
+): Promise<ApiResult<ICurrencyRegime>> {
+  return apiClient.get(`/api/analytics/currency/regime?pair=${encodeURIComponent(pair)}`);
 }
 
 // =============================================================================

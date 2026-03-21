@@ -80,7 +80,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
 
   if (loading && !data) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 space-y-3">
         <div className="flex items-center justify-between">
           <Skeleton className="h-5 w-36" />
           <Skeleton className="h-7 w-32" />
@@ -92,7 +92,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
 
   if (error && !data) {
     return (
-      <div className="rounded-lg border border-border bg-card p-6 flex flex-col items-center text-muted-foreground">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6 flex flex-col items-center text-muted-foreground">
         <AlertCircle className="h-8 w-8 mb-2 opacity-40" />
         <p className="text-sm">{error}</p>
         <button
@@ -109,7 +109,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
   const matrix = data?.matrix ?? [];
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
@@ -179,23 +179,28 @@ export function ForexHeatMap({ onSelectPair }: Props) {
                   const bgColor = changePctToColor(changePct);
                   const textCls = changePctToTextColor(changePct);
 
+                  // Highlight INR pairs with amber border
+                  const isINRPair = rowCcy === 'INR' || colCcy === 'INR';
+
                   return (
                     <td key={colCcy} className="p-0.5">
                       <button
                         onClick={() => onSelectPair(`${rowCcy}/${colCcy}`)}
                         className={cn(
                           'w-full h-10 rounded flex flex-col items-center justify-center',
-                          'transition-transform hover:scale-105 hover:ring-1 hover:ring-primary/40',
+                          'transition-all duration-300 hover:scale-105 hover:ring-1 hover:ring-primary/40',
+                          'hover:shadow-[0_0_12px_rgba(56,189,248,0.15)]',
                           'cursor-pointer',
+                          isINRPair && 'ring-1 ring-amber-500/30',
                           textCls
                         )}
                         style={{ backgroundColor: bgColor }}
                         title={`${rowCcy}/${colCcy}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`}
                       >
-                        <span className="text-[9px] font-mono leading-tight">
+                        <span className="text-[9px] font-mono leading-tight tabular-nums">
                           {rate != null ? rate.toFixed(rate >= 100 ? 2 : 4) : '—'}
                         </span>
-                        <span className="text-[8px] font-mono opacity-80 leading-tight">
+                        <span className="text-[8px] font-mono opacity-80 leading-tight tabular-nums">
                           {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
                         </span>
                       </button>

@@ -1460,6 +1460,17 @@ export interface IEconomicCalendar {
   computed_at: string;
 }
 
+export interface ICurrencyRegime {
+  pair: string;
+  current_regime: string;
+  hurst_exponent: number | null;
+  hurst_classification: string;
+  volatility_regime: string;
+  regime_zones: Array<{ start: number; end: number; regime: string }>;
+  regime_duration_days: number;
+  computed_at: string;
+}
+
 // ─── Commodity Dashboard ────────────────────────────────────
 
 export interface ICommoditySnapshot {

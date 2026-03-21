@@ -45,7 +45,7 @@ export function CurrencyCorrelationMini() {
 
   if (!matrix?.tickers?.length) {
     return (
-      <div className="rounded-lg border border-border bg-card p-4">
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-medium mb-2">INR Cross Correlation</h3>
         <p className="text-xs text-muted-foreground">No correlation data available</p>
       </div>
@@ -55,7 +55,7 @@ export function CurrencyCorrelationMini() {
   const tickers = matrix.tickers;
 
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
       <h3 className="text-sm font-medium mb-3">INR Cross Correlation</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
