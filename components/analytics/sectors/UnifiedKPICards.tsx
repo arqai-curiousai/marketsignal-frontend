@@ -1,10 +1,11 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 import type { IPyramidKPI } from '../pyramid/constants';
 import { perfTextClass, flowColor } from './constants';
+import { DataFreshness } from '../DataFreshness';
 
 interface UnifiedKPICardsProps {
   sectors: ISectorAnalytics[];
@@ -13,28 +14,34 @@ interface UnifiedKPICardsProps {
   computedAt: string | null;
 }
 
-export function UnifiedKPICards({ sectors, kpi, computedAt }: UnifiedKPICardsProps) {
+export function UnifiedKPICards({ sectors, kpi, timeframe, computedAt }: UnifiedKPICardsProps) {
+  // Compute timeframe-aware top/bottom sectors
+  const tfKpi = useMemo(() => {
+    if (sectors.length === 0 || timeframe === '1d') return kpi;
+    const sorted = [...sectors].sort(
+      (a, b) => (a.performance[timeframe] ?? 0) - (b.performance[timeframe] ?? 0),
+    );
+    const top = sorted[sorted.length - 1];
+    const bottom = sorted[0];
+    return {
+      ...kpi,
+      top_sector: { name: top.sector, change_pct: top.performance[timeframe] ?? 0 },
+      bottom_sector: { name: bottom.sector, change_pct: bottom.performance[timeframe] ?? 0 },
+    };
+  }, [sectors, kpi, timeframe]);
+
   if (sectors.length === 0) return null;
 
-  const totalStocks = kpi.advancing + kpi.declining + kpi.unchanged;
+  const totalStocks = tfKpi.advancing + tfKpi.declining + tfKpi.unchanged;
 
   const avgFlow =
     sectors.reduce((sum, s) => sum + (s.volume_flow_score ?? 0), 0) / sectors.length;
   const flowLabel = avgFlow > 15 ? 'Acc.' : avgFlow < -15 ? 'Dist.' : 'Neutral';
 
-  const freshness = computedAt
-    ? Math.round((Date.now() - new Date(computedAt).getTime()) / 60000)
-    : null;
-  const freshnessColor =
-    freshness == null
-      ? 'bg-slate-500'
-      : freshness < 5
-        ? 'bg-emerald-400'
-        : freshness < 15
-          ? 'bg-amber-400'
-          : 'bg-red-400';
+  // Freshness is handled by <DataFreshness /> below
 
-  const breadthPct = totalStocks > 0 ? (kpi.advancing / totalStocks) * 100 : 50;
+  const breadthPct = totalStocks > 0 ? (tfKpi.advancing / totalStocks) * 100 : 50;
+  const tfLabel = timeframe !== '1d' ? ` (${timeframe.toUpperCase()})` : '';
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-4 py-2.5">
@@ -42,9 +49,9 @@ export function UnifiedKPICards({ sectors, kpi, computedAt }: UnifiedKPICardsPro
         {/* NIFTY */}
         <span className="flex items-center gap-1.5">
           <span className="text-muted-foreground font-medium">NIFTY</span>
-          <span className={cn('font-semibold', perfTextClass(kpi.nifty_change_pct))}>
-            {kpi.nifty_change_pct >= 0 ? '+' : ''}
-            {kpi.nifty_change_pct.toFixed(2)}%
+          <span className={cn('font-semibold', perfTextClass(tfKpi.nifty_change_pct))}>
+            {tfKpi.nifty_change_pct >= 0 ? '+' : ''}
+            {tfKpi.nifty_change_pct.toFixed(2)}%
           </span>
         </span>
 
@@ -52,8 +59,8 @@ export function UnifiedKPICards({ sectors, kpi, computedAt }: UnifiedKPICardsPro
 
         {/* Breadth */}
         <span className="flex items-center gap-1.5">
-          <span className="text-emerald-400 font-medium">{kpi.advancing}↑</span>
-          <span className="text-red-400 font-medium">{kpi.declining}↓</span>
+          <span className="text-emerald-400 font-medium">{tfKpi.advancing}↑</span>
+          <span className="text-red-400 font-medium">{tfKpi.declining}↓</span>
         </span>
 
         <span className="text-white/10">|</span>
@@ -64,23 +71,38 @@ export function UnifiedKPICards({ sectors, kpi, computedAt }: UnifiedKPICardsPro
           <span
             className={cn(
               'font-medium',
-              kpi.india_vix != null && kpi.india_vix > 20 ? 'text-red-400' : 'text-white',
+              tfKpi.india_vix != null && tfKpi.india_vix > 20 ? 'text-red-400' : 'text-white',
             )}
           >
-            {kpi.india_vix != null ? kpi.india_vix.toFixed(1) : '\u2014'}
+            {tfKpi.india_vix != null ? tfKpi.india_vix.toFixed(1) : '\u2014'}
           </span>
         </span>
 
         <span className="text-white/10">|</span>
 
         {/* Top sector */}
-        {kpi.top_sector && (
+        {tfKpi.top_sector && (
           <>
             <span className="flex items-center gap-1.5">
-              <span className="text-muted-foreground">Top:</span>
-              <span className="text-white font-medium">{kpi.top_sector.name}</span>
+              <span className="text-muted-foreground">Top{tfLabel}:</span>
+              <span className="text-white font-medium">{tfKpi.top_sector.name}</span>
               <span className="text-emerald-400 font-medium">
-                +{kpi.top_sector.change_pct.toFixed(1)}%
+                +{tfKpi.top_sector.change_pct.toFixed(1)}%
+              </span>
+            </span>
+            <span className="text-white/10">|</span>
+          </>
+        )}
+
+        {/* Bottom sector */}
+        {tfKpi.bottom_sector && (
+          <>
+            <span className="flex items-center gap-1.5">
+              <span className="text-muted-foreground">Bot{tfLabel}:</span>
+              <span className="text-white font-medium">{tfKpi.bottom_sector.name}</span>
+              <span className="text-red-400 font-medium">
+                {tfKpi.bottom_sector.change_pct >= 0 ? '+' : ''}
+                {tfKpi.bottom_sector.change_pct.toFixed(1)}%
               </span>
             </span>
             <span className="text-white/10">|</span>
@@ -98,11 +120,8 @@ export function UnifiedKPICards({ sectors, kpi, computedAt }: UnifiedKPICardsPro
         <span className="text-white/10">|</span>
 
         {/* Freshness */}
-        <span className="flex items-center gap-1.5 ml-auto">
-          <span className={cn('h-1.5 w-1.5 rounded-full', freshnessColor)} />
-          <span className="text-muted-foreground">
-            {freshness != null ? `${freshness}m ago` : 'Loading'}
-          </span>
+        <span className="ml-auto">
+          <DataFreshness computedAt={computedAt} staleTTLMinutes={10} />
         </span>
       </div>
 

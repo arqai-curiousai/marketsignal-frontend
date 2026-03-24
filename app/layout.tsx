@@ -5,6 +5,7 @@ import { Shell } from '@/components/layout/Shell';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/context/AuthContext';
 import { ExchangeProvider } from '@/context/ExchangeContext';
+import { ThemeProvider } from 'next-themes';
 
 const inter = Inter({ subsets: ['latin'] });
 const sora = Sora({
@@ -25,14 +26,21 @@ export default function RootLayout({
     children: React.ReactNode;
 }) {
     return (
-        <html lang="en" className="dark">
+        <html lang="en" suppressHydrationWarning>
             <body className={`${inter.className} ${sora.variable}`}>
-                <AuthProvider>
-                    <ExchangeProvider>
-                        <Shell>{children}</Shell>
-                    </ExchangeProvider>
-                </AuthProvider>
-                <Toaster position="top-right" />
+                <ThemeProvider
+                    attribute="class"
+                    defaultTheme="dark"
+                    enableSystem
+                    disableTransitionOnChange={false}
+                >
+                    <AuthProvider>
+                        <ExchangeProvider>
+                            <Shell>{children}</Shell>
+                        </ExchangeProvider>
+                    </AuthProvider>
+                    <Toaster position="top-right" />
+                </ThemeProvider>
             </body>
         </html>
     );

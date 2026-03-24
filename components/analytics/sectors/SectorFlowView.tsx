@@ -67,7 +67,7 @@ export function SectorFlowView({ sectors, timeframe, selectedSector, onSectorCli
       { x: 0, y: 0, w: innerW / 2, h: innerH / 2, label: 'Weak + Accumulating', color: 'rgba(59,130,246,0.04)' },
       { x: innerW / 2, y: 0, w: innerW / 2, h: innerH / 2, label: 'Strong + Accumulating', color: 'rgba(16,185,129,0.06)' },
       { x: 0, y: innerH / 2, w: innerW / 2, h: innerH / 2, label: 'Weak + Distributing', color: 'rgba(239,68,68,0.06)' },
-      { x: innerW / 2, y: innerH / 2, w: innerW / 2, h: innerH / 2, label: 'Weak + Neutral', color: 'rgba(148,163,184,0.03)' },
+      { x: innerW / 2, y: innerH / 2, w: innerW / 2, h: innerH / 2, label: 'Strong + Distributing', color: 'rgba(239,68,68,0.04)' },
     ];
 
     quadrants.forEach((q) => {
@@ -269,7 +269,7 @@ export function SectorFlowView({ sectors, timeframe, selectedSector, onSectorCli
       ref={containerRef}
       className="relative rounded-xl border border-white/10 bg-white/[0.02] overflow-hidden"
     >
-      <svg ref={svgRef} className="w-full" />
+      <svg ref={svgRef} className="w-full" role="img" aria-label="Sector flow scatter plot: Momentum Score vs Volume Flow Score. Bubble size represents market capitalisation." />
       <div
         ref={tooltipRef}
         className="absolute z-50 rounded-lg border border-white/10 bg-brand-slate/95 backdrop-blur-sm px-3 py-2 shadow-xl transition-opacity duration-150 pointer-events-none"

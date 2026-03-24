@@ -1,24 +1,14 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Loader2, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import {
-  getSectorRisk,
-  getSectorHistory,
-  getSectorSeasonality,
-  getSectorMansfield,
-  getSectorFlow,
-} from '@/src/lib/api/analyticsApi';
+import { formatPrice } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 import type {
   ISectorAnalytics,
-  ISectorRiskScorecard,
-  ISectorHistory,
-  ISectorSeasonality,
-  ISectorMansfieldRS,
-  ISectorVolumeFlow,
   SectorTimeframe,
 } from '@/types/analytics';
 import {
@@ -29,15 +19,7 @@ import {
 } from './constants';
 import { SectorRRG } from './SectorRRG';
 import { SectorBreadthPanel } from './SectorBreadthPanel';
-import { RiskRadarChart } from './RiskRadarChart';
-import { HistoryChart } from './HistoryChart';
-import { SeasonalityCalendar } from './SeasonalityCalendar';
-import { MansfieldRSChart } from './MansfieldRSChart';
-import { VolumeFlowGauge } from './VolumeFlowGauge';
-import { SectorValuationPanel } from './SectorValuationPanel';
-import { SectorFIIFlowPanel } from './SectorFIIFlowPanel';
-import { SectorFinancialsPanel } from './SectorFinancialsPanel';
-import { SectorEarningsCalendar } from './SectorEarningsCalendar';
+import { SectorDetailTabs } from './SectorDetailTabs';
 
 interface SectorDetailPanelProps {
   selectedSector: ISectorAnalytics | null;
@@ -48,201 +30,20 @@ interface SectorDetailPanelProps {
   onDrillOpen: (sector: ISectorAnalytics) => void;
 }
 
-function LoadingSpinner() {
-  return (
-    <div className="flex items-center justify-center py-4">
-      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-    </div>
-  );
+
+/** Map global timeframe to trading-days for detail section API calls. */
+function timeframeToDays(tf: SectorTimeframe): number {
+  switch (tf) {
+    case '1d': return 20;    // show at least 1 month context
+    case '1w': return 30;
+    case '1m': return 60;
+    case '3m': return 90;
+    case '6m': return 126;
+    case 'ytd': return 252;
+    default: return 252;
+  }
 }
 
-function NoData() {
-  return (
-    <div className="text-[10px] text-muted-foreground text-center py-3">
-      Insufficient data
-    </div>
-  );
-}
-
-/** Lazy accordion section — mounts children on first expand, toggles visibility after. */
-function LazySection({
-  title,
-  description,
-  children,
-  defaultOpen = false,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen);
-  const [hasOpened, setHasOpened] = useState(defaultOpen);
-
-  const toggle = () => {
-    if (!open && !hasOpened) setHasOpened(true);
-    setOpen((o) => !o);
-  };
-
-  return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] overflow-hidden">
-      <button
-        onClick={toggle}
-        aria-expanded={open}
-        className="flex items-center justify-between w-full px-3 py-2.5 text-left hover:bg-white/[0.02] transition-colors focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:outline-none"
-      >
-        <div className="min-w-0">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-            {title}
-          </span>
-          {description && (
-            <div className="text-[9px] text-muted-foreground/60 mt-0.5 truncate">{description}</div>
-          )}
-        </div>
-        <ChevronDown
-          className={cn(
-            'h-3 w-3 text-muted-foreground transition-transform duration-200 flex-shrink-0 ml-2',
-            open && 'rotate-180',
-          )}
-        />
-      </button>
-      {hasOpened && (
-        <div
-          className={cn(
-            'px-3 pb-3 transition-all duration-200',
-            !open && 'hidden',
-          )}
-        >
-          {children}
-        </div>
-      )}
-    </div>
-  );
-}
-
-/** Section group header */
-function SectionGroupLabel({ label }: { label: string }) {
-  return (
-    <div className="flex items-center gap-2 pt-1">
-      <div className="h-px flex-1 bg-white/[0.06]" />
-      <span className="text-[9px] uppercase tracking-widest text-muted-foreground/50 font-medium">{label}</span>
-      <div className="h-px flex-1 bg-white/[0.06]" />
-    </div>
-  );
-}
-
-// ─── Self-fetching lazy sections ──────────────────────────────
-// Each mounts only when its accordion opens, fetches its own data.
-
-function LazyRiskSection({ sector, sectorColor, exchange }: { sector: string; sectorColor: string; exchange: string }) {
-  const [data, setData] = useState<ISectorRiskScorecard | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSectorRisk(sector, exchange)
-      .then((r) => {
-        if (!cancelled && r.success && r.data) setData(r.data);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [sector, exchange]);
-
-  if (loading) return <LoadingSpinner />;
-  if (!data) return <NoData />;
-  return <RiskRadarChart data={data} sectorColor={sectorColor} />;
-}
-
-function LazyHistorySection({ sector, sectorColor, exchange }: { sector: string; sectorColor: string; exchange: string }) {
-  const [data, setData] = useState<ISectorHistory | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSectorHistory(sector, 252, exchange)
-      .then((r) => {
-        if (!cancelled && r.success && r.data) setData(r.data);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [sector, exchange]);
-
-  if (loading) return <LoadingSpinner />;
-  if (!data) return <NoData />;
-  return <HistoryChart data={data} sectorColor={sectorColor} />;
-}
-
-function LazySeasonalitySection({ sector, exchange }: { sector: string; exchange: string }) {
-  const [data, setData] = useState<ISectorSeasonality | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSectorSeasonality(sector, exchange)
-      .then((r) => {
-        if (!cancelled && r.success && r.data) setData(r.data);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [sector, exchange]);
-
-  if (loading) return <LoadingSpinner />;
-  if (!data) return <NoData />;
-  return <SeasonalityCalendar data={data} />;
-}
-
-function LazyMansfieldSection({ sector, sectorColor, exchange }: { sector: string; sectorColor: string; exchange: string }) {
-  const [data, setData] = useState<ISectorMansfieldRS | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSectorMansfield(sector, 252, exchange)
-      .then((r) => {
-        if (!cancelled && r.success && r.data) setData(r.data);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [sector, exchange]);
-
-  if (loading) return <LoadingSpinner />;
-  if (!data) return <NoData />;
-  return <MansfieldRSChart data={data} sectorColor={sectorColor} />;
-}
-
-function LazyFlowSection({ sector, exchange }: { sector: string; exchange: string }) {
-  const [data, setData] = useState<ISectorVolumeFlow | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    getSectorFlow(sector, exchange)
-      .then((r) => {
-        if (!cancelled && r.success && r.data) setData(r.data);
-        if (!cancelled) setLoading(false);
-      })
-      .catch(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => { cancelled = true; };
-  }, [sector, exchange]);
-
-  if (loading) return <LoadingSpinner />;
-  if (!data) return <NoData />;
-  return <VolumeFlowGauge data={data} />;
-}
 
 // ─── Main Component ──────────────────────────────────────────
 
@@ -268,10 +69,111 @@ export function SectorDetailPanel({
     (a, b) => (b.performance[timeframe] ?? 0) - (a.performance[timeframe] ?? 0),
   );
 
+  const timeframeDays = timeframeToDays(timeframe);
+
   // ─── OVERVIEW MODE ─── (no sector selected)
   if (!selectedSector) {
+    // Compute rotation summary from RRG data
+    const quadrantCounts: Record<string, number> = { leading: 0, improving: 0, weakening: 0, lagging: 0 };
+    allSectors.forEach((s) => {
+      const q = s.rrg?.quadrant;
+      if (q && q in quadrantCounts) quadrantCounts[q]++;
+    });
+    const totalQ = Object.values(quadrantCounts).reduce((a, b) => a + b, 0);
+    const bullish = quadrantCounts.leading + quadrantCounts.improving;
+    const bearish = quadrantCounts.weakening + quadrantCounts.lagging;
+    const regime = bullish > bearish * 1.5 ? 'Risk-On' : bearish > bullish * 1.5 ? 'Risk-Off' : bullish === bearish ? 'Consolidation' : 'Rotation';
+    const regimeColor = regime === 'Risk-On' ? 'text-emerald-400' : regime === 'Risk-Off' ? 'text-red-400' : regime === 'Rotation' ? 'text-amber-400' : 'text-slate-400';
+
+    // Compute sector pulse narrative
+    const topSector = sortedByPerf[0];
+    const bottomSector = sortedByPerf[sortedByPerf.length - 1];
+    const avgBreadth = allSectors.reduce((sum, s) => sum + (s.breadth?.above_50dma_pct ?? 0), 0) / (allSectors.length || 1);
+    const accumulating = allSectors.filter((s) => (s.volume_flow_score ?? 0) > 20).length;
+    const distributing = allSectors.filter((s) => (s.volume_flow_score ?? 0) < -20).length;
+
+    const pulseFragments: string[] = [];
+    if (topSector) {
+      const topPerf = topSector.performance[timeframe] ?? 0;
+      pulseFragments.push(`${topSector.sector} leads (${topPerf >= 0 ? '+' : ''}${topPerf.toFixed(1)}%)`);
+    }
+    if (bottomSector && bottomSector.sector !== topSector?.sector) {
+      const botPerf = bottomSector.performance[timeframe] ?? 0;
+      pulseFragments.push(`${bottomSector.sector} lags (${botPerf >= 0 ? '+' : ''}${botPerf.toFixed(1)}%)`);
+    }
+    if (accumulating > 0) pulseFragments.push(`${accumulating} sector${accumulating > 1 ? 's' : ''} accumulating`);
+    else if (distributing > 0) pulseFragments.push(`${distributing} sector${distributing > 1 ? 's' : ''} distributing`);
+    pulseFragments.push(`breadth ${avgBreadth.toFixed(0)}%`);
+
     return (
       <div className="space-y-4">
+        {/* Sector Pulse — AI-style narrative summary */}
+        <div className="rounded-xl border border-white/[0.06] bg-gradient-to-br from-white/[0.03] to-white/[0.01] p-3">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Sector Pulse</span>
+            <span className={cn('text-[10px] font-bold px-2 py-0.5 rounded-full', {
+              'bg-emerald-500/10 text-emerald-400': regime === 'Risk-On',
+              'bg-red-500/10 text-red-400': regime === 'Risk-Off',
+              'bg-amber-500/10 text-amber-400': regime === 'Rotation',
+              'bg-slate-500/10 text-slate-400': regime === 'Consolidation',
+            })}>{regime}</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-white/80">
+            {pulseFragments.join('. ')}.
+          </p>
+        </div>
+
+        {/* Rotation Regime Summary */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Sector Rotation</span>
+            <span className={cn('text-xs font-bold', regimeColor)}>{regime}</span>
+          </div>
+          <div className="flex items-center gap-2 text-[10px]">
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              <span className="text-muted-foreground">{quadrantCounts.leading} Leading</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+              <span className="text-muted-foreground">{quadrantCounts.improving} Improving</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
+              <span className="text-muted-foreground">{quadrantCounts.weakening} Weakening</span>
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-red-400" />
+              <span className="text-muted-foreground">{quadrantCounts.lagging} Lagging</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Mini Sector Grid — click to select */}
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+            Quick Select
+          </div>
+          <div className="grid grid-cols-3 gap-1.5">
+            {allSectors.map((s) => {
+              const p = s.performance[timeframe] ?? 0;
+              return (
+                <button
+                  key={s.sector}
+                  onClick={() => onSectorSelect(s)}
+                  className="rounded-lg px-2 py-1.5 text-left hover:bg-white/[0.06] transition-colors border border-white/[0.04]"
+                  style={{ borderLeftColor: SECTOR_COLORS[s.sector] ?? '#64748B', borderLeftWidth: 3 }}
+                >
+                  <div className="text-[9px] font-medium text-white truncate">{s.sector}</div>
+                  <div className={cn('text-[9px] font-semibold tabular-nums', perfTextClass(p))}>
+                    {p >= 0 ? '+' : ''}{p.toFixed(1)}%
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <SectorRRG sectors={allSectors} onSectorClick={onSectorSelect} />
         <SectorBreadthPanel sectors={allSectors} />
 
@@ -505,7 +407,7 @@ export function SectorDetailPanel({
                   <span className="text-[11px] font-semibold text-white">{stock.ticker}</span>
                   {stock.last_price != null && (
                     <span className="text-[9px] text-muted-foreground ml-1.5">
-                      ₹{stock.last_price.toLocaleString()}
+                      {formatPrice(stock.last_price, exchange as ExchangeCode)}
                     </span>
                   )}
                 </div>
@@ -541,50 +443,13 @@ export function SectorDetailPanel({
           </button>
         </div>
 
-        {/* ─── Fundamentals ─── */}
-        <SectionGroupLabel label="Fundamentals" />
-
-        <LazySection title="Valuation" description="PE, PB, DY, EV/EBITDA, ROE — market-cap weighted">
-          <SectorValuationPanel sector={selectedSector.sector} exchange={exchange} />
-        </LazySection>
-
-        <LazySection title="Financials" description="Revenue, EBITDA, PAT with YoY growth">
-          <SectorFinancialsPanel sector={selectedSector.sector} exchange={exchange} />
-        </LazySection>
-
-        <LazySection title="Earnings Calendar" description="Upcoming and recent earnings dates">
-          <SectorEarningsCalendar sector={selectedSector.sector} exchange={exchange} />
-        </LazySection>
-
-        {/* ─── Institutional ─── */}
-        <SectionGroupLabel label="Institutional" />
-
-        <LazySection title="FII / FPI Sector Flow" description="Quarterly ownership trends across investor categories">
-          <SectorFIIFlowPanel sector={selectedSector.sector} exchange={exchange} />
-        </LazySection>
-
-        <LazySection title="Performance vs Benchmark" description="Cumulative returns and drawdown vs benchmark">
-          <LazyHistorySection sector={selectedSector.sector} sectorColor={sectorColor} exchange={exchange} />
-        </LazySection>
-
-        {/* ─── Technical ─── */}
-        <SectionGroupLabel label="Technical" />
-
-        <LazySection title="Risk Scorecard" description="Sharpe, Sortino, Calmar ratios and max drawdown">
-          <LazyRiskSection sector={selectedSector.sector} sectorColor={sectorColor} exchange={exchange} />
-        </LazySection>
-
-        <LazySection title="Mansfield RS" description="Relative strength stage analysis vs benchmark">
-          <LazyMansfieldSection sector={selectedSector.sector} sectorColor={sectorColor} exchange={exchange} />
-        </LazySection>
-
-        <LazySection title="Seasonality" description="Monthly return patterns and hit rates">
-          <LazySeasonalitySection sector={selectedSector.sector} exchange={exchange} />
-        </LazySection>
-
-        <LazySection title="Volume Flow" description="OBV-based accumulation/distribution analysis">
-          <LazyFlowSection sector={selectedSector.sector} exchange={exchange} />
-        </LazySection>
+        {/* ─── Smart Tabs ─── */}
+        <SectorDetailTabs
+          sector={selectedSector.sector}
+          sectorColor={sectorColor}
+          exchange={exchange}
+          timeframeDays={timeframeDays}
+        />
       </motion.div>
     </AnimatePresence>
   );

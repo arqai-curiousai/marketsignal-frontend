@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Download, Image, type LucideIcon } from 'lucide-react';
+import { Search, Download, Image } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { ExportButton } from '@/components/ui/ExportButton';
@@ -13,6 +13,7 @@ import { ForexTickerStrip } from './ForexTickerStrip';
 import { MarketsView } from './MarketsView';
 import { AnalysisView } from './AnalysisView';
 import { MacroView } from './MacroView';
+import { ForexCalculators } from './ForexCalculators';
 
 import {
   FOREX_MODULES,
@@ -22,6 +23,8 @@ import {
   NSE_FOREX_PAIRS,
   type ForexModule,
 } from './constants';
+import { getCurrencyOverview } from '@/src/lib/api/analyticsApi';
+import type { ICurrencyOverview } from '@/src/types/analytics';
 
 /* ─── Module Card Component ─────────────────────────────────────────────── */
 
@@ -41,6 +44,8 @@ function ModuleCard({
   return (
     <motion.button
       onClick={onClick}
+      aria-label={`${mod.label} — ${mod.tagline}`}
+      aria-current={isActive ? 'true' : undefined}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{
@@ -177,14 +182,17 @@ function CommandBar({
   onPairChange,
   timeframe,
   onTimeframeChange,
+  onExportCSV,
 }: {
   selectedPair: string;
   onPairChange: (pair: string) => void;
   timeframe: string;
   onTimeframeChange: (tf: string) => void;
+  onExportCSV: () => void;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [search, setSearch] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
     if (!search) return [...NSE_FOREX_PAIRS];
@@ -192,11 +200,24 @@ function CommandBar({
     return NSE_FOREX_PAIRS.filter(p => p.toLowerCase().includes(q));
   }, [search]);
 
+  // Close search dropdown on click outside
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+        setSearch('');
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [searchOpen]);
+
   return (
     <div className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-white/[0.04] -mx-4 md:-mx-6 px-4 md:px-6 py-2.5">
       <div className="flex items-center gap-3 flex-wrap">
         {/* Pair selector */}
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setSearchOpen(o => !o)}
             className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06] transition-colors text-sm"
@@ -263,7 +284,7 @@ function CommandBar({
             {
               label: 'Export CSV',
               icon: <Download className="h-3.5 w-3.5" />,
-              onClick: () => downloadCSV([], 'forex-export'),
+              onClick: onExportCSV,
             },
             {
               label: 'Export PNG',
@@ -280,7 +301,16 @@ function CommandBar({
   );
 }
 
-/* ─── Close search on click outside ──────────────────────────────────────── */
+/* ─── URL Param Helpers ──────────────────────────────────────────────────── */
+
+function writeUrlParams(params: Record<string, string | null>) {
+  const url = new URL(window.location.href);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) url.searchParams.set(key, value);
+    else url.searchParams.delete(key);
+  }
+  window.history.replaceState({}, '', url.toString());
+}
 
 /* ─── Main Dashboard ─────────────────────────────────────────────────────── */
 
@@ -290,38 +320,85 @@ export function ForexDashboard() {
   const [activeId, setActiveId] = useState(
     FOREX_VALID_MODULE_IDS.has(rawTab) ? rawTab : 'markets'
   );
-  const [selectedPair, setSelectedPair] = useState('USD/INR');
-  const [timeframe, setTimeframe] = useState('1D');
+
+  // Read pair and timeframe from URL with validation
+  const rawPair = searchParams.get('pair');
+  const rawTf = searchParams.get('tf');
+  const [selectedPair, setSelectedPair] = useState(
+    rawPair && (NSE_FOREX_PAIRS as readonly string[]).includes(rawPair) ? rawPair : 'USD/INR'
+  );
+  const [timeframe, setTimeframe] = useState(
+    rawTf && (FOREX_TIMEFRAMES as readonly string[]).includes(rawTf) ? rawTf : '1D'
+  );
+  const [overview, setOverview] = useState<ICurrencyOverview | null>(null);
+  const [chartOverlays, setChartOverlays] = useState({ vol: true, sma: false, bb: false, pivots: false });
+
+  // Fetch overview data + 60s refresh (shared by TickerStrip, MarketsView, CSV export)
+  const fetchOverview = useCallback(async () => {
+    try {
+      const res = await getCurrencyOverview();
+      if (res.success) setOverview(res.data);
+    } catch { /* silent */ }
+  }, []);
+
+  useEffect(() => {
+    fetchOverview();
+    const interval = setInterval(fetchOverview, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchOverview]);
+
+  const handleExportCSV = useCallback(() => {
+    const pairs = overview?.pairs ?? [];
+    const rows = pairs.map((p: { ticker: string; price: number; change_pct: number; high: number | null; low: number | null; high_52w: number | null; low_52w: number | null }) => ({
+      Pair: p.ticker,
+      Price: p.price,
+      'Change %': p.change_pct,
+      High: p.high ?? '',
+      Low: p.low ?? '',
+      '52W High': p.high_52w ?? '',
+      '52W Low': p.low_52w ?? '',
+    }));
+    downloadCSV(rows, 'forex-export');
+  }, [overview]);
 
   const handleModuleChange = useCallback((id: string) => {
     setActiveId(id);
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', id);
-    window.history.replaceState({}, '', url.toString());
+    writeUrlParams({ tab: id });
+  }, []);
+
+  const handlePairChange = useCallback((pair: string) => {
+    setSelectedPair(pair);
+    writeUrlParams({ pair: pair === 'USD/INR' ? null : pair });
+  }, []);
+
+  const handleTimeframeChange = useCallback((tf: string) => {
+    setTimeframe(tf);
+    writeUrlParams({ tf: tf === '1D' ? null : tf });
   }, []);
 
   const handleSelectPair = useCallback(
     (pair: string) => {
-      setSelectedPair(pair);
+      handlePairChange(pair);
       // Auto-switch to Analysis when a pair is selected from Markets
       if (activeId === 'markets') {
         handleModuleChange('analysis');
       }
     },
-    [activeId, handleModuleChange]
+    [activeId, handleModuleChange, handlePairChange]
   );
 
   return (
     <div className="space-y-6">
       {/* Ticker Strip */}
-      <ForexTickerStrip onSelectPair={handleSelectPair} />
+      <ForexTickerStrip onSelectPair={handleSelectPair} overview={overview} />
 
       {/* Command Bar */}
       <CommandBar
         selectedPair={selectedPair}
-        onPairChange={setSelectedPair}
+        onPairChange={handlePairChange}
         timeframe={timeframe}
-        onTimeframeChange={setTimeframe}
+        onTimeframeChange={handleTimeframeChange}
+        onExportCSV={handleExportCSV}
       />
 
       {/* Module Cards */}
@@ -330,7 +407,7 @@ export function ForexDashboard() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {FOREX_MODULES.map((mod, index) => (
             <ModuleCard
               key={mod.id}
@@ -343,6 +420,9 @@ export function ForexDashboard() {
         </div>
       </motion.div>
 
+      {/* Section divider */}
+      <div className="h-px bg-gradient-to-r from-transparent via-white/[0.06] to-transparent" />
+
       {/* Active Module Content */}
       <div id="forex-dashboard-content">
         <AnimatePresence mode="wait">
@@ -354,7 +434,7 @@ export function ForexDashboard() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <MarketsView onSelectPair={handleSelectPair} />
+              <MarketsView onSelectPair={handleSelectPair} overview={overview} />
             </motion.div>
           )}
           {activeId === 'analysis' && (
@@ -365,7 +445,7 @@ export function ForexDashboard() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <AnalysisView selectedPair={selectedPair} timeframe={timeframe} />
+              <AnalysisView selectedPair={selectedPair} timeframe={timeframe} onTimeframeChange={handleTimeframeChange} chartOverlays={chartOverlays} onChartOverlaysChange={setChartOverlays} />
             </motion.div>
           )}
           {activeId === 'macro' && (
@@ -376,7 +456,18 @@ export function ForexDashboard() {
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
-              <MacroView />
+              <MacroView selectedPair={selectedPair} />
+            </motion.div>
+          )}
+          {activeId === 'tools' && (
+            <motion.div
+              key="tools"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <ForexCalculators selectedPair={selectedPair} />
             </motion.div>
           )}
         </AnimatePresence>

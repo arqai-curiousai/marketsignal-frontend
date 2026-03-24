@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getCurrencyCorrelation } from '@/src/lib/api/analyticsApi';
-import type { ICorrelationMatrix } from '@/src/types/analytics';
+import type { ICurrencyCorrelationMatrix } from '@/src/types/analytics';
 
 const PAIR_SHORT: Record<string, string> = {
   'USD/INR': 'USD',
@@ -22,7 +22,7 @@ function corrColor(v: number): string {
 }
 
 export function CurrencyCorrelationMini() {
-  const [matrix, setMatrix] = useState<ICorrelationMatrix | null>(null);
+  const [matrix, setMatrix] = useState<ICurrencyCorrelationMatrix | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export function CurrencyCorrelationMini() {
   const tickers = matrix.tickers;
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 shadow-[0_2px_12px_rgba(0,0,0,0.1)]">
       <h3 className="text-sm font-medium mb-3">INR Cross Correlation</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">

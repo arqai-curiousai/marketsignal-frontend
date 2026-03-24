@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Newspaper } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getMarketNews } from '@/src/lib/api/analyticsApi';
+import { searchNews } from '@/src/lib/api/analyticsApi';
 import type { INewsArticle } from '@/src/types/analytics';
 
 interface Props {
@@ -18,16 +18,12 @@ export function CurrencyNewsPanel({ pair }: Props) {
     const fetchNews = async () => {
       setLoading(true);
       try {
-        const res = await getMarketNews();
+        // Build search query from pair currencies + common forex terms
+        const [base, quote] = pair.split('/');
+        const query = `forex currency ${base} ${quote} rupee exchange rate`;
+        const res = await searchNews(query, 8, 'FX');
         if (res.success && res.data?.items) {
-          // Filter for forex/currency/RBI related news
-          const keywords = ['forex', 'currency', 'rupee', 'inr', 'rbi', 'dollar', 'euro', 'fed', 'exchange rate', pair.toLowerCase()];
-          const filtered = res.data.items.filter((a) =>
-            keywords.some(kw =>
-              a.headline?.toLowerCase().includes(kw) || a.summary?.toLowerCase().includes(kw)
-            )
-          );
-          setNews(filtered.slice(0, 8));
+          setNews(res.data.items);
         }
       } catch {
         // silent

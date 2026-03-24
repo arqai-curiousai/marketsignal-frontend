@@ -184,7 +184,9 @@ export function NewsMindMap({
 
     const root = hierarchy(prunedTree);
     const leafCount = root.leaves().length;
-    const treeHeight = Math.max(dimensions.height - 80, leafCount * 44 + 80);
+    // Cap tree height to prevent unbounded SVG growth (max ~60 leaves visible)
+    const maxTreeHeight = isFullscreen ? 4000 : 2600;
+    const treeHeight = Math.min(maxTreeHeight, Math.max(dimensions.height - 80, leafCount * 44 + 80));
     const treeWidth = Math.max(dimensions.width - 240, 600);
 
     const treeLayout = d3Tree<TreeNode>()
@@ -371,7 +373,7 @@ export function NewsMindMap({
       className={cn(
         'relative w-full rounded-xl border border-white/10 bg-[#0d1117]',
         isFullscreen ? 'fixed inset-0 z-50 h-screen rounded-none border-none' : 'h-[560px]',
-        'overflow-hidden'
+        'overflow-auto'
       )}
     >
       {/* Controls — top right */}
@@ -436,11 +438,26 @@ export function NewsMindMap({
         ref={svgRef}
         width={dimensions.width}
         height={dimensions.height}
-        className="cursor-grab active:cursor-grabbing"
+        className="cursor-grab active:cursor-grabbing touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1) {
+            setIsPanning(true);
+            panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isPanning && e.touches.length === 1) {
+            const dx = e.touches[0].clientX - panStart.current.x;
+            const dy = e.touches[0].clientY - panStart.current.y;
+            panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+          }
+        }}
+        onTouchEnd={handleMouseUp}
       >
         {/* SVG Defs — gradients and filters */}
         <defs>

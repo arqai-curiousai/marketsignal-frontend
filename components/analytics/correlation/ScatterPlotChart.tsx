@@ -12,7 +12,7 @@ import {
   Line,
   ComposedChart,
 } from 'recharts';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import { getScatterData } from '@/src/lib/api/analyticsApi';
 import type { IScatterData } from '@/types/analytics';
 import { corrColor } from './constants';
@@ -36,14 +36,20 @@ export function ScatterPlotChart({
 }: ScatterPlotChartProps) {
   const [data, setData] = useState<IScatterData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setFetchError(null);
     getScatterData(tickerA, tickerB, exchangeA, exchangeB, windowDays).then((result) => {
       if (cancelled) return;
       if (result.success && result.data && !('error' in result.data)) {
         setData(result.data);
+        setFetchError(null);
+      } else {
+        setData(null);
+        setFetchError(!result.success ? (result.error.status === 422 ? 'Insufficient data for this pair' : 'Failed to load') : null);
       }
       setLoading(false);
     });
@@ -67,6 +73,15 @@ export function ScatterPlotChart({
     return (
       <div className="flex items-center justify-center" style={{ height }}>
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex items-center justify-center gap-1.5 text-xs text-amber-400/70" style={{ height }}>
+        <AlertTriangle className="h-3.5 w-3.5" />
+        {fetchError}
       </div>
     );
   }

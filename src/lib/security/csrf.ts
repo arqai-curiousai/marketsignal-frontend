@@ -43,16 +43,17 @@ export function getCSRFToken(): string | undefined {
  * Add CSRF token to request headers
  */
 export function addCSRFHeader(headers: HeadersInit = {}): HeadersInit {
-  const token = getCSRFToken();
+  let token = getCSRFToken();
 
-  if (token) {
-    return {
-      ...headers,
-      [CSRF_HEADER_NAME]: token,
-    };
+  // Auto-initialize CSRF token if not yet set (first POST request)
+  if (!token) {
+    token = setCSRFToken();
   }
 
-  return headers;
+  return {
+    ...headers,
+    [CSRF_HEADER_NAME]: token,
+  };
 }
 
 /**

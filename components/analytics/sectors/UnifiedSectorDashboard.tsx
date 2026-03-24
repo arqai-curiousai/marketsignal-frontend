@@ -1,23 +1,27 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 import type { SectorViewMode, SortOption } from './constants';
+import { SECTOR_COLORS } from './constants';
 import type { PyramidColorMode } from '../pyramid/constants';
 import { useUnifiedSectorData } from './hooks/useUnifiedSectorData';
 import { UnifiedToolbar } from './UnifiedToolbar';
 import { UnifiedKPICards } from './UnifiedKPICards';
 import { UnifiedDetailPanel } from './UnifiedDetailPanel';
-import { SectorTreemap } from './SectorTreemap';
-import { SectorHeatmapGrid } from './SectorHeatmapGrid';
-import { SectorPerformanceTable } from './SectorPerformanceTable';
-import { SectorFlowView } from './SectorFlowView';
+import { SectorHeatmapGrid } from './SectorHeatmapGrid'; // Eager: default mobile view
 import { SectorDrillSheet } from './SectorDrillSheet';
-import { PyramidView } from '../pyramid/PyramidView';
 import { PyramidMobileFallback } from '../pyramid/PyramidMobileFallback';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { getExchangeConfig } from '@/src/lib/exchange/config';
+import { downloadCSV, downloadPNG } from '@/src/lib/utils/export';
+
+// Lazy-loaded view components — only the active view is loaded
+const SectorTreemap = lazy(() => import('./SectorTreemap').then(m => ({ default: m.SectorTreemap })));
+const SectorPerformanceTable = lazy(() => import('./SectorPerformanceTable').then(m => ({ default: m.SectorPerformanceTable })));
+const SectorFlowView = lazy(() => import('./SectorFlowView').then(m => ({ default: m.SectorFlowView })));
+const PyramidView = lazy(() => import('../pyramid/PyramidView').then(m => ({ default: m.PyramidView })));
 
 // ─── URL param helpers ─────────────────────────────────────────────────
 const VALID_VIEWS = new Set<SectorViewMode>(['treemap', 'heatmap', 'table', 'flow', 'pyramid']);
@@ -82,6 +86,10 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
   const [pendingStock] = useState(urlParams.stock);
   const [selectedSector, setSelectedSector] = useState<ISectorAnalytics | null>(null);
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
+
+  // Colorblind toggle: increment key to force visualization re-render without API refetch
+  const [colorblindKey, setColorblindKey] = useState(0);
+  const handleColorblindToggle = useCallback(() => setColorblindKey(k => k + 1), []);
 
   // Track mobile breakpoint reactively (avoids SSR mismatch + responds to resize)
   const [isMobile, setIsMobile] = useState(false);
@@ -173,6 +181,70 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
     }
   }, [sectors, sortBy, timeframe]);
 
+  // ─── Keyboard shortcuts ────────────────────────────────────────────────
+  const [showShortcuts, setShowShortcuts] = useState(false);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+
+      switch (e.key) {
+        case 'Escape':
+          if (selectedStock) { setSelectedStock(null); writeUrlParams({ stock: null }); }
+          else if (selectedSector) { setSelectedSector(null); writeUrlParams({ sector: null }); }
+          else if (showShortcuts) setShowShortcuts(false);
+          break;
+        case '1': updateViewMode('treemap'); break;
+        case '2': updateViewMode('heatmap'); break;
+        case '3': updateViewMode('table'); break;
+        case '4': updateViewMode('flow'); break;
+        case '5': updateViewMode('pyramid'); break;
+        case '[': {
+          const tfList: SectorTimeframe[] = ['1d', '1w', '1m', '3m', '6m', 'ytd'];
+          const idx = tfList.indexOf(timeframe);
+          if (idx > 0) updateTimeframe(tfList[idx - 1]);
+          break;
+        }
+        case ']': {
+          const tfList: SectorTimeframe[] = ['1d', '1w', '1m', '3m', '6m', 'ytd'];
+          const idx = tfList.indexOf(timeframe);
+          if (idx < tfList.length - 1) updateTimeframe(tfList[idx + 1]);
+          break;
+        }
+        case 'j':
+        case 'J': {
+          if (sortedSectors.length === 0) break;
+          const curIdx = selectedSector ? sortedSectors.findIndex(s => s.sector === selectedSector.sector) : -1;
+          const nextIdx = Math.min(curIdx + 1, sortedSectors.length - 1);
+          const next = sortedSectors[nextIdx];
+          setSelectedSector(next);
+          setSelectedStock(null);
+          writeUrlParams({ sector: next.sector, stock: null });
+          break;
+        }
+        case 'k':
+        case 'K': {
+          if (sortedSectors.length === 0) break;
+          const curIdx = selectedSector ? sortedSectors.findIndex(s => s.sector === selectedSector.sector) : sortedSectors.length;
+          const prevIdx = Math.max(curIdx - 1, 0);
+          const prev = sortedSectors[prevIdx];
+          setSelectedSector(prev);
+          setSelectedStock(null);
+          writeUrlParams({ sector: prev.sector, stock: null });
+          break;
+        }
+        case '?':
+          e.preventDefault();
+          setShowShortcuts(s => !s);
+          break;
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [selectedSector, selectedStock, sortedSectors, timeframe, showShortcuts, updateViewMode, updateTimeframe]);
+
   // Sector click from treemap/heatmap/table/flow (receives ISectorAnalytics)
   const handleSectorClick = useCallback((sector: ISectorAnalytics) => {
     setSelectedStock(null);
@@ -214,6 +286,35 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
     setDrillOpen(true);
   }, []);
 
+  // ─── Export handlers ─────────────────────────────────────────────────
+  const vizRef = useRef<HTMLDivElement>(null);
+
+  const handleExportCSV = useCallback(() => {
+    const rows = sortedSectors.map((s) => ({
+      Sector: s.sector,
+      '1D (%)': s.performance['1d']?.toFixed(2) ?? '',
+      '1W (%)': s.performance['1w']?.toFixed(2) ?? '',
+      '1M (%)': s.performance['1m']?.toFixed(2) ?? '',
+      '3M (%)': s.performance['3m']?.toFixed(2) ?? '',
+      '6M (%)': s.performance['6m']?.toFixed(2) ?? '',
+      'YTD (%)': s.performance.ytd?.toFixed(2) ?? '',
+      Momentum: s.momentum_score?.toFixed(1) ?? '',
+      'Breadth (%)': s.breadth?.above_20dma_pct?.toFixed(1) ?? '',
+      'Market Cap': s.total_market_cap ?? '',
+      'Volume Flow': s.volume_flow_score?.toFixed(1) ?? '',
+      PE: s.valuation?.metrics?.pe_ratio?.weighted_avg?.toFixed(1) ?? '',
+      PB: s.valuation?.metrics?.price_to_book?.weighted_avg?.toFixed(1) ?? '',
+      DY: s.valuation?.metrics?.dividend_yield?.weighted_avg?.toFixed(2) ?? '',
+    }));
+    downloadCSV(rows, `sector-analytics-${timeframe}-${new Date().toISOString().slice(0, 10)}`);
+  }, [sortedSectors, timeframe]);
+
+  const handleExportPNG = useCallback(async () => {
+    if (vizRef.current) {
+      await downloadPNG(vizRef.current, `sector-${viewMode}-${timeframe}-${new Date().toISOString().slice(0, 10)}`);
+    }
+  }, [viewMode, timeframe]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -254,12 +355,31 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
         onColorModeChange={setColorMode}
         onRefresh={refetch}
         refreshing={refreshing}
+        onColorblindToggle={handleColorblindToggle}
+        onExportCSV={handleExportCSV}
+        onExportPNG={handleExportPNG}
       />
+
+      {/* Sector color legend — treemap/heatmap only */}
+      {(viewMode === 'treemap' || viewMode === 'heatmap') && (
+        <div className="flex flex-wrap gap-x-3 gap-y-1 px-1">
+          {sortedSectors.map((s) => (
+            <div key={s.sector} className="flex items-center gap-1">
+              <div
+                className="h-2 w-2 rounded-full shrink-0"
+                style={{ backgroundColor: SECTOR_COLORS[s.sector] ?? '#64748B' }}
+              />
+              <span className="text-[9px] text-muted-foreground">{s.sector}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Main: Visualization + Detail Panel */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-4">
         {/* Active View */}
-        <div className="min-w-0">
+        <div className="min-w-0" ref={vizRef} key={`viz-${colorblindKey}`}>
+          <Suspense fallback={<div className="flex items-center justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-brand-blue" /></div>}>
           {viewMode === 'treemap' && (
             <SectorTreemap
               sectors={sortedSectors}
@@ -281,6 +401,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
               sectors={sortedSectors}
               timeframe={timeframe}
               selectedSector={selectedSector?.sector ?? null}
+              exchange={exchange}
               onSectorClick={handleSectorClick}
             />
           )}
@@ -315,6 +436,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
               </div>
             </>
           )}
+          </Suspense>
         </div>
 
         {/* Detail Panel — sticky + independently scrollable */}
@@ -336,7 +458,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
           open={!!selectedSector && isMobile}
           onOpenChange={(open) => { if (!open) { setSelectedSector(null); setSelectedStock(null); writeUrlParams({ sector: null, stock: null }); } }}
         >
-          <SheetContent side="bottom" className="max-h-[70vh] overflow-y-auto bg-background border-t border-white/10 rounded-t-2xl px-4 pt-2 pb-6">
+          <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto bg-background border-t border-white/10 rounded-t-2xl px-4 pt-2 pb-6">
             <SheetHeader className="pb-2">
               <SheetTitle className="text-sm font-bold text-white">
                 {selectedSector?.sector ?? 'Sector Details'}
@@ -348,6 +470,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
               selectedSector={selectedSector}
               selectedStock={selectedStock}
               timeframe={timeframe}
+              exchange={exchange}
               onSectorSelect={setSelectedSector}
               onDrillOpen={handleDrillOpen}
               onStockClose={handleStockClose}
@@ -363,6 +486,37 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
         onOpenChange={setDrillOpen}
         timeframe={timeframe}
       />
+
+      {/* Keyboard shortcuts overlay */}
+      {showShortcuts && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowShortcuts(false)}
+        >
+          <div
+            className="rounded-xl border border-white/10 bg-brand-slate/95 backdrop-blur-md p-4 sm:p-6 shadow-2xl max-w-[90vw] sm:max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-sm font-bold text-white mb-4">Keyboard Shortcuts</h3>
+            <div className="space-y-2 text-xs">
+              {[
+                ['1 – 5', 'Switch view mode'],
+                ['[ / ]', 'Cycle timeframe'],
+                ['J / K', 'Navigate sectors'],
+                ['Esc', 'Deselect / Close'],
+                ['?', 'Toggle this help'],
+              ].map(([key, desc]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <kbd className="px-2 py-0.5 rounded bg-white/10 text-white font-mono text-[11px]">
+                    {key}
+                  </kbd>
+                  <span className="text-muted-foreground">{desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

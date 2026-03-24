@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowUpDown, ChevronDown, ChevronUp } from 'lucide-react';
@@ -39,6 +39,12 @@ export function SectorDrillSheet({
   const router = useRouter();
   const [sortKey, setSortKey] = useState<StockSortKey>('change_pct');
   const [sortAsc, setSortAsc] = useState(false);
+
+  // Reset sort when switching sectors
+  useEffect(() => {
+    setSortKey('change_pct');
+    setSortAsc(false);
+  }, [sector?.sector]);
 
   const sortedStocks = useMemo(() => {
     if (!sector) return [];

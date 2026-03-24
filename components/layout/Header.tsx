@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu, DollarSign, Radar } from 'lucide-react';
+import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu, DollarSign, Radar, Sun, Moon, Monitor, Search } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { ExchangeSelector } from '@/components/layout/ExchangeSelector';
 import {
@@ -40,6 +40,25 @@ export function Header() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
     const isLanding = pathname === '/';
+
+    // Theme — cycle dark → light → system
+    const [currentTheme, setCurrentTheme] = useState('dark');
+    useEffect(() => {
+        setCurrentTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    }, []);
+    const ThemeIcon = currentTheme === 'dark' ? Moon : Sun;
+    const cycleTheme = useCallback(() => {
+        try {
+            const html = document.documentElement;
+            if (html.classList.contains('dark')) {
+                html.classList.remove('dark');
+                setCurrentTheme('light');
+            } else {
+                html.classList.add('dark');
+                setCurrentTheme('dark');
+            }
+        } catch { /* noop */ }
+    }, []);
 
     useEffect(() => {
         if (!isLanding) return;
@@ -92,6 +111,13 @@ export function Header() {
                                 })}
                             </nav>
                             <div className="mt-auto pt-6 border-t border-white/10">
+                                <button
+                                    onClick={cycleTheme}
+                                    className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors w-full"
+                                >
+                                    <ThemeIcon className="h-4 w-4" />
+                                    {currentTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+                                </button>
                                 <Link
                                     href="/legal"
                                     onClick={() => setMobileOpen(false)}
@@ -165,6 +191,16 @@ export function Header() {
                 </div>
 
                 <div className="flex items-center gap-4">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={cycleTheme}
+                        className="text-muted-foreground hover:text-white h-8 w-8 p-0"
+                        aria-label="Toggle theme"
+                    >
+                        <ThemeIcon className="h-4 w-4" />
+                    </Button>
+
                     <Link href="/legal">
                         <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
                             <Shield className="h-4 w-4 mr-2" />

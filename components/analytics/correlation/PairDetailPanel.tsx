@@ -107,6 +107,8 @@ export function PairDetailPanel({
         setEnhancedData(result.data);
       }
       setEnhancedLoading(false);
+    }).catch(() => {
+      if (!cancelled) setEnhancedLoading(false);
     });
 
     if (bothStocks) {
@@ -117,6 +119,8 @@ export function PairDetailPanel({
           setPartialData(result.data);
         }
         setPartialLoading(false);
+      }).catch(() => {
+        if (!cancelled) setPartialLoading(false);
       });
     }
 
@@ -152,7 +156,7 @@ export function PairDetailPanel({
 
     if (bothStocks) {
       setConditionalLoading(true);
-      getConditionalCorrelation(a, b, -2.0).then((result) => {
+      getConditionalCorrelation(a, b, -2.0, exchange).then((result) => {
         if (cancelled) return;
         if (result.success && result.data) setConditionalData(result.data);
       }).finally(() => { if (!cancelled) setConditionalLoading(false); });
@@ -425,7 +429,7 @@ export function PairDetailPanel({
                     )}
                   </div>
                 </div>
-                <ResponsiveContainer width="100%" height={160}>
+                <ResponsiveContainer width="100%" height={240}>
                   <LineChart
                     data={dccData.dates.map((d, i) => ({ date: d, dcc: dccData.dcc_correlation[i] }))}
                     margin={{ top: 4, right: 4, bottom: 0, left: -20 }}

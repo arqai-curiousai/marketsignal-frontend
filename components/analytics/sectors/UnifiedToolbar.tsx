@@ -1,7 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Grid3X3, LayoutGrid, Table as TableIcon, Zap, Triangle, RefreshCw } from 'lucide-react';
+import { Grid3X3, LayoutGrid, Table as TableIcon, Zap, Triangle, RefreshCw, Download, FileSpreadsheet, Image, Eye } from 'lucide-react';
+import { ExportButton } from '@/components/ui/ExportButton';
+import { toggleColorblindMode, isColorblindMode } from './constants';
 import { cn } from '@/lib/utils';
 import { TIMEFRAMES, SORT_OPTIONS } from './constants';
 import type { SectorViewMode, SortOption } from './constants';
@@ -27,6 +29,9 @@ interface UnifiedToolbarProps {
   onColorModeChange: (cm: PyramidColorMode) => void;
   onRefresh?: () => void;
   refreshing?: boolean;
+  onColorblindToggle?: () => void;
+  onExportCSV?: () => void;
+  onExportPNG?: () => void;
 }
 
 const VIEW_MODES: { mode: SectorViewMode; icon: React.ElementType; label: string; short: string }[] = [
@@ -48,6 +53,9 @@ export function UnifiedToolbar({
   onColorModeChange,
   onRefresh,
   refreshing,
+  onColorblindToggle,
+  onExportCSV,
+  onExportPNG,
 }: UnifiedToolbarProps) {
   const isPyramid = viewMode === 'pyramid';
 
@@ -143,6 +151,37 @@ export function UnifiedToolbar({
           </div>
         )}
       </div>
+
+      {/* Colorblind toggle */}
+      <button
+        onClick={() => {
+          toggleColorblindMode();
+          onColorblindToggle?.();
+        }}
+        aria-label="Toggle colorblind-safe colours"
+        title={isColorblindMode() ? 'Colorblind mode: ON (Blue/Orange)' : 'Colorblind mode: OFF (Green/Red)'}
+        className={cn(
+          'self-end rounded-lg border border-white/10 bg-white/[0.03] p-2 text-muted-foreground transition-all hover:text-white/70 focus-visible:ring-2 focus-visible:ring-brand-blue/50 focus-visible:outline-none',
+          isColorblindMode() && 'bg-blue-500/20 text-blue-400',
+        )}
+      >
+        <Eye className="h-3.5 w-3.5" />
+      </button>
+
+      {/* Export */}
+      {(onExportCSV || onExportPNG) && (
+        <ExportButton
+          className="self-end"
+          options={[
+            ...(onExportCSV
+              ? [{ label: 'CSV', icon: <FileSpreadsheet className="h-3 w-3" />, onClick: onExportCSV }]
+              : []),
+            ...(onExportPNG
+              ? [{ label: 'PNG Screenshot', icon: <Image className="h-3 w-3" />, onClick: onExportPNG }]
+              : []),
+          ]}
+        />
+      )}
 
       {/* Refresh button */}
       {onRefresh && (

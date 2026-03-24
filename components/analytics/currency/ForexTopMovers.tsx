@@ -107,7 +107,7 @@ export function ForexTopMovers({ onSelectPair }: Props) {
   }
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 shadow-[0_2px_12px_rgba(0,0,0,0.1)]">
       <div className="flex items-center gap-3 overflow-x-auto scrollbar-thin pb-1">
         {/* Gainers */}
         {gainers.length > 0 && (

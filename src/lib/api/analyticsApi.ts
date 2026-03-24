@@ -8,6 +8,7 @@ import type {
   ISectorAnalytics,
   ISectorStockEnriched,
   ICorrelationMatrix,
+  ICurrencyCorrelationMatrix,
   IConditionalCorrelation,
   IRollingCorrelation,
   IEnhancedCorrelation,
@@ -48,6 +49,8 @@ import type {
   ISectorVolumeFlow,
   ISectorValuation,
   ISectorFIIFlow,
+  IFIIDIIDailyFlow,
+  IFIIDIISummary,
   ISectorFinancials,
   ISectorEarningsCalendar,
   IScannerResult,
@@ -68,8 +71,22 @@ import type {
   IUpcomingMeetings,
   IEconomicCalendar,
   ICurrencyRegime,
+  IINRFIICorrelation,
+  ICommodityForexCorrelation,
+  IRBIReserves,
+  ICotDashboard,
+  IPriceAlert,
   ICommodityOverview,
   ICommoditySeasonality,
+  IStoryArc,
+  ISentimentBucket,
+  ISentimentDivergence,
+  IMorningBrief,
+  IFactorExposures,
+  IFactorReturns,
+  IPortfolioRisk,
+  IAlphaAttribution,
+  IQualityScores,
 } from '@/types/analytics';
 import type {
   IPyramidData,
@@ -183,24 +200,41 @@ export async function getSectorEarningsCalendar(
 }
 
 // =============================================================================
+// Daily FII/DII Flow (NSE aggregate)
+// =============================================================================
+
+export async function getFIIDIIDaily(
+  days: number = 30,
+): Promise<ApiResult<IFIIDIIDailyFlow[]>> {
+  return apiClient.get(`/api/analytics/fii-dii/daily?days=${days}`);
+}
+
+export async function getFIIDIISummary(): Promise<ApiResult<IFIIDIISummary>> {
+  return apiClient.get('/api/analytics/fii-dii/summary');
+}
+
+// =============================================================================
 // Correlation
 // =============================================================================
 
 export async function getCorrelations(
   window: string = '90d',
   assetType: string = 'equity',
-  exchange: string = 'NSE'
+  exchange: string = 'NSE',
+  forceRefresh: boolean = false
 ): Promise<ApiResult<ICorrelationMatrix>> {
-  return apiClient.get(`/api/analytics/correlations?window=${window}&asset_type=${assetType}&exchange=${exchange}`);
+  const params = `window=${window}&asset_type=${assetType}&exchange=${exchange}${forceRefresh ? '&force_refresh=true' : ''}`;
+  return apiClient.get(`/api/analytics/correlations?${params}`);
 }
 
 export async function getConditionalCorrelation(
   tickerA: string,
   tickerB: string,
-  threshold: number = -2.0
+  threshold: number = -2.0,
+  exchange: string = 'NSE'
 ): Promise<ApiResult<IConditionalCorrelation>> {
   return apiClient.get(
-    `/api/analytics/correlations/conditional?ticker_a=${tickerA}&ticker_b=${tickerB}&threshold=${threshold}`
+    `/api/analytics/correlations/conditional?ticker_a=${tickerA}&ticker_b=${tickerB}&threshold=${threshold}&exchange=${exchange}`
   );
 }
 
@@ -338,10 +372,11 @@ export async function getDCCGarch(
 export async function getAssetCorrelations(
   ticker: string,
   window: string = '90d',
-  method: string = 'pearson'
+  method: string = 'pearson',
+  exchange: string = 'NSE'
 ): Promise<ApiResult<IAssetCorrelations>> {
   return apiClient.get(
-    `/api/analytics/correlations/asset/${encodeURIComponent(ticker)}?window=${window}&method=${method}`
+    `/api/analytics/correlations/asset/${encodeURIComponent(ticker)}?window=${window}&method=${method}&exchange=${exchange}`
   );
 }
 
@@ -490,9 +525,10 @@ export async function getTickerVolatility(
 export async function getMarketNews(
   hours: number = 72,
   limit: number = 30,
-  exchange: string = 'NSE'
-): Promise<ApiResult<{ items: INewsArticle[]; count: number }>> {
-  return apiClient.get(`/api/analytics/news?hours=${hours}&limit=${limit}&exchange=${exchange}`);
+  exchange: string = 'NSE',
+  offset: number = 0,
+): Promise<ApiResult<{ items: INewsArticle[]; count: number; offset: number; has_more: boolean }>> {
+  return apiClient.get(`/api/analytics/news?hours=${hours}&limit=${limit}&exchange=${exchange}&offset=${offset}`);
 }
 
 export async function getStockNews(
@@ -627,6 +663,75 @@ export async function getNewsEntity(
   return apiClient.get(`/api/analytics/news/entities/${newsId}`);
 }
 
+// ─── News Intelligence: Story Arcs ──────────────────────────────
+
+export async function getNewsStories(
+  hours = 168,
+  limit = 10,
+  ticker?: string,
+  exchange?: string
+): Promise<ApiResult<{ stories: IStoryArc[]; count: number }>> {
+  let url = `/api/analytics/news/stories?hours=${hours}&limit=${limit}`;
+  if (ticker) url += `&ticker=${ticker}`;
+  if (exchange) url += `&exchange=${exchange}`;
+  return apiClient.get(url);
+}
+
+export async function getNewsStory(
+  storyId: string
+): Promise<ApiResult<IStoryArc>> {
+  return apiClient.get(`/api/analytics/news/stories/${storyId}`);
+}
+
+// ─── News Intelligence: Sentiment Trajectory & Divergence ──────
+
+export async function getSentimentTrajectory(
+  ticker: string,
+  hours = 168,
+  exchange?: string
+): Promise<ApiResult<{ trajectory: ISentimentBucket[]; ticker: string }>> {
+  let url = `/api/analytics/news/sentiment-trajectory/${ticker}?hours=${hours}`;
+  if (exchange) url += `&exchange=${exchange}`;
+  return apiClient.get(url);
+}
+
+export async function getSentimentDivergence(
+  ticker: string,
+  exchange?: string
+): Promise<ApiResult<ISentimentDivergence>> {
+  let url = `/api/analytics/news/sentiment-divergence/${ticker}`;
+  if (exchange) url += `?exchange=${exchange}`;
+  return apiClient.get(url);
+}
+
+// ─── News Intelligence: Morning Brief ───────────────────────────
+
+export async function getMorningBrief(
+  exchange?: string
+): Promise<ApiResult<IMorningBrief>> {
+  let url = '/api/analytics/news/brief';
+  if (exchange) url += `?exchange=${exchange}`;
+  return apiClient.get(url);
+}
+
+// ─── News Intelligence: Portfolio News ──────────────────────────
+// Canonical types live in @/types/analytics — re-exported here for backward compat.
+export type {
+  IPortfolioTickerDigest,
+  IPortfolioNewsResponse,
+} from '@/types/analytics';
+
+export async function getPortfolioNews(
+  exchange?: string,
+  hours: number = 24
+): Promise<ApiResult<IPortfolioNewsResponse>> {
+  const params = new URLSearchParams();
+  if (exchange) params.set('exchange', exchange);
+  params.set('hours', String(hours));
+  const qs = params.toString();
+  return apiClient.get(`/api/analytics/news/portfolio${qs ? `?${qs}` : ''}`);
+}
+
 // =============================================================================
 // Market Pyramid
 // =============================================================================
@@ -675,7 +780,7 @@ export async function getCurrencyOverview(
 
 export async function getCurrencyCorrelation(
   category?: string
-): Promise<ApiResult<ICorrelationMatrix>> {
+): Promise<ApiResult<ICurrencyCorrelationMatrix>> {
   const params = category ? `?category=${category}` : '';
   return apiClient.get(`/api/analytics/currency/correlation${params}`);
 }
@@ -685,7 +790,7 @@ export async function getCurrencyPatterns(
   timeframe: string = 'daily'
 ): Promise<ApiResult<IPatternDetectionV2>> {
   return apiClient.get(
-    `/api/analytics/${encodeURIComponent(pair)}/patterns?exchange=FX&timeframe=${timeframe}`
+    `/api/analytics/currency/${encodeURIComponent(pair)}/patterns?timeframe=${timeframe}`
   );
 }
 
@@ -805,6 +910,56 @@ export async function getCurrencyRegime(
   return apiClient.get(`/api/analytics/currency/regime?pair=${encodeURIComponent(pair)}`);
 }
 
+export async function getINRFIICorrelation(
+  quarters: number = 12
+): Promise<ApiResult<IINRFIICorrelation>> {
+  return apiClient.get(`/api/analytics/currency/inr-flows?quarters=${quarters}`);
+}
+
+export async function getCommodityForexCorrelation(
+  days: number = 180
+): Promise<ApiResult<ICommodityForexCorrelation>> {
+  return apiClient.get(`/api/analytics/currency/commodity-forex?days=${days}`);
+}
+
+export async function getRBIReserves(
+  weeks: number = 52
+): Promise<ApiResult<IRBIReserves>> {
+  return apiClient.get(`/api/analytics/currency/rbi-reserves?weeks=${weeks}`);
+}
+
+export async function getCotDashboard(
+  weeks: number = 52
+): Promise<ApiResult<ICotDashboard>> {
+  return apiClient.get(`/api/analytics/currency/cot?weeks=${weeks}`);
+}
+
+export async function getPriceAlerts(
+  activeOnly: boolean = true
+): Promise<ApiResult<{ alerts: IPriceAlert[] }>> {
+  return apiClient.get(`/api/analytics/currency/alerts?active_only=${activeOnly}`);
+}
+
+export async function createPriceAlert(
+  pair: string,
+  condition: string,
+  targetPrice: number,
+  note?: string
+): Promise<ApiResult<{ alert: IPriceAlert; current_price: number | null }>> {
+  return apiClient.post('/api/analytics/currency/alerts', {
+    pair,
+    condition,
+    target_price: targetPrice,
+    note: note ?? '',
+  });
+}
+
+export async function deletePriceAlert(
+  alertId: string
+): Promise<ApiResult<{ success: boolean }>> {
+  return apiClient.delete(`/api/analytics/currency/alerts/${alertId}`);
+}
+
 // =============================================================================
 // Commodity Dashboard
 // =============================================================================
@@ -826,4 +981,45 @@ export async function getCommodityPatterns(
   return apiClient.get(
     `/api/analytics/${encodeURIComponent(commodity)}/patterns?exchange=CMDTY&timeframe=${timeframe}`
   );
+}
+
+// =============================================================================
+// Factor Models & Risk Analytics (Phase 4)
+// =============================================================================
+
+export async function getFactorExposures(
+  ticker: string,
+  exchange: string = 'NSE'
+): Promise<ApiResult<IFactorExposures>> {
+  return apiClient.get(`/api/analytics/${encodeURIComponent(ticker)}/factors?exchange=${exchange}`);
+}
+
+export async function getFactorReturns(
+  exchange: string = 'NSE',
+  days: number = 365
+): Promise<ApiResult<IFactorReturns>> {
+  return apiClient.get(`/api/analytics/factor-returns?exchange=${exchange}&days=${days}`);
+}
+
+export async function getPortfolioRisk(
+  exchange: string = 'NSE'
+): Promise<ApiResult<IPortfolioRisk>> {
+  return apiClient.get(`/api/analytics/portfolio/risk-decomposition?exchange=${exchange}`);
+}
+
+export async function getAlphaAttribution(
+  ticker: string,
+  exchange: string = 'NSE',
+  period: number = 365
+): Promise<ApiResult<IAlphaAttribution>> {
+  return apiClient.get(
+    `/api/analytics/${encodeURIComponent(ticker)}/alpha-attribution?exchange=${exchange}&period=${period}`
+  );
+}
+
+export async function getQualityScores(
+  ticker: string,
+  exchange: string = 'NSE'
+): Promise<ApiResult<IQualityScores>> {
+  return apiClient.get(`/api/analytics/${encodeURIComponent(ticker)}/quality-scores?exchange=${exchange}`);
 }

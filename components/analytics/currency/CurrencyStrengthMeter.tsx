@@ -16,7 +16,7 @@ const TIMEFRAMES: { id: Timeframe; label: string }[] = [
   { id: '3m', label: '3M' },
 ];
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'AUD', 'NZD', 'CAD', 'INR'] as const;
+const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'INR'] as const;
 
 interface CurrencyValues {
   '1d': number;
@@ -319,11 +319,11 @@ export function CurrencyStrengthMeter() {
         </div>
       )}
 
-      {/* Trade suggestion */}
+      {/* Relative strength signal */}
       {strongest && weakest && strongest.currency !== weakest.currency && (
-        <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-4">
-          <h4 className="text-xs font-semibold mb-2">Trade Suggestion</h4>
-          <div className="flex items-center gap-3">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+          <h4 className="text-xs font-semibold mb-2">Relative Strength Signal</h4>
+          <div className="flex items-center gap-3 flex-wrap">
             <div className="flex items-center gap-1">
               <TrendingUp className="h-4 w-4 text-sky-400" />
               <span className="text-sm font-semibold text-sky-400">
@@ -346,12 +346,19 @@ export function CurrencyStrengthMeter() {
               </span>
             </div>
             <span className="text-xs text-muted-foreground ml-auto">
-              Buy{' '}
+              Relative strength favors{' '}
               <span className="font-semibold text-foreground">
-                {strongest.currency}/{weakest.currency}
+                {strongest.currency}
+              </span>
+              {' '}over{' '}
+              <span className="font-semibold text-foreground">
+                {weakest.currency}
               </span>
             </span>
           </div>
+          <p className="text-[9px] text-muted-foreground/60 mt-2">
+            For informational purposes only. Not investment advice.
+          </p>
         </div>
       )}
 

@@ -191,8 +191,8 @@ export function SectorHeatmapGrid({
         <div
           className="absolute z-50 rounded-lg bg-brand-slate/95 backdrop-blur-sm px-3 py-2 border border-white/10 shadow-xl pointer-events-none"
           style={{
-            left: tooltipPos.x + 12,
-            top: tooltipPos.y - 50,
+            left: Math.min(tooltipPos.x + 12, (gridRef.current?.offsetWidth ?? 999) - 160),
+            top: Math.max(tooltipPos.y - 50, 0),
           }}
         >
           <div className="text-xs font-semibold text-white whitespace-nowrap">

@@ -44,6 +44,12 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
   const [trailIndex, setTrailIndex] = useState(maxTrailLen);
   const [speedIdx, setSpeedIdx] = useState(0);
 
+  // Sync trail to current state when data refreshes (new trail points arrive)
+  useEffect(() => {
+    if (!playing) setTrailIndex(maxTrailLen);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxTrailLen]);
+
   // Auto-focus top 3 movers during playback when nothing is pinned/filtered
   const autoFocusSet = useMemo(() => topMovers(sectors, 3), [sectors]);
 
@@ -187,7 +193,7 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
         <div className="flex items-center gap-1.5">
           <button
             onClick={handlePlayPause}
-            className="flex items-center justify-center h-5 w-5 rounded bg-white/[0.08] hover:bg-white/[0.15] transition-colors"
+            className="flex items-center justify-center h-8 w-8 sm:h-5 sm:w-5 rounded bg-white/[0.08] hover:bg-white/[0.15] transition-colors"
             aria-label={playing ? 'Pause' : 'Play trail animation'}
             title={playing ? 'Pause' : 'Play trail animation'}
           >
@@ -199,7 +205,7 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
           </button>
           <button
             onClick={handleReset}
-            className="flex items-center justify-center h-5 w-5 rounded bg-white/[0.08] hover:bg-white/[0.15] transition-colors"
+            className="flex items-center justify-center h-8 w-8 sm:h-5 sm:w-5 rounded bg-white/[0.08] hover:bg-white/[0.15] transition-colors"
             aria-label="Reset to current"
             title="Reset to current"
           >
@@ -272,7 +278,7 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
       </div>
 
       {/* ─── SVG Chart ───────────────────────────────────────────────── */}
-      <svg width={dims.width} height={dims.height}>
+      <svg width={dims.width} height={dims.height} role="img" aria-label="Relative Rotation Graph showing sector rotation across four quadrants: Leading, Improving, Lagging, Weakening.">
         {/* Quadrant backgrounds */}
         <rect x={cx} y={MARGIN.top} width={innerW / 2} height={innerH / 2} fill={RRG_QUADRANT_COLORS.leading} opacity={0.06} />
         <rect x={MARGIN.left} y={MARGIN.top} width={innerW / 2} height={innerH / 2} fill={RRG_QUADRANT_COLORS.improving} opacity={0.06} />
@@ -431,7 +437,12 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
 
               {/* Hover tooltip */}
               {isHovered && (
-                <foreignObject x={sx - 80} y={sy + 14} width={160} height={62}>
+                <foreignObject
+                  x={Math.max(0, Math.min(sx - 80, dims.width - 160))}
+                  y={sy + 14 + 62 > dims.height ? sy - 76 : sy + 14}
+                  width={160}
+                  height={62}
+                >
                   <div className="rounded-lg bg-brand-slate/95 px-2.5 py-1.5 text-[10px] text-white shadow-lg border border-white/10 text-center">
                     <div className="font-semibold">{sector.sector}</div>
                     <div className="text-muted-foreground mt-0.5">
@@ -456,7 +467,7 @@ export function SectorRRG({ sectors, onSectorClick }: SectorRRGProps) {
             <button
               key={q}
               onClick={() => toggleQuadrant(q)}
-              className="inline-flex items-center gap-1 text-[9px] font-medium px-2 py-0.5 rounded-full border transition-all"
+              className="inline-flex items-center gap-1 text-[9px] font-medium px-2.5 py-1.5 sm:px-2 sm:py-0.5 rounded-full border transition-all min-h-[36px] sm:min-h-0"
               style={{
                 borderColor: isActive ? RRG_QUADRANT_COLORS[q] : 'rgba(255,255,255,0.08)',
                 backgroundColor: isActive ? `${RRG_QUADRANT_COLORS[q]}18` : 'transparent',

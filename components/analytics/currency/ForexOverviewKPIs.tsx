@@ -1,7 +1,7 @@
 'use client';
 
 import { cn } from '@/lib/utils';
-import type { ICurrencyStrength, IMarketClock, ITopMovers } from '@/src/types/analytics';
+import type { ICurrencyStrength, IMarketClock, ITopMovers, ICurrencyOverview } from '@/src/types/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Activity, TrendingUp, TrendingDown, Zap, BarChart3 } from 'lucide-react';
 
@@ -9,6 +9,7 @@ interface Props {
   strength: ICurrencyStrength | null;
   marketClock: IMarketClock | null;
   topMovers: ITopMovers | null;
+  overview?: ICurrencyOverview | null;
 }
 
 interface KPICardData {
@@ -23,7 +24,8 @@ interface KPICardData {
 function deriveKPIs(
   strength: ICurrencyStrength | null,
   marketClock: IMarketClock | null,
-  topMovers: ITopMovers | null
+  topMovers: ITopMovers | null,
+  overview: ICurrencyOverview | null,
 ): KPICardData[] {
   // 1. Active Sessions
   const activeSessions: KPICardData = {
@@ -116,11 +118,14 @@ function deriveKPIs(
     accentBg: 'from-amber-500/10 to-amber-500/0',
   };
 
-  // 5. Pairs Tracked
+  // 5. Pairs Tracked — derive from overview data
+  const pairCount = overview?.pairs?.length ?? 0;
+  const inrCount = overview?.pairs?.filter(p => p.ticker.includes('INR')).length ?? 0;
+  const crossCount = pairCount - inrCount;
   const pairsTracked: KPICardData = {
     label: 'Pairs Tracked',
-    value: '7',
-    subtext: '4 INR + 3 Cross',
+    value: pairCount > 0 ? String(pairCount) : '—',
+    subtext: pairCount > 0 ? `${inrCount} INR + ${crossCount} Cross` : 'Loading...',
     icon: BarChart3,
     color: 'text-violet-400',
     accentBg: 'from-violet-500/10 to-violet-500/0',
@@ -169,9 +174,9 @@ function KPICard({ kpi, isLoading }: { kpi: KPICardData; isLoading: boolean }) {
   );
 }
 
-export function ForexOverviewKPIs({ strength, marketClock, topMovers }: Props) {
+export function ForexOverviewKPIs({ strength, marketClock, topMovers, overview }: Props) {
   const isLoading = strength === null && marketClock === null && topMovers === null;
-  const kpis = deriveKPIs(strength, marketClock, topMovers);
+  const kpis = deriveKPIs(strength, marketClock, topMovers, overview ?? null);
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-5 gap-3">

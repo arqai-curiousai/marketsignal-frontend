@@ -577,7 +577,7 @@ export function NewsNetworkGraph({
         ref={svgRef}
         width={dimensions.width}
         height={dimensions.height}
-        className="cursor-grab active:cursor-grabbing"
+        className="cursor-grab active:cursor-grabbing touch-none"
         onMouseDown={(e) => {
           if (!dragging) {
             setIsPanning(true);
@@ -587,6 +587,21 @@ export function NewsNetworkGraph({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
+        onTouchStart={(e) => {
+          if (e.touches.length === 1 && !dragging) {
+            setIsPanning(true);
+            panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+          }
+        }}
+        onTouchMove={(e) => {
+          if (isPanning && e.touches.length === 1) {
+            const dx = e.touches[0].clientX - panStart.current.x;
+            const dy = e.touches[0].clientY - panStart.current.y;
+            panStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+            setPan((p) => ({ x: p.x + dx, y: p.y + dy }));
+          }
+        }}
+        onTouchEnd={handleMouseUp}
       >
         {/* Defs */}
         <defs>

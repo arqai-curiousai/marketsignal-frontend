@@ -11,6 +11,7 @@ interface AssetExplorerProps {
   selectedAssets: string[];
   window: string;
   method: string;
+  exchange: string;
   onPairSelect: (pair: [string, string] | null) => void;
 }
 
@@ -18,6 +19,7 @@ export function AssetExplorer({
   selectedAssets,
   window: windowValue,
   method,
+  exchange,
   onPairSelect,
 }: AssetExplorerProps) {
   const [data, setData] = useState<IAssetCorrelations | null>(null);
@@ -38,7 +40,7 @@ export function AssetExplorer({
     setLoading(true);
     setAcfData(null);
 
-    getAssetCorrelations(focusTicker, windowValue, method).then((result) => {
+    getAssetCorrelations(focusTicker, windowValue, method, exchange).then((result) => {
       if (cancelled) return;
       if (result.success && result.data && !('error' in result.data)) {
         setData(result.data);
@@ -50,7 +52,6 @@ export function AssetExplorer({
 
     // Fetch autocorrelation non-blocking
     const windowMap: Record<string, number> = { '30d': 30, '90d': 90, '180d': 180, '365d': 365 };
-    const exchange = ASSET_MAP.get(focusTicker)?.type === 'stock' ? 'NSE' : ASSET_MAP.get(focusTicker)?.type === 'currency' ? 'FX' : 'CMDTY';
     getAutocorrelation(focusTicker, exchange, windowMap[windowValue] ?? 90).then((result) => {
       if (cancelled) return;
       if (result.success && result.data && !('error' in result.data)) {
@@ -61,7 +62,7 @@ export function AssetExplorer({
     return () => {
       cancelled = true;
     };
-  }, [focusTicker, windowValue, method]);
+  }, [focusTicker, windowValue, method, exchange]);
 
   if (!focusTicker) {
     return (

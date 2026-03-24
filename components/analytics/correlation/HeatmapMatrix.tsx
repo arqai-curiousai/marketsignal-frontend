@@ -26,10 +26,10 @@ export function HeatmapMatrix({
   const [sortMode, setSortMode] = useState<SortMode>('sector');
   const [sortTarget, setSortTarget] = useState<string | null>(null);
   const [halfMatrix, setHalfMatrix] = useState(false);
-  const [showSectors, setShowSectors] = useState(false);
-  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const [showSectors, setShowSectors] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const prevMatrixRef = useRef(matrix);
 
   // SSR-safe responsive check
@@ -51,11 +51,14 @@ export function HeatmapMatrix({
     }
   }, [matrix, sortTarget]);
 
-  // Track mouse position relative to container for floating tooltip
+  // Track mouse position via ref (zero re-renders for tooltip positioning)
   const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (containerRef.current) {
+    if (tooltipRef.current && containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      setMousePos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      tooltipRef.current.style.left = `${Math.min(x + 12, rect.width - 220)}px`;
+      tooltipRef.current.style.top = `${Math.max(8, y - 48)}px`;
     }
   }, []);
 
@@ -136,6 +139,7 @@ export function HeatmapMatrix({
             key={mode}
             onClick={() => {
               setSortMode(mode);
+              if (mode === 'sector') setShowSectors(true);
               if (mode === 'correlation' && !sortTarget && tickers.length > 0) {
                 setSortTarget(tickers[0]);
               }
@@ -192,12 +196,13 @@ export function HeatmapMatrix({
             {/* Column headers */}
             {tickers.map((col) => {
               const isSortTarget = sortMode === 'correlation' && sortTarget === col;
+              const isColHovered = isHighlightedCol === col;
               return (
                 <div
                   key={`col-${col}`}
                   className={cn(
-                    'flex items-end justify-center pb-1 cursor-pointer transition-opacity',
-                    isHighlightedCol === col ? 'opacity-100' : isHighlightedCol ? 'opacity-40' : 'opacity-100',
+                    'flex items-end justify-center pb-1 cursor-pointer transition-all',
+                    isColHovered ? 'opacity-100 bg-white/[0.06] rounded-t' : isHighlightedCol ? 'opacity-40' : 'opacity-100',
                     isSortTarget && 'border-b-2 border-brand-blue',
                   )}
                   onClick={() => {
@@ -230,8 +235,8 @@ export function HeatmapMatrix({
                 <div
                   role="rowheader"
                   className={cn(
-                    'flex items-center pr-2 transition-opacity',
-                    isHighlightedRow === row ? 'opacity-100' : isHighlightedRow ? 'opacity-40' : 'opacity-100',
+                    'flex items-center pr-2 transition-all',
+                    isHighlightedRow === row ? 'opacity-100 bg-white/[0.06] rounded-l' : isHighlightedRow ? 'opacity-40' : 'opacity-100',
                   )}
                 >
                   <span className="text-[9px] font-medium text-muted-foreground truncate" title={ASSET_MAP.get(row)?.name || row}>
@@ -330,11 +335,8 @@ export function HeatmapMatrix({
         const pVal = getPValue(hoveredCell.row, hoveredCell.col);
         return (
           <div
+            ref={tooltipRef}
             className="absolute z-20 pointer-events-none bg-[#1a1f2e] border border-white/10 rounded-lg px-3 py-2 shadow-xl"
-            style={{
-              left: Math.min(mousePos.x + 12, (containerRef.current?.clientWidth ?? 400) - 220),
-              top: Math.max(8, mousePos.y - 48),
-            }}
           >
             <div className="flex items-center gap-3">
               <span className="text-xs text-white font-medium whitespace-nowrap">

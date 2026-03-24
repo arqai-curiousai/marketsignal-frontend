@@ -16,8 +16,20 @@ interface MetricCardProps {
 }
 
 function MetricCard({ label, metric, format }: MetricCardProps) {
-  const range = metric.max - metric.min;
-  const position = range > 0 ? ((metric.weighted_avg - metric.min) / range) * 100 : 50;
+  if (metric.weighted_avg == null || metric.count === 0) {
+    return (
+      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+        <div className="text-[10px] uppercase tracking-widest text-muted-foreground mb-2">
+          {label}
+        </div>
+        <div className="text-white/40 font-mono text-lg leading-tight">N/A</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">No data</div>
+      </div>
+    );
+  }
+
+  const range = (metric.max ?? 0) - (metric.min ?? 0);
+  const position = range > 0 ? ((metric.weighted_avg - (metric.min ?? 0)) / range) * 100 : 50;
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
@@ -28,22 +40,24 @@ function MetricCard({ label, metric, format }: MetricCardProps) {
         {format(metric.weighted_avg)}
       </div>
       <div className="text-[10px] text-muted-foreground mt-0.5">
-        Median: <span className="text-white/70 font-mono tabular-nums">{format(metric.median)}</span>
+        Median: <span className="text-white/70 font-mono tabular-nums">{metric.median != null ? format(metric.median) : 'N/A'}</span>
       </div>
 
       {/* Range bar */}
-      <div className="mt-2.5 relative">
-        <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono tabular-nums mb-1">
-          <span>{format(metric.min)}</span>
-          <span>{format(metric.max)}</span>
+      {metric.min != null && metric.max != null && (
+        <div className="mt-2.5 relative">
+          <div className="flex items-center justify-between text-[9px] text-muted-foreground font-mono tabular-nums mb-1">
+            <span>{format(metric.min)}</span>
+            <span>{format(metric.max)}</span>
+          </div>
+          <div className="relative h-1 w-full rounded-full bg-white/[0.06]">
+            <div
+              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-blue-400 border border-blue-300/50 shadow-sm shadow-blue-400/30"
+              style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
+            />
+          </div>
         </div>
-        <div className="relative h-1 w-full rounded-full bg-white/[0.06]">
-          <div
-            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-blue-400 border border-blue-300/50 shadow-sm shadow-blue-400/30"
-            style={{ left: `${Math.max(2, Math.min(98, position))}%` }}
-          />
-        </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -4,13 +4,15 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { SECTOR_COLORS, formatMarketCap, perfTextClass } from './constants';
+import { SECTOR_COLORS, formatMarketCap, perfTextClass, perfColor } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
+import type { ExchangeCode } from '@/lib/exchange/config';
 
 interface SectorPerformanceTableProps {
   sectors: ISectorAnalytics[];
   timeframe: SectorTimeframe;
   selectedSector?: string | null;
+  exchange?: string;
   onSectorClick: (sector: ISectorAnalytics) => void;
 }
 
@@ -29,19 +31,19 @@ type SortKey =
   | 'dy'
   | 'market_cap';
 
-const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
+const COLUMNS: { key: SortKey; label: string; className?: string; hideClass?: string }[] = [
   { key: 'sector', label: 'Sector', className: 'text-left' },
   { key: '1d', label: '1D' },
   { key: '1w', label: '1W' },
   { key: '1m', label: '1M' },
-  { key: '3m', label: '3M' },
-  { key: '6m', label: '6M' },
-  { key: 'ytd', label: 'YTD' },
+  { key: '3m', label: '3M', hideClass: 'hidden xl:table-cell' },
+  { key: '6m', label: '6M', hideClass: 'hidden xl:table-cell' },
+  { key: 'ytd', label: 'YTD', hideClass: 'hidden xl:table-cell' },
   { key: 'momentum', label: 'Mom.' },
   { key: 'breadth', label: 'Breadth' },
-  { key: 'pe', label: 'PE' },
-  { key: 'pb', label: 'PB' },
-  { key: 'dy', label: 'DY' },
+  { key: 'pe', label: 'PE', hideClass: 'hidden 2xl:table-cell' },
+  { key: 'pb', label: 'PB', hideClass: 'hidden 2xl:table-cell' },
+  { key: 'dy', label: 'DY', hideClass: 'hidden 2xl:table-cell' },
   { key: 'market_cap', label: 'Mkt Cap' },
 ];
 
@@ -77,6 +79,7 @@ export function SectorPerformanceTable({
   sectors,
   timeframe,
   selectedSector,
+  exchange = 'NSE',
   onSectorClick,
 }: SectorPerformanceTableProps) {
   const [sortKey, setSortKey] = useState<SortKey>(timeframe as SortKey);
@@ -86,6 +89,17 @@ export function SectorPerformanceTable({
   useEffect(() => {
     setSortKey(timeframe as SortKey);
   }, [timeframe]);
+
+  // Hide PE/PB/DY columns when no sector has valuation data
+  const hasValuation = useMemo(
+    () => sectors.some((s) => s.valuation?.metrics?.pe_ratio?.weighted_avg != null),
+    [sectors],
+  );
+
+  const visibleColumns = useMemo(
+    () => (hasValuation ? COLUMNS : COLUMNS.filter((c) => !['pe', 'pb', 'dy'].includes(c.key))),
+    [hasValuation],
+  );
 
   const sorted = useMemo(() => {
     const copy = [...sectors];
@@ -115,7 +129,7 @@ export function SectorPerformanceTable({
         <table className="w-full text-xs">
           <thead>
             <tr className="border-b border-white/10">
-              {COLUMNS.map((col) => (
+              {visibleColumns.map((col) => (
                 <th
                   key={col.key}
                   onClick={() => toggleSort(col.key)}
@@ -123,6 +137,7 @@ export function SectorPerformanceTable({
                     'px-3 py-2.5 font-medium text-muted-foreground cursor-pointer hover:text-white transition-colors whitespace-nowrap',
                     col.className ?? 'text-right',
                     col.key === 'sector' && 'sticky left-0 z-10 bg-[#0B0F19]',
+                    col.hideClass,
                   )}
                 >
                   <div className={cn('flex items-center gap-1', col.className !== 'text-left' && 'justify-end')}>
@@ -175,14 +190,17 @@ export function SectorPerformanceTable({
                 {/* Timeframe performance cells */}
                 {(['1d', '1w', '1m', '3m', '6m', 'ytd'] as const).map((tf) => {
                   const val = sector.performance[tf] ?? 0;
+                  const col = COLUMNS.find(c => c.key === tf);
                   return (
                     <td
                       key={tf}
                       className={cn(
                         'px-3 py-2.5 text-right font-medium tabular-nums',
                         perfTextClass(val),
-                        tf === timeframe && 'bg-white/[0.03]',
+                        tf === timeframe && 'ring-1 ring-inset ring-white/[0.06]',
+                        col?.hideClass,
                       )}
+                      style={{ backgroundColor: val !== 0 ? perfColor(val, 0.15) : undefined }}
                     >
                       {val >= 0 ? '+' : ''}
                       {val.toFixed(2)}%
@@ -229,30 +247,30 @@ export function SectorPerformanceTable({
                   </span>
                 </td>
 
-                {/* PE */}
-                <td className="px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
-                  {sector.valuation?.metrics?.pe_ratio?.weighted_avg != null
-                    ? sector.valuation.metrics.pe_ratio.weighted_avg.toFixed(1)
-                    : '\u2014'}
-                </td>
-
-                {/* PB */}
-                <td className="px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
-                  {sector.valuation?.metrics?.price_to_book?.weighted_avg != null
-                    ? sector.valuation.metrics.price_to_book.weighted_avg.toFixed(1)
-                    : '\u2014'}
-                </td>
-
-                {/* DY */}
-                <td className="px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
-                  {sector.valuation?.metrics?.dividend_yield?.weighted_avg != null
-                    ? `${sector.valuation.metrics.dividend_yield.weighted_avg.toFixed(2)}%`
-                    : '\u2014'}
-                </td>
+                {/* PE / PB / DY — hidden when no sector has valuation data */}
+                {hasValuation && (
+                  <>
+                    <td className="hidden 2xl:table-cell px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
+                      {sector.valuation?.metrics?.pe_ratio?.weighted_avg != null
+                        ? sector.valuation.metrics.pe_ratio.weighted_avg.toFixed(1)
+                        : '\u2014'}
+                    </td>
+                    <td className="hidden 2xl:table-cell px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
+                      {sector.valuation?.metrics?.price_to_book?.weighted_avg != null
+                        ? sector.valuation.metrics.price_to_book.weighted_avg.toFixed(1)
+                        : '\u2014'}
+                    </td>
+                    <td className="hidden 2xl:table-cell px-3 py-2.5 text-right text-white/70 font-mono tabular-nums">
+                      {sector.valuation?.metrics?.dividend_yield?.weighted_avg != null
+                        ? `${sector.valuation.metrics.dividend_yield.weighted_avg.toFixed(2)}%`
+                        : '\u2014'}
+                    </td>
+                  </>
+                )}
 
                 {/* Market Cap */}
                 <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
-                  {formatMarketCap(sector.total_market_cap)}
+                  {formatMarketCap(sector.total_market_cap, exchange as ExchangeCode)}
                 </td>
               </motion.tr>
               );

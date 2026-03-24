@@ -205,9 +205,16 @@ export const COMMODITY_ASSETS: Asset[] = [
   { ticker: 'Copper', name: 'Copper', type: 'commodity' },
 ];
 
+/** NSE-only assets (backward compatibility). */
 export const ALL_ASSETS: Asset[] = [...NSE_STOCK_ASSETS, ...CURRENCY_ASSETS, ...COMMODITY_ASSETS];
 
-export const ASSET_MAP = new Map(ALL_ASSETS.map((a) => [a.ticker, a]));
+/** Comprehensive asset map across ALL exchanges — used by all correlation components. */
+const ALL_EXCHANGE_ASSETS: Asset[] = [
+  ...NSE_STOCK_ASSETS, ...NASDAQ_STOCK_ASSETS, ...NYSE_STOCK_ASSETS,
+  ...LSE_STOCK_ASSETS, ...SGX_STOCK_ASSETS, ...HKSE_STOCK_ASSETS,
+  ...CURRENCY_ASSETS, ...COMMODITY_ASSETS,
+];
+export const ASSET_MAP = new Map(ALL_EXCHANGE_ASSETS.map((a) => [a.ticker, a]));
 
 /** Build the full asset list for a given exchange (stocks + currencies + commodities). */
 export function getAllAssets(exchange: string): Asset[] {

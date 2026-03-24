@@ -49,6 +49,48 @@ function daysUntilText(dateStr: string | null): string | null {
   return `in ${diff}d`;
 }
 
+function RateSparkline({ history }: { history: Array<{ date: string; rate: number }> }) {
+  const rates = history.map(h => h.rate);
+  const min = Math.min(...rates);
+  const max = Math.max(...rates);
+  const range = max - min || 0.01;
+  const w = 120;
+  const h = 24;
+  const step = w / (rates.length - 1);
+
+  const points = rates
+    .map((v, i) => `${(i * step).toFixed(1)},${(h - 2 - ((v - min) / range) * (h - 4)).toFixed(1)}`)
+    .join(' ');
+
+  // Was last move up or down?
+  const trend = rates.length >= 2 ? rates[rates.length - 1] - rates[rates.length - 2] : 0;
+  const strokeColor = trend > 0 ? 'hsl(0, 70%, 60%)' : trend < 0 ? 'hsl(142, 70%, 50%)' : 'hsl(220, 10%, 50%)';
+
+  return (
+    <div className="flex items-center justify-center">
+      <svg width={w} height={h} className="opacity-70">
+        <polyline
+          points={points}
+          fill="none"
+          stroke={strokeColor}
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {/* Current rate dot */}
+        {rates.length > 0 && (
+          <circle
+            cx={w}
+            cy={h - 2 - ((rates[rates.length - 1] - min) / range) * (h - 4)}
+            r={2.5}
+            fill={strokeColor}
+          />
+        )}
+      </svg>
+    </div>
+  );
+}
+
 function RateCard({ rate }: { rate: ICentralBankRate }) {
   const flag = CURRENCY_FLAGS[rate.currency] || '';
   const meetingBadge = daysUntilText(rate.next_meeting_date);
@@ -88,6 +130,11 @@ function RateCard({ rate }: { rate: ICentralBankRate }) {
           {rate.current_rate.toFixed(2)}%
         </span>
       </div>
+
+      {/* Rate history sparkline */}
+      {rate.rate_history && rate.rate_history.length >= 2 && (
+        <RateSparkline history={rate.rate_history} />
+      )}
 
       {/* Last change */}
       <div

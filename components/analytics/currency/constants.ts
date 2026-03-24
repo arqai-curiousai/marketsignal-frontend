@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react';
-import { Globe, LineChart, Landmark } from 'lucide-react';
+import { Globe, LineChart, Landmark, Wrench } from 'lucide-react';
 
 /**
  * 7 NSE SEBI-approved forex pairs.
@@ -62,6 +62,17 @@ export const FOREX_MODULES: ForexModule[] = [
     accentTo: '#FBBF24',
     glowColor: 'rgba(251, 191, 36, 0.35)',
     borderColor: 'rgba(251, 191, 36, 0.2)',
+  },
+  {
+    id: 'tools',
+    label: 'Tools',
+    tagline: 'Pip & Sizing',
+    description: 'Pip value calculator, position size & risk management',
+    icon: Wrench,
+    accentFrom: '#6EE7B7',
+    accentTo: '#10B981',
+    glowColor: 'rgba(16, 185, 129, 0.35)',
+    borderColor: 'rgba(16, 185, 129, 0.2)',
   },
 ];
 

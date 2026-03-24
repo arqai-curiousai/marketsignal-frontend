@@ -432,6 +432,8 @@ export function NetworkGraph({
         }}
         className="cursor-grab active:cursor-grabbing"
         style={{ touchAction: 'none' }}
+        role="img"
+        aria-label={`Correlation network graph with ${nodePositions.length} assets and ${links.length} connections`}
       >
         <defs>
           {Object.entries(TYPE_GLOW).map(([type, color]) => (
@@ -543,9 +545,13 @@ export function NetworkGraph({
                 onMouseEnter={() => !dragging && setHoveredNode(node.id)}
                 onMouseLeave={() => setHoveredNode(null)}
                 onClick={() => handleNodeClick(node.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNodeClick(node.id); } }}
                 className="cursor-pointer"
                 style={{ transition: 'transform 0.15s ease-out' }}
                 opacity={isFaded ? 0.25 : 1}
+                tabIndex={0}
+                role="button"
+                aria-label={`${node.id} (${node.type}), ${links.filter(l => l.sourceId === node.id || l.targetId === node.id).length} connections`}
               >
                 {isInPair && (
                   <circle

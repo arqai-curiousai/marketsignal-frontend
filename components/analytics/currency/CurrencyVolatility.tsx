@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyVolatility } from '@/src/lib/api/analyticsApi';
 import type { ICurrencyVolatility } from '@/src/types/analytics';
+import { Shield, AlertTriangle, Flame, Zap } from 'lucide-react';
 
 interface Props {
   pair: string;
@@ -15,6 +16,13 @@ const REGIME_COLORS: Record<string, string> = {
   NORMAL: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
   HIGH: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
   EXTREME: 'bg-red-500/15 text-red-400 border-red-500/30',
+};
+
+const REGIME_ICONS: Record<string, typeof Shield> = {
+  LOW: Shield,
+  NORMAL: AlertTriangle,
+  HIGH: Flame,
+  EXTREME: Zap,
 };
 
 function PercentileBar({ value }: { value: number }) {
@@ -68,12 +76,18 @@ export function CurrencyVolatility({ pair }: Props) {
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold">Volatility Regime</h3>
-          <span className={cn(
-            'rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider',
-            REGIME_COLORS[data.regime] || REGIME_COLORS.NORMAL
-          )}>
-            {data.regime}
-          </span>
+          {(() => {
+            const RegimeIcon = REGIME_ICONS[data.regime] || AlertTriangle;
+            return (
+              <span className={cn(
+                'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider',
+                REGIME_COLORS[data.regime] || REGIME_COLORS.NORMAL
+              )}>
+                <RegimeIcon className="h-3 w-3" />
+                {data.regime}
+              </span>
+            );
+          })()}
         </div>
         <PercentileBar value={data.percentile_rank ?? 0} />
 
@@ -117,22 +131,26 @@ export function CurrencyVolatility({ pair }: Props) {
       {data.term_structure && data.term_structure.length > 0 && (
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
         <h3 className="text-sm font-semibold mb-3">Volatility Term Structure</h3>
-        <div className="flex items-end gap-1 h-32">
+        <div className="flex items-end gap-2 h-48">
           {data.term_structure.map((ts, i) => {
             const maxRv = Math.max(...data.term_structure.map(t => t.rv), 1);
             const height = (ts.rv / maxRv) * 100;
             const isInverted = i > 0 && ts.rv < data.term_structure[i - 1].rv;
             return (
-              <div key={ts.window} className="flex-1 flex flex-col items-center gap-1">
-                <span className="text-[9px] font-mono text-muted-foreground">{ts.rv.toFixed(1)}%</span>
-                <div
-                  className={cn(
-                    'w-full rounded-t-sm transition-all',
-                    isInverted ? 'bg-red-500/60' : 'bg-blue-500/60'
-                  )}
-                  style={{ height: `${Math.max(height, 4)}%` }}
-                />
-                <span className="text-[9px] text-muted-foreground">{ts.window}d</span>
+              <div key={ts.window} className="flex-1 flex flex-col items-center gap-1.5 group">
+                <span className="text-[10px] font-mono text-muted-foreground font-medium">{ts.rv.toFixed(1)}%</span>
+                <div className="w-full relative" style={{ height: `${Math.max(height, 6)}%` }}>
+                  <div
+                    className={cn(
+                      'absolute inset-0 rounded-t transition-all duration-500',
+                      isInverted
+                        ? 'bg-gradient-to-t from-orange-600/70 to-orange-400/40'
+                        : 'bg-gradient-to-t from-sky-600/70 to-sky-400/40',
+                      'group-hover:brightness-125'
+                    )}
+                  />
+                </div>
+                <span className="text-[10px] text-muted-foreground font-medium">{ts.window}d</span>
               </div>
             );
           })}

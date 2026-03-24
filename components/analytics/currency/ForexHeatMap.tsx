@@ -6,6 +6,19 @@ import { cn } from '@/lib/utils';
 import { getCurrencyCrossRates } from '@/src/lib/api/analyticsApi';
 import type { ICrossRatesMatrix } from '@/src/types/analytics';
 import { Grid3X3, AlertCircle, RefreshCw } from 'lucide-react';
+import { NSE_FOREX_PAIRS } from './constants';
+
+/** Set of valid pairs + their inverses for click navigation */
+const VALID_PAIRS = new Set<string>();
+const PAIR_NORMALIZE = new Map<string, string>();
+for (const p of NSE_FOREX_PAIRS) {
+  VALID_PAIRS.add(p);
+  PAIR_NORMALIZE.set(p, p);
+  const [base, quote] = p.split('/');
+  const inv = `${quote}/${base}`;
+  VALID_PAIRS.add(inv);
+  PAIR_NORMALIZE.set(inv, p); // normalize inverse to canonical form
+}
 
 type Timeframe = '1d' | '1w' | '1m';
 
@@ -109,7 +122,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
   const matrix = data?.matrix ?? [];
 
   return (
-    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4 shadow-[0_2px_16px_rgba(0,0,0,0.15)]">
       {/* Header */}
       <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
         <div className="flex items-center gap-2">
@@ -179,23 +192,32 @@ export function ForexHeatMap({ onSelectPair }: Props) {
                   const bgColor = changePctToColor(changePct);
                   const textCls = changePctToTextColor(changePct);
 
+                  const rawPair = `${rowCcy}/${colCcy}`;
+                  const canonicalPair = PAIR_NORMALIZE.get(rawPair);
+                  const hasDeepAnalytics = canonicalPair != null;
+
                   // Highlight INR pairs with amber border
                   const isINRPair = rowCcy === 'INR' || colCcy === 'INR';
 
                   return (
                     <td key={colCcy} className="p-0.5">
                       <button
-                        onClick={() => onSelectPair(`${rowCcy}/${colCcy}`)}
+                        onClick={() => {
+                          if (hasDeepAnalytics) onSelectPair(canonicalPair);
+                        }}
                         className={cn(
                           'w-full h-10 rounded flex flex-col items-center justify-center',
-                          'transition-all duration-300 hover:scale-105 hover:ring-1 hover:ring-primary/40',
-                          'hover:shadow-[0_0_12px_rgba(56,189,248,0.15)]',
-                          'cursor-pointer',
+                          'transition-all duration-300',
+                          hasDeepAnalytics && 'hover:scale-105 hover:ring-1 hover:ring-primary/40 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] cursor-pointer',
+                          !hasDeepAnalytics && 'cursor-default opacity-80',
                           isINRPair && 'ring-1 ring-amber-500/30',
                           textCls
                         )}
                         style={{ backgroundColor: bgColor }}
-                        title={`${rowCcy}/${colCcy}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`}
+                        title={hasDeepAnalytics
+                          ? `${rawPair}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%) — Click for deep analytics`
+                          : `${rawPair}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`
+                        }
                       >
                         <span className="text-[9px] font-mono leading-tight tabular-nums">
                           {rate != null ? rate.toFixed(rate >= 100 ? 2 : 4) : '—'}

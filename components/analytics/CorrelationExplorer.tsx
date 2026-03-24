@@ -21,12 +21,14 @@ import type {
   ICommunityDetection,
   ICorrelationMover,
 } from '@/types/analytics';
-import { type CorrelationMethod, type ViewMode, type AssetScope, getStockAssets, getAllAssets } from './correlation/constants';
+import { type CorrelationMethod, type ViewMode, type AssetScope, getStockAssets } from './correlation/constants';
 import { CorrelationToolbar, type ColorMode } from './correlation/CorrelationToolbar';
 import { NetworkGraph } from './correlation/NetworkGraph';
 import { HeatmapMatrix } from './correlation/HeatmapMatrix';
 import { AssetExplorer } from './correlation/AssetExplorer';
 import { PairDetailPanel } from './correlation/PairDetailPanel';
+import { InsightsPanel } from './correlation/InsightsPanel';
+import { deriveAllInsights } from '@/src/lib/correlation/insights';
 import {
   Sheet,
   SheetContent,
@@ -101,7 +103,9 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
   const [correlationMovers, setCorrelationMovers] = useState<ICorrelationMover[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [partialWarning, setPartialWarning] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const forceRefreshRef = React.useRef(false);
 
   // ── Selection state ──
   const [selectedAssets, setSelectedAssets] = useState<string[]>(initialAssets);
@@ -113,6 +117,21 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
   const [minEdgeCorr, setMinEdgeCorr] = useState(0.2);
   const [viewMode, setViewMode] = useState<ViewMode>(initialView);
   const [assetScope, setAssetScope] = useState<AssetScope>(initialScope);
+
+  // ── Insights dismissed state (persists across re-renders) ──
+  const [dismissedInsights, setDismissedInsights] = useState<Set<string>>(new Set());
+  const handleDismissInsight = React.useCallback((id: string) => {
+    setDismissedInsights((prev) => new Set(prev).add(id));
+  }, []);
+
+  // ── Responsive detection ──
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
 
   // ── Network Intelligence ──
   const [mstEnabled, setMstEnabled] = useState(false);
@@ -155,12 +174,16 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
     async function fetchAll() {
       setDataLoading(true);
       setFetchError(null);
+      setPartialWarning(null);
       setEquityMatrix(null);
       setEnhancedMatrix(null);
 
       try {
+        const isForceRefresh = forceRefreshRef.current;
+        forceRefreshRef.current = false;
+
         const [corrResult, enhancedResult, crossResult, globalResult] = await Promise.all([
-          getCorrelations(windowValue, assetScope, exchange),
+          getCorrelations(windowValue, assetScope, exchange, isForceRefresh),
           getEnhancedMatrix(windowValue, assetScope, method, exchange),
           assetScope === 'cross_asset'
             ? getCrossAsset(undefined, undefined, 0.1)
@@ -170,12 +193,12 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
 
         if (cancelled) return;
 
-        if (corrResult.success && corrResult.data) {
-          setEquityMatrix(corrResult.data);
-        }
-        if (enhancedResult.success && enhancedResult.data && !('error' in enhancedResult.data)) {
-          setEnhancedMatrix(enhancedResult.data);
-        }
+        const hasCorr = corrResult.success && corrResult.data;
+        const hasEnhanced = enhancedResult.success && enhancedResult.data
+          && typeof enhancedResult.data === 'object' && !('error' in enhancedResult.data);
+
+        if (hasCorr) setEquityMatrix(corrResult.data);
+        if (hasEnhanced) setEnhancedMatrix(enhancedResult.data as IEnhancedMatrix);
         if (crossResult.success && crossResult.data?.items) {
           setCrossAssetPairs(crossResult.data.items);
         }
@@ -191,16 +214,26 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
           }
         });
 
-        // Differentiated error messages (G4)
-        if (!corrResult.success && !enhancedResult.success) {
-          const status = (corrResult as { status?: number }).status;
-          if (status === 429) {
-            setFetchError('Rate limited — please wait a moment and try again.');
-          } else if (status && status >= 500) {
-            setFetchError('Server error — the backend may be under load. Try again shortly.');
+        // Differentiated error & partial-data handling
+        if (!hasCorr && !hasEnhanced) {
+          if (!corrResult.success) {
+            const status = corrResult.error.status;
+            if (status === 429) {
+              setFetchError('Rate limited — please wait a moment and try again.');
+            } else if (status >= 500) {
+              setFetchError('Server error — the backend may be under load. Try again shortly.');
+            } else if (status === 422) {
+              setFetchError('No data available for the selected assets. Try a different window or exchange.');
+            } else {
+              setFetchError('Unable to load correlation data. Please check your connection and try again.');
+            }
           } else {
             setFetchError('Unable to load correlation data. Please check your connection and try again.');
           }
+        } else if (hasCorr && !hasEnhanced) {
+          setPartialWarning('Showing basic correlations — enhanced statistics (p-values, significance) unavailable.');
+        } else if (!hasCorr && hasEnhanced) {
+          setPartialWarning('Showing enhanced statistics only — basic correlation matrix unavailable.');
         }
       } catch {
         if (!cancelled) {
@@ -318,6 +351,20 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
   const computedAt = equityMatrix?.computed_at ?? enhancedMatrix?.computed_at ?? null;
   const lastUpdatedLabel = computedAt ? timeAgo(computedAt) : null;
 
+  // ── Insights Engine ──
+  const insights = useMemo(
+    () =>
+      deriveAllInsights({
+        equityMatrix,
+        enhancedMatrix,
+        selectedAssets,
+        correlationMovers,
+        globalData,
+        crossAssetPairs,
+      }),
+    [equityMatrix, enhancedMatrix, selectedAssets, correlationMovers, globalData, crossAssetPairs],
+  );
+
   // ═══════════════════════════════════════════════════════════════
   // Render
   // ═══════════════════════════════════════════════════════════════
@@ -338,6 +385,7 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         equityMatrix={equityMatrix}
         enhancedMatrix={enhancedMatrix}
         lastUpdatedLabel={lastUpdatedLabel}
+        computedAt={computedAt}
         onAddAsset={addAsset}
         onAddGroup={addGroup}
         onRemoveAsset={removeAsset}
@@ -349,7 +397,7 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         onMstToggle={setMstEnabled}
         onColorModeChange={setColorMode}
         onAssetScopeChange={setAssetScope}
-        onRefresh={() => setRetryCount((c) => c + 1)}
+        onRefresh={() => { forceRefreshRef.current = true; setRetryCount((c) => c + 1); }}
       />
 
       {/* ── Contextual Summary Chips (B2: moved above graph for visibility) ── */}
@@ -424,11 +472,52 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         </div>
       )}
 
+      {/* ── Insights Panel ── */}
+      {!fetchError && !dataLoading && insights.length > 0 && (
+        <InsightsPanel
+          insights={insights}
+          dismissed={dismissedInsights}
+          onDismiss={handleDismissInsight}
+          onPairSelect={(pair) => {
+            addAsset(pair[0]);
+            addAsset(pair[1]);
+            setSelectedPair(pair);
+          }}
+          onAddAsset={addAsset}
+        />
+      )}
+
+      {/* ── Partial data warning ── */}
+      {partialWarning && !dataLoading && (
+        <div className="flex items-center gap-2 px-4 py-2 mb-2 rounded-lg border border-yellow-500/20 bg-yellow-500/5 text-xs text-yellow-400/80 export-exclude">
+          <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>{partialWarning}</span>
+          <button
+            onClick={() => setPartialWarning(null)}
+            className="ml-auto text-yellow-400/50 hover:text-yellow-400 transition-colors"
+            aria-label="Dismiss warning"
+          >
+            &times;
+          </button>
+        </div>
+      )}
+
       {/* ── Full-width Main View ── */}
       <div className="relative w-full" data-export-target="correlation">
         {dataLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-[#0d1117]/80 z-10 rounded-2xl">
-            <Loader2 className="h-8 w-8 animate-spin text-brand-blue" />
+          <div className="absolute inset-0 z-10 rounded-2xl bg-[#0d1117]/80 p-4">
+            {/* Skeleton heatmap grid */}
+            <div className="flex flex-col gap-1 items-center justify-center h-full">
+              <div className="grid gap-[2px]" style={{ gridTemplateColumns: `repeat(${Math.min(selectedAssets.length || 8, 12)}, 1fr)` }}>
+                {Array.from({ length: Math.min((selectedAssets.length || 8) ** 2, 144) }).map((_, i) => (
+                  <div key={i} className="w-7 h-7 rounded-sm bg-white/[0.04] animate-pulse" style={{ animationDelay: `${(i % 12) * 50}ms` }} />
+                ))}
+              </div>
+              <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Computing correlations...</span>
+              </div>
+            </div>
           </div>
         )}
 
@@ -473,12 +562,13 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
             selectedAssets={selectedAssets}
             window={windowValue}
             method={method}
+            exchange={exchange}
             onPairSelect={setSelectedPair}
           />
         )}
       </div>
 
-      {/* ── Bottom Sheet Detail Panel ── */}
+      {/* ── Detail Panel: Side drawer on desktop, bottom sheet on mobile ── */}
       <Sheet
         open={!!selectedPair && !!selectedPair[1]}
         onOpenChange={(open) => {
@@ -486,17 +576,29 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         }}
       >
         <SheetContent
-          side="bottom"
-          className="max-h-[60vh] md:max-h-[65vh] overflow-y-auto bg-[#0d1117] border-t border-white/10 px-3 md:px-6 pb-6 pt-2"
+          side={isMobile ? 'bottom' : 'right'}
+          className={cn(
+            'overflow-y-auto bg-[#0d1117] px-3 pb-6 pt-2',
+            isMobile
+              ? 'max-h-[60vh] border-t border-white/10 md:px-6'
+              : 'w-[440px] border-l border-white/10 px-5',
+          )}
           overlayClassName="bg-black/40"
         >
-          {/* Drag handle for mobile + Close button for desktop (C9) */}
+          {/* Drag handle for mobile + Close button for desktop */}
           <div className="flex items-center justify-between py-2">
-            <div className="md:hidden w-10" />
-            <div className="w-10 h-1 rounded-full bg-white/20 md:hidden" />
+            {isMobile ? (
+              <>
+                <div className="w-10" />
+                <div className="w-10 h-1 rounded-full bg-white/20" />
+              </>
+            ) : null}
             <button
               onClick={() => setSelectedPair(null)}
-              className="hidden md:flex items-center justify-center p-1.5 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-white"
+              className={cn(
+                'flex items-center justify-center p-1.5 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-white',
+                isMobile && 'hidden',
+              )}
               aria-label="Close detail panel"
             >
               <X className="h-4 w-4" />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { CommandPalette } from './CommandPalette';
 
 interface ShellProps {
     children: React.ReactNode;
@@ -16,8 +17,17 @@ export function Shell({ children }: ShellProps) {
                 <div className="absolute -bottom-[10%] left-[20%] w-[50%] h-[50%] rounded-full bg-brand-violet/5 blur-[120px]" />
             </div>
 
+            {/* Skip navigation link (accessibility) */}
+            <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[100] focus:rounded-md focus:bg-brand-blue focus:px-4 focus:py-2 focus:text-white focus:outline-none"
+            >
+                Skip to main content
+            </a>
+
+            <CommandPalette />
             <Header />
-            <main className="relative z-10 flex-1">
+            <main id="main-content" className="relative z-10 flex-1">
                 {children}
             </main>
             <Footer />

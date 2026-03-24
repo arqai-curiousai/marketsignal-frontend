@@ -107,10 +107,10 @@ export interface ISectorAnalytics {
 // ─── Sector Valuation ───────────────────────────────────────
 
 export interface ISectorValuationMetric {
-  weighted_avg: number;
-  median: number;
-  min: number;
-  max: number;
+  weighted_avg: number | null;
+  median: number | null;
+  min: number | null;
+  max: number | null;
   count: number;
 }
 
@@ -165,6 +165,8 @@ export interface ISectorFIIFlow {
     ticker: string;
     fii_pct: number;
     dii_pct: number;
+    promoter_pct: number;
+    retail_pct: number;
     fii_change: number;
   }>;
   computed_at: string;
@@ -184,6 +186,7 @@ export interface ISectorRiskScorecard {
   benchmark_sortino: number;
   annualized_return: number;
   annualized_vol: number;
+  computed_at: string;
 }
 
 export interface ISectorHistory {
@@ -211,6 +214,7 @@ export interface ISectorSeasonality {
     best_month: number;
     worst_month: number;
   };
+  computed_at: string;
 }
 
 export interface ISectorMansfieldRS {
@@ -220,6 +224,7 @@ export interface ISectorMansfieldRS {
   rs_sma: number[];
   stage: 'Basing' | 'Advancing' | 'Topping' | 'Declining';
   stage_duration_days: number;
+  computed_at: string;
 }
 
 export interface ISectorVolumeFlow {
@@ -235,6 +240,7 @@ export interface ISectorVolumeFlow {
     flow_score: number;
   }>;
   interpretation: string;
+  computed_at: string;
 }
 
 // ─── Sector Financials ────────────────────────────────────────
@@ -272,6 +278,27 @@ export interface ISectorEarningsCalendar {
   upcoming: ISectorEarningsEntry[];
   recent: ISectorEarningsEntry[];
   computed_at: string;
+}
+
+// ─── Daily FII/DII Flow (NSE aggregate) ────────────────────
+
+export interface IFIIDIIDailyFlow {
+  trade_date: string;
+  fii_buy: number;
+  fii_sell: number;
+  fii_net: number;
+  dii_buy: number;
+  dii_sell: number;
+  dii_net: number;
+}
+
+export interface IFIIDIISummary {
+  month: string;
+  trading_days: number;
+  fii_net_total_cr: number;
+  dii_net_total_cr: number;
+  fii_streak_days: number;
+  last_updated: string | null;
 }
 
 // ─── Correlation ────────────────────────────────────────────
@@ -557,6 +584,9 @@ export interface INewsImpact {
   overall_impact_magnitude: number;
   published_at: string;
   computed_at: string;
+  predicted_impact?: number | null;
+  predicted_direction?: 'positive' | 'negative' | 'neutral' | null;
+  prediction_confidence?: number | null;
 }
 
 // ─── News Article (from SearchAPI / Google News) ────────────
@@ -570,10 +600,77 @@ export interface INewsArticle {
   source: string;
   published_at: string | null;
   symbols: string[];
+  exchanges?: string[];
   sentiment: string | null;
   sentiment_score: number | null;
+  sentiment_source?: 'spacy' | 'llm' | null;
+  sentiment_rationale?: string | null;
   priority?: 'breaking' | 'high' | 'normal' | 'low';
+  quality_score?: number | null;
+  categories?: string[];
 }
+
+// ─── Story Arc (narrative across time) ─────────────────────────
+export interface IStoryArc {
+  id: string;
+  story_label: string;
+  narrative: string;
+  story_phase: 'breaking' | 'developing' | 'analysis' | 'reaction' | 'concluded';
+  tickers: string[];
+  exchanges: string[];
+  primary_theme: string;
+  article_count: number;
+  sentiment_trajectory: Array<{ timestamp: string; score: number; phase: string }>;
+  price_context: Record<string, { price_at_start: number; price_now: number; change_pct: number }>;
+  first_article_at: string;
+  latest_article_at: string;
+  news_ids: string[];
+}
+
+// ─── Sentiment Trajectory ──────────────────────────────────────
+export interface ISentimentBucket {
+  bucket_start: string;
+  avg_sentiment: number;
+  article_count: number;
+  dominant_theme: string;
+}
+
+// ─── Sentiment Divergence ──────────────────────────────────────
+export interface ISentimentDivergence {
+  divergence: boolean;
+  type: 'bullish_divergence' | 'bearish_divergence' | null;
+  correlation: number;
+  sentiment_trend: 'improving' | 'declining' | 'flat';
+  price_trend: 'up' | 'down' | 'flat';
+}
+
+// ─── Morning Brief ─────────────────────────────────────────────
+export interface IMorningBriefKeyNumber {
+  label: string;
+  value: string;
+  change: string;
+  direction: 'up' | 'down' | 'flat';
+}
+
+export interface IMorningBriefWatchItem {
+  ticker: string;
+  reason: string;
+  sentiment: string;
+}
+
+export interface IMorningBrief {
+  narrative: string;
+  top_stories: string[];
+  market_sentiment: string;
+  generated_at: string;
+  brief_type?: 'morning' | 'midday' | 'evening';
+  key_numbers?: IMorningBriefKeyNumber[];
+  sector_outlook?: Record<string, string>;
+  watch_list?: IMorningBriefWatchItem[];
+  theme_breakdown?: Record<string, number>;
+}
+
+// ─── News Impact (predicted) ──────────────────────────────────
 
 // ─── Cross-Asset ────────────────────────────────────────────
 
@@ -1244,7 +1341,7 @@ export interface ICurrencyOverview {
   computed_at: string;
 }
 
-export interface ICorrelationMatrix {
+export interface ICurrencyCorrelationMatrix {
   tickers: string[];
   matrix: number[][];
   computed_at: string;
@@ -1471,6 +1568,103 @@ export interface ICurrencyRegime {
   computed_at: string;
 }
 
+export interface IINRFIICorrelationPoint {
+  quarter_end: string;
+  fii_pct_avg: number;
+  fii_change: number;
+  usdinr_close: number | null;
+  usdinr_change_pct: number;
+  stock_count: number;
+}
+
+export interface IINRFIICorrelation {
+  time_series: IINRFIICorrelationPoint[];
+  correlation: number | null;
+  interpretation: string | null;
+  current: IINRFIICorrelationPoint | null;
+  quarters_analyzed: number;
+  computed_at: string;
+}
+
+export interface ICommodityForexPair {
+  commodity: string;
+  fx_pair: string;
+  current_correlation: number | null;
+  overall_correlation: number;
+  rolling_series: Array<{ date: string; correlation: number }>;
+  price_series: Array<{ date: string; commodity_price: number; fx_price: number }>;
+  data_points: number;
+  interpretation: string;
+}
+
+export interface ICommodityForexCorrelation {
+  pairs: ICommodityForexPair[];
+  rolling_window: number;
+  lookback_days: number;
+  computed_at: string;
+}
+
+export interface IRBIReservesPoint {
+  date: string;
+  total_reserves: number;
+  fca: number;
+  gold: number;
+  sdr: number;
+  imf_reserve_tranche: number;
+  wow_change: number | null;
+}
+
+export interface IRBIReserves {
+  time_series: IRBIReservesPoint[];
+  trend: 'increasing' | 'decreasing' | 'stable' | null;
+  current: IRBIReservesPoint | null;
+  peak: number | null;
+  trough: number | null;
+  weeks_analyzed: number;
+  usdinr_correlation: number | null;
+  computed_at: string;
+}
+
+export interface ICotCurrencyData {
+  currency: string;
+  spec_long: number;
+  spec_short: number;
+  spec_net: number;
+  comm_net: number;
+  open_interest: number;
+  cot_index: number | null;
+  wow_change: number | null;
+  signal: 'extreme_long' | 'extreme_short' | 'bullish' | 'bearish' | 'neutral';
+  report_date: string;
+  time_series: Array<{
+    date: string;
+    spec_net: number;
+    comm_net: number;
+    open_interest: number;
+    cot_index: number | null;
+  }>;
+}
+
+export interface ICotDashboard {
+  currencies: ICotCurrencyData[];
+  extremes: ICotCurrencyData[];
+  data_source: string;
+  computed_at: string;
+}
+
+export interface IPriceAlert {
+  id: string;
+  pair: string;
+  condition: 'above' | 'below' | 'cross_above' | 'cross_below';
+  target_price: number;
+  note: string;
+  is_active: boolean;
+  created_price: number | null;
+  triggered_at: string | null;
+  triggered_price: number | null;
+  created_at: string;
+}
+
 // ─── Commodity Dashboard ────────────────────────────────────
 
 export interface ICommoditySnapshot {
@@ -1499,4 +1693,147 @@ export interface IMonthlyReturn {
 export interface ICommoditySeasonality {
   ticker: string;
   monthly_returns: IMonthlyReturn[];
+}
+
+// =============================================================================
+// Factor Models (Phase 4A)
+// =============================================================================
+
+export interface IFactorExposures {
+  ticker: string;
+  exchange: string;
+  alpha_annualized: number;
+  r_squared: number;
+  betas: Record<string, number>;
+  window_days: number;
+  factor_stats: Record<string, { annualized_return: number; annualized_vol: number }>;
+  sector: string;
+  error?: string;
+}
+
+export interface IFactorReturns {
+  dates: string[];
+  series: Record<string, number[]>;
+  rf_annual: number;
+  error?: string;
+}
+
+// =============================================================================
+// Portfolio Risk (Phase 4B)
+// =============================================================================
+
+export interface IStressTest {
+  scenario_id: string;
+  label: string;
+  description: string;
+  portfolio_loss_pct: number;
+  stressed_daily_vol: number;
+  per_stock_impact: Record<string, number>;
+}
+
+export interface IPortfolioRisk {
+  tickers: string[];
+  weights: Record<string, number>;
+  var_95_1d: number;
+  cvar_95_1d: number;
+  portfolio_vol_daily: number;
+  portfolio_vol_annual: number;
+  historical_var_95: number;
+  historical_cvar_95: number;
+  cornish_fisher_var_95: number;
+  skewness: number;
+  excess_kurtosis: number;
+  marginal_var: Record<string, number>;
+  component_var: Record<string, number>;
+  component_var_pct: Record<string, number>;
+  incremental_var: Record<string, number>;
+  stress_tests: IStressTest[];
+  observation_days: number;
+  error?: string;
+}
+
+// =============================================================================
+// Alpha Attribution (Phase 4C)
+// =============================================================================
+
+export interface IAlphaAttribution {
+  ticker: string;
+  exchange: string;
+  period_days: number;
+  beta: number;
+  jensens_alpha: number;
+  information_ratio: number;
+  treynor_ratio: number;
+  m_squared: number;
+  sharpe_ratio: number;
+  active_share: number;
+  tracking_error: number;
+  tracking_error_factor: number;
+  tracking_error_specific: number;
+  annualized_return: number;
+  annualized_vol: number;
+  benchmark_return: number;
+  benchmark_vol: number;
+  risk_free_rate: number;
+  error?: string;
+}
+
+// =============================================================================
+// Quality Scores (Phase 4D)
+// =============================================================================
+
+export interface IPiotroskiScore {
+  score: number | null;
+  max_score: number;
+  label: string;
+  signals?: Record<string, number>;
+  error?: string;
+}
+
+export interface IAltmanZScore {
+  score: number | null;
+  label: string;
+  components?: Record<string, number>;
+  error?: string;
+}
+
+export interface IBeneishMScore {
+  score: number | null;
+  threshold: number;
+  label: string;
+  components?: Record<string, number>;
+  error?: string;
+}
+
+export interface IQualityScores {
+  ticker: string;
+  exchange: string;
+  piotroski: IPiotroskiScore;
+  altman_z: IAltmanZScore;
+  beneish_m: IBeneishMScore;
+}
+
+// ─── News Intelligence: Portfolio News ──────────────────────────
+
+export interface IPortfolioTickerDigest {
+  ticker: string;
+  article_count: number;
+  avg_sentiment: number;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
+  latest_headline: string | null;
+  latest_published_at: string | null;
+}
+
+export interface IPortfolioNewsResponse {
+  tickers: IPortfolioTickerDigest[];
+  articles: INewsArticle[];
+  count: number;
+}
+
+// ─── News Intelligence: Entity Data ─────────────────────────────
+
+export interface EntityData {
+  entities: Array<{ name: string; type: string; ticker: string | null }>;
+  themes: string[];
+  key_facts: string[];
 }

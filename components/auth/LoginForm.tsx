@@ -138,7 +138,7 @@ export function LoginForm(): React.ReactElement {
 
             toast.success('Login successful!');
             // Redirect to dashboard
-            window.location.href = '/stocks';
+            window.location.href = '/forex';
         } catch {
             toast.error('Invalid OTP. Please try again.');
             setState(prev => ({ ...prev, isLoading: false }));

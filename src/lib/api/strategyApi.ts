@@ -61,6 +61,8 @@ interface RawStrategyPerformance {
   layer_accuracy: Record<string, number>;
   by_regime: Record<string, { accuracy: number; count: number }>;
   computed_at: string;
+  avg_win_loss_ratio?: number;
+  max_drawdown_pct?: number;
 }
 
 interface RawFeatureDetail {
@@ -135,6 +137,8 @@ function transformPerformance(raw: RawStrategyPerformance): IStrategyPerformance
     layerAccuracy: raw.layer_accuracy,
     byRegime: raw.by_regime,
     computedAt: raw.computed_at,
+    avgWinLossRatio: raw.avg_win_loss_ratio ?? 0,
+    maxDrawdownPct: raw.max_drawdown_pct ?? 0,
   };
 }
 

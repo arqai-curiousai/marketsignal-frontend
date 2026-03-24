@@ -24,6 +24,21 @@ export const SORT_OPTIONS = [
 
 export type SortOption = (typeof SORT_OPTIONS)[number]['value'];
 
+/** Standardized decimal precision for consistent number display. */
+export const PRECISION = {
+  pe: 1,
+  pb: 1,
+  dy: 2,
+  roe: 1,
+  ev_ebitda: 1,
+  change_pct: 2,
+  momentum: 0,
+  correlation: 3,
+  sharpe: 2,
+  beta: 2,
+  market_cap_cr: 0,
+} as const;
+
 export const RRG_QUADRANT_COLORS: Record<string, string> = {
   leading: '#10B981',
   weakening: '#F59E0B',
@@ -38,23 +53,43 @@ export const RRG_QUADRANT_LABELS: Record<string, string> = {
   improving: 'Improving',
 };
 
-/** Diverging color scale: red → gray → green for performance values. */
+/** Check if colorblind mode is active (persisted in localStorage). */
+export function isColorblindMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  return localStorage.getItem('sector-colorblind') === '1';
+}
+
+export function toggleColorblindMode(): boolean {
+  const next = !isColorblindMode();
+  localStorage.setItem('sector-colorblind', next ? '1' : '0');
+  return next;
+}
+
+/** Diverging color scale: red → gray → green (or orange → gray → blue in CB mode). */
 export function perfColor(pct: number, alpha: number = 1): string {
+  const cb = isColorblindMode();
   if (pct > 0) {
     const intensity = Math.min(pct / 3, 1);
-    return `rgba(16, 185, 129, ${(0.15 + intensity * 0.6) * alpha})`;
+    // Green (default) or Blue (colorblind)
+    return cb
+      ? `rgba(59, 130, 246, ${(0.15 + intensity * 0.6) * alpha})`
+      : `rgba(16, 185, 129, ${(0.15 + intensity * 0.6) * alpha})`;
   }
   if (pct < 0) {
     const intensity = Math.min(Math.abs(pct) / 3, 1);
-    return `rgba(239, 68, 68, ${(0.15 + intensity * 0.6) * alpha})`;
+    // Red (default) or Orange (colorblind)
+    return cb
+      ? `rgba(249, 115, 22, ${(0.15 + intensity * 0.6) * alpha})`
+      : `rgba(239, 68, 68, ${(0.15 + intensity * 0.6) * alpha})`;
   }
   return `rgba(148, 163, 184, ${0.15 * alpha})`;
 }
 
 /** Text color class for performance values. */
 export function perfTextClass(pct: number): string {
-  if (pct > 0.01) return 'text-emerald-400';
-  if (pct < -0.01) return 'text-red-400';
+  const cb = isColorblindMode();
+  if (pct > 0.01) return cb ? 'text-blue-400' : 'text-emerald-400';
+  if (pct < -0.01) return cb ? 'text-orange-400' : 'text-red-400';
   return 'text-muted-foreground';
 }
 
@@ -90,8 +125,9 @@ export const MANSFIELD_STAGE_LABELS: Record<string, string> = {
 
 /** Flow gauge color: red (distribution) → gray (neutral) → green (accumulation). */
 export function flowColor(score: number): string {
-  if (score > 30) return '#10B981';
-  if (score < -30) return '#EF4444';
+  const cb = isColorblindMode();
+  if (score > 30) return cb ? '#3B82F6' : '#10B981';
+  if (score < -30) return cb ? '#F97316' : '#EF4444';
   return '#94A3B8';
 }
 

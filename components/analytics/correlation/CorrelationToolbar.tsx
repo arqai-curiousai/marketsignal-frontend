@@ -5,8 +5,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Plus, ChevronDown, X, FileSpreadsheet, Image as ImageIcon, SlidersHorizontal, RefreshCw, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadMatrixCSV, downloadPNG } from '@/src/lib/utils/export';
+import { DataFreshness } from '../DataFreshness';
 import type { ICorrelationMatrix, IEnhancedMatrix } from '@/types/analytics';
 import {
   WINDOWS,
@@ -35,6 +37,7 @@ interface CorrelationToolbarProps {
   equityMatrix: ICorrelationMatrix | null;
   enhancedMatrix: IEnhancedMatrix | null;
   lastUpdatedLabel: string | null;
+  computedAt?: string | null;
   onAddAsset: (ticker: string) => void;
   onAddGroup: (tickers: string[]) => void;
   onRemoveAsset: (ticker: string) => void;
@@ -62,6 +65,7 @@ export function CorrelationToolbar({
   equityMatrix,
   enhancedMatrix,
   lastUpdatedLabel,
+  computedAt,
   onAddAsset,
   onAddGroup,
   onRemoveAsset,
@@ -267,7 +271,7 @@ export function CorrelationToolbar({
           </AnimatePresence>
         </div>
 
-        {/* View Toggle (A2: renamed 'asset' → 'explorer') */}
+        {/* View Toggle */}
         <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
           {(['network', 'heatmap', 'explorer'] as ViewMode[]).map((v) => (
             <button
@@ -283,19 +287,137 @@ export function CorrelationToolbar({
           ))}
         </div>
 
-        {/* Settings toggle */}
-        <button
-          onClick={() => setSettingsOpen(!settingsOpen)}
-          className={cn(
-            'flex items-center gap-1.5 px-2.5 py-2 text-xs rounded-lg border transition-all',
-            settingsOpen
-              ? 'bg-brand-blue/10 border-brand-blue/30 text-white'
-              : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white',
-          )}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          <span className="hidden md:inline text-[10px]">{settingsSummary}</span>
-        </button>
+        {/* Window Selector — promoted to Tier 0 for quick access */}
+        <div className="hidden sm:flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
+          {WINDOWS.map((w) => (
+            <button
+              key={w.value}
+              onClick={() => onWindowChange(w.value)}
+              className={cn(
+                'px-2 py-1 text-[10px] font-medium rounded-md transition-all',
+                w.value === windowValue ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
+              )}
+            >
+              {w.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Settings Popover — advanced controls */}
+        <Popover open={settingsOpen} onOpenChange={setSettingsOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className={cn(
+                'flex items-center gap-1.5 px-2.5 py-2 text-xs rounded-lg border transition-all',
+                settingsOpen
+                  ? 'bg-brand-blue/10 border-brand-blue/30 text-white'
+                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white',
+              )}
+            >
+              <SlidersHorizontal className="h-3.5 w-3.5" />
+              <span className="hidden md:inline text-[10px]">{settingsSummary}</span>
+            </button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="start"
+            className="w-auto p-3 bg-[#1a1f2e] border-white/10"
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Window (visible on mobile since hidden in Tier 0) */}
+              <div className="sm:hidden flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
+                {WINDOWS.map((w) => (
+                  <button
+                    key={w.value}
+                    onClick={() => onWindowChange(w.value)}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-medium rounded-md transition-all',
+                      w.value === windowValue ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
+                    )}
+                  >
+                    {w.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Asset Scope */}
+              <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
+                {(['equity', 'cross_asset'] as AssetScope[]).map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => onAssetScopeChange(s)}
+                    className={cn(
+                      'px-2.5 py-1 text-[10px] md:text-xs font-medium rounded-md transition-all',
+                      s === assetScope ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
+                    )}
+                  >
+                    {s === 'equity' ? 'Equity' : 'Cross-Asset'}
+                  </button>
+                ))}
+              </div>
+
+              {/* Method Toggle */}
+              <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
+                {(['pearson', 'spearman', 'kendall'] as CorrelationMethod[]).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => onMethodChange(m)}
+                    className={cn(
+                      'px-2.5 py-1 text-[10px] md:text-xs font-medium rounded-md transition-all capitalize',
+                      m === method ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
+                    )}
+                  >
+                    {m}
+                  </button>
+                ))}
+              </div>
+
+              {/* Network-specific settings */}
+              {viewMode === 'network' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">Min |r|</span>
+                    <input
+                      type="range"
+                      min={0}
+                      max={0.8}
+                      step={0.1}
+                      value={minEdgeCorr}
+                      onChange={(e) => onMinEdgeCorrChange(parseFloat(e.target.value))}
+                      aria-label="Minimum correlation threshold"
+                      className="w-20 accent-brand-blue"
+                    />
+                    <span className="text-[10px] text-white font-mono w-6">{minEdgeCorr.toFixed(1)}</span>
+                  </div>
+                  <button
+                    onClick={() => onMstToggle(!mstEnabled)}
+                    className={cn(
+                      'px-2.5 py-1 text-[10px] font-medium rounded-lg border transition-all',
+                      mstEnabled
+                        ? 'bg-brand-blue/20 border-brand-blue/30 text-white'
+                        : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white',
+                    )}
+                  >
+                    MST
+                  </button>
+                  <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10">
+                    {(['type', 'community'] as const).map((mode) => (
+                      <button
+                        key={mode}
+                        onClick={() => onColorModeChange(mode)}
+                        className={cn(
+                          'px-2 py-1 text-[10px] font-medium rounded transition-all capitalize',
+                          mode === colorMode ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
+                        )}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </PopoverContent>
+        </Popover>
 
         {/* Export */}
         <ExportButton
@@ -306,7 +428,12 @@ export function CorrelationToolbar({
               onClick: () => {
                 const source = enhancedMatrix ?? equityMatrix;
                 if (!source?.tickers || !source?.matrix_data) return;
-                const { tickers: t, matrix_data } = source;
+                const { matrix_data } = source;
+                // Export only the visible/selected assets (intersection with matrix tickers)
+                const exportTickers = selectedAssets.length > 0
+                  ? selectedAssets.filter((a) => source.tickers.includes(a))
+                  : source.tickers;
+                const t = exportTickers.length > 0 ? exportTickers : source.tickers;
                 const matrix2d: number[][] = t.map((rowTicker) =>
                   t.map((colTicker) => {
                     if (rowTicker === colTicker) return 1;
@@ -337,124 +464,15 @@ export function CorrelationToolbar({
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </button>
-        {lastUpdatedLabel && (
-          <span className="hidden md:inline-flex items-center gap-1 text-[10px] text-muted-foreground">
-            <Clock className="h-3 w-3" />
-            {lastUpdatedLabel}
+        {computedAt && (
+          <span className="inline-flex items-center gap-1">
+            <Clock className="h-3 w-3 text-muted-foreground" />
+            <DataFreshness computedAt={computedAt} staleTTLMinutes={60} />
           </span>
         )}
       </div>
 
-      {/* ── Tier 2: Advanced Settings (collapsible) ── */}
-      <div
-        className={cn(
-          'overflow-hidden transition-all duration-200 ease-out',
-          settingsOpen ? 'max-h-[160px] opacity-100' : 'max-h-0 opacity-0',
-        )}
-      >
-        <div className="flex flex-wrap items-center gap-2 py-1.5 pl-1 border-l-2 border-brand-blue/20 ml-1">
-          <span className="text-[9px] text-muted-foreground uppercase tracking-wider mr-1">Settings</span>
-
-          {/* Asset Scope (I1: cross-asset support) */}
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-            {(['equity', 'cross_asset'] as AssetScope[]).map((s) => (
-              <button
-                key={s}
-                onClick={() => onAssetScopeChange(s)}
-                className={cn(
-                  'px-2.5 py-1 text-[10px] md:text-xs font-medium rounded-md transition-all',
-                  s === assetScope ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
-                )}
-              >
-                {s === 'equity' ? 'Equity' : 'Cross-Asset'}
-              </button>
-            ))}
-          </div>
-
-          {/* Window Selector */}
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-            {WINDOWS.map((w) => (
-              <button
-                key={w.value}
-                onClick={() => onWindowChange(w.value)}
-                className={cn(
-                  'px-2.5 py-1 text-xs font-medium rounded-md transition-all',
-                  w.value === windowValue ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
-                )}
-              >
-                {w.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Method Toggle */}
-          <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-            {(['pearson', 'spearman', 'kendall'] as CorrelationMethod[]).map((m) => (
-              <button
-                key={m}
-                onClick={() => onMethodChange(m)}
-                className={cn(
-                  'px-2.5 py-1 text-[10px] md:text-xs font-medium rounded-md transition-all capitalize',
-                  m === method ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
-                )}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
-
-          {/* Correlation Threshold (network view only) */}
-          {viewMode === 'network' && (
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] text-muted-foreground whitespace-nowrap">Min |r|</span>
-              <input
-                type="range"
-                min={0}
-                max={0.8}
-                step={0.1}
-                value={minEdgeCorr}
-                onChange={(e) => onMinEdgeCorrChange(parseFloat(e.target.value))}
-                aria-label="Minimum correlation threshold"
-                className="w-20 accent-brand-blue"
-              />
-              <span className="text-[10px] text-white font-mono w-6">{minEdgeCorr.toFixed(1)}</span>
-            </div>
-          )}
-
-          {/* MST toggle (network view only) */}
-          {viewMode === 'network' && (
-            <button
-              onClick={() => onMstToggle(!mstEnabled)}
-              className={cn(
-                'px-2.5 py-1 text-[10px] font-medium rounded-lg border transition-all',
-                mstEnabled
-                  ? 'bg-brand-blue/20 border-brand-blue/30 text-white'
-                  : 'bg-white/5 border-white/10 text-muted-foreground hover:text-white',
-              )}
-            >
-              MST
-            </button>
-          )}
-
-          {/* Color mode (network view only) */}
-          {viewMode === 'network' && (
-            <div className="flex items-center gap-1 bg-white/5 rounded-lg p-0.5 border border-white/10">
-              {(['type', 'community'] as const).map((mode) => (
-                <button
-                  key={mode}
-                  onClick={() => onColorModeChange(mode)}
-                  className={cn(
-                    'px-2 py-1 text-[10px] font-medium rounded transition-all capitalize',
-                    mode === colorMode ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
-                  )}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Old Tier 2 removed — settings now in Popover above */}
 
       {/* ── KPI status bar ── */}
       {(kpi.avgCorr !== null || kpi.topPair || kpi.sigCount !== null) && (

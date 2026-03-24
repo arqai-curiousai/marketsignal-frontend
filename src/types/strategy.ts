@@ -47,6 +47,8 @@ export interface IStrategyPerformance {
   totalPnlPercent: number;
   sharpeEstimate: number;
   profitFactor: number;
+  avgWinLossRatio: number;
+  maxDrawdownPct: number;
   calibrationError: number;
   layerAccuracy: Record<string, number>;
   byRegime: Record<string, { accuracy: number; count: number }>;

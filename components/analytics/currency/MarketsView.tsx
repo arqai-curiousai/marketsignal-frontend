@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import { RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ForexOverviewKPIs } from './ForexOverviewKPIs';
 import { ForexSessionMap } from './ForexSessionMap';
@@ -10,7 +11,6 @@ import { CurrencyStrengthMeter } from './CurrencyStrengthMeter';
 import { ForexTopMovers } from './ForexTopMovers';
 import { CurrencyCorrelationMini } from './CurrencyCorrelationMini';
 import {
-  getCurrencyOverview,
   getCurrencyStrength,
   getCurrencyTopMovers,
   getCurrencyMarketClock,
@@ -24,6 +24,7 @@ import type {
 
 interface MarketsViewProps {
   onSelectPair: (pair: string) => void;
+  overview: ICurrencyOverview | null;
 }
 
 const ANIM_STAGGER = {
@@ -32,28 +33,29 @@ const ANIM_STAGGER = {
   transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const },
 };
 
-export function MarketsView({ onSelectPair }: MarketsViewProps) {
-  const [overview, setOverview] = useState<ICurrencyOverview | null>(null);
+export function MarketsView({ onSelectPair, overview }: MarketsViewProps) {
   const [strength, setStrength] = useState<ICurrencyStrength | null>(null);
   const [topMovers, setTopMovers] = useState<ITopMovers | null>(null);
   const [marketClock, setMarketClock] = useState<IMarketClock | null>(null);
   const [loading, setLoading] = useState(true);
   const hasLoaded = useRef(false);
+  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const [minutesAgo, setMinutesAgo] = useState(0);
 
   const fetchAll = useCallback(async () => {
     if (!hasLoaded.current) setLoading(true);
     try {
-      const [ovRes, strRes, tmRes, mcRes] = await Promise.all([
-        getCurrencyOverview(),
+      const [strRes, tmRes, mcRes] = await Promise.all([
         getCurrencyStrength(),
         getCurrencyTopMovers(),
         getCurrencyMarketClock(),
       ]);
-      if (ovRes.success) setOverview(ovRes.data);
       if (strRes.success) setStrength(strRes.data);
       if (tmRes.success) setTopMovers(tmRes.data);
       if (mcRes.success) setMarketClock(mcRes.data);
       hasLoaded.current = true;
+      setLastRefresh(Date.now());
+      setMinutesAgo(0);
     } catch {
       // Individual components handle their own error states
     } finally {
@@ -66,6 +68,14 @@ export function MarketsView({ onSelectPair }: MarketsViewProps) {
     const interval = setInterval(fetchAll, 60_000);
     return () => clearInterval(interval);
   }, [fetchAll]);
+
+  // Update "minutes ago" display every 30s
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setMinutesAgo(Math.floor((Date.now() - lastRefresh) / 60_000));
+    }, 30_000);
+    return () => clearInterval(timer);
+  }, [lastRefresh]);
 
   if (loading && !hasLoaded.current) {
     return (
@@ -82,13 +92,28 @@ export function MarketsView({ onSelectPair }: MarketsViewProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
+      {/* Staleness indicator */}
+      <div className="flex items-center justify-end gap-2">
+        <span className="text-[10px] text-muted-foreground">
+          {minutesAgo === 0 ? 'Just updated' : `Updated ${minutesAgo}m ago`}
+        </span>
+        <button
+          onClick={fetchAll}
+          className="p-1 rounded hover:bg-white/[0.06] transition-colors"
+          title="Refresh market data"
+        >
+          <RefreshCw className="h-3 w-3 text-muted-foreground" />
+        </button>
+      </div>
+
       {/* KPI Strip */}
       <motion.div {...ANIM_STAGGER}>
         <ForexOverviewKPIs
           strength={strength}
           marketClock={marketClock}
           topMovers={topMovers}
+          overview={overview}
         />
       </motion.div>
 
@@ -98,7 +123,7 @@ export function MarketsView({ onSelectPair }: MarketsViewProps) {
       </motion.div>
 
       {/* 2-column grid: Heatmap + Strength/Movers/Correlation */}
-      <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-[5fr_3fr] gap-5">
         {/* Left: Heatmap */}
         <motion.div {...ANIM_STAGGER} transition={{ ...ANIM_STAGGER.transition, delay: 0.1 }}>
           <ForexHeatMap onSelectPair={onSelectPair} />

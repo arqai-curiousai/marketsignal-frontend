@@ -34,14 +34,20 @@ export function RollingCorrelationChart({
 }: RollingCorrelationChartProps) {
   const [data, setData] = useState<IRollingCorrelation | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setFetchError(null);
     getRollingCorrelation(tickerA, tickerB, exchangeA, exchangeB, 365).then((result) => {
       if (cancelled) return;
       if (result.success && result.data && !('error' in result.data)) {
         setData(result.data);
+        setFetchError(null);
+      } else {
+        setData(null);
+        setFetchError(!result.success ? (result.error.status === 422 ? 'Insufficient data for this pair' : 'Failed to load') : null);
       }
       setLoading(false);
     });
@@ -52,6 +58,15 @@ export function RollingCorrelationChart({
     return (
       <div className="flex items-center justify-center" style={{ height }}>
         <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex items-center justify-center gap-1.5 text-xs text-amber-400/70" style={{ height }}>
+        <AlertTriangle className="h-3.5 w-3.5" />
+        {fetchError}
       </div>
     );
   }

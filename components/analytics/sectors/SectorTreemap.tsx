@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { hierarchy, treemap, treemapSquarify, HierarchyRectangularNode } from 'd3-hierarchy';
 import { SECTOR_COLORS, perfColor, formatMarketCap } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
@@ -101,8 +101,9 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
     [drilledSector, onSectorClick],
   );
 
-  const handleNodeDoubleClick = useCallback(
-    (node: HierarchyRectangularNode<TreemapNode>) => {
+  const handleDrillIn = useCallback(
+    (e: React.MouseEvent, node: HierarchyRectangularNode<TreemapNode>) => {
+      e.stopPropagation();
       if (!drilledSector) {
         const sd = node.data.sectorData;
         if (sd) {
@@ -144,7 +145,7 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
         </div>
       )}
 
-      <svg width={dims.width} height={dims.height} className="rounded-xl overflow-hidden" style={drilledSector && nodes.length === 0 ? { display: 'none' } : undefined}>
+      <svg width={dims.width} height={dims.height} className="rounded-xl overflow-hidden" role="img" aria-label="Sector treemap sized by market capitalisation and coloured by performance." style={drilledSector && nodes.length === 0 ? { display: 'none' } : undefined}>
         <rect width={dims.width} height={dims.height} fill="transparent" rx={12} />
 
         {nodes.map((node) => {
@@ -176,7 +177,6 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
               }}
               onMouseLeave={() => setHoveredNode(null)}
               onClick={() => handleNodeClick(node)}
-              onDoubleClick={() => handleNodeDoubleClick(node)}
               className="cursor-pointer"
             >
               <motion.rect
@@ -260,6 +260,33 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
                   className="pointer-events-none"
                 />
               )}
+
+              {/* Drill-in button — visible on hover for sector tiles */}
+              {isHovered && !drilledSector && d.sectorData && w > 60 && h > 30 && (
+                <g
+                  onClick={(e) => handleDrillIn(e as unknown as React.MouseEvent, node)}
+                  className="cursor-pointer"
+                >
+                  <rect
+                    x={x + w - 26}
+                    y={y + 4}
+                    width={22}
+                    height={18}
+                    rx={4}
+                    fill="rgba(255,255,255,0.15)"
+                  />
+                  <text
+                    x={x + w - 15}
+                    y={y + 16}
+                    textAnchor="middle"
+                    fill="white"
+                    fontSize={10}
+                    fontWeight={600}
+                  >
+                    ▸
+                  </text>
+                </g>
+              )}
             </g>
           );
         })}
@@ -290,7 +317,7 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
               <div className="text-muted-foreground">
                 Breadth: {hoveredNodeData.data.sectorData.breadth.above_50dma_pct.toFixed(0)}% &gt; 50 DMA
               </div>
-              <div className="text-[9px] text-muted-foreground mt-0.5">Double-click to drill into stocks</div>
+              <div className="text-[9px] text-muted-foreground mt-0.5">Click ▸ to drill into stocks</div>
             </>
           ) : null}
         </div>

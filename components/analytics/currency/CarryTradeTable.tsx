@@ -24,6 +24,8 @@ type SortField =
   | 'differential_pct'
   | 'spot'
   | 'forward_1y'
+  | 'forward_premium_pct'
+  | 'breakeven_depreciation_pct'
   | 'carry_risk_ratio';
 
 type SortDir = 'asc' | 'desc';
@@ -42,6 +44,8 @@ const COLUMNS: ColumnDef[] = [
   { id: 'differential_pct', label: 'Differential', shortLabel: 'Diff', align: 'right' },
   { id: 'spot', label: 'Spot', shortLabel: 'Spot', align: 'right' },
   { id: 'forward_1y', label: 'Forward 1Y', shortLabel: 'Fwd', align: 'right' },
+  { id: 'forward_premium_pct', label: 'Fwd Premium', shortLabel: 'Prem', align: 'right' },
+  { id: 'breakeven_depreciation_pct', label: 'Breakeven Dep.', shortLabel: 'B/E', align: 'right' },
   { id: 'carry_risk_ratio', label: 'Carry/Risk', shortLabel: 'C/R', align: 'right' },
 ];
 
@@ -237,6 +241,15 @@ export function CarryTradeTable() {
                     </td>
                     <td className="py-2 px-3 text-right font-mono text-muted-foreground">
                       {p.forward_1y !== null ? p.forward_1y.toFixed(4) : '—'}
+                    </td>
+                    <td className={cn(
+                      'py-2 px-3 text-right font-mono text-xs hidden lg:table-cell',
+                      p.forward_premium_pct > 0 ? 'text-orange-400' : p.forward_premium_pct < 0 ? 'text-sky-400' : 'text-muted-foreground'
+                    )}>
+                      {p.forward_premium_pct > 0 ? '+' : ''}{p.forward_premium_pct.toFixed(2)}%
+                    </td>
+                    <td className="py-2 px-3 text-right font-mono text-xs text-muted-foreground hidden lg:table-cell">
+                      {p.breakeven_depreciation_pct.toFixed(2)}%
                     </td>
                     <td
                       className={cn(

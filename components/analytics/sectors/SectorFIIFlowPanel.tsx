@@ -1,18 +1,22 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from 'recharts';
 import { cn } from '@/lib/utils';
-import { getSectorFIIFlow } from '@/src/lib/api/analyticsApi';
-import type { ISectorFIIFlow } from '@/types/analytics';
+import { getSectorFIIFlow, getFIIDIIDaily, getFIIDIISummary } from '@/src/lib/api/analyticsApi';
+import type { ISectorFIIFlow, IFIIDIIDailyFlow, IFIIDIISummary } from '@/types/analytics';
 
 interface SectorFIIFlowPanelProps {
   sector: string;
@@ -158,10 +162,10 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
     getSectorFIIFlow(sector, undefined, exchange)
       .then((r) => {
         if (cancelled) return;
-        if (r.success && r.data) {
+        if (r.success && r.data?.quarters?.length) {
           setData(r.data);
         } else {
-          setError('FII flow data unavailable');
+          setError('FII flow data unavailable for this exchange');
         }
         setLoading(false);
       })
@@ -378,6 +382,212 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Daily FII/DII activity — NSE only */}
+      {exchange === 'NSE' && <DailyFIIDIISection />}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Daily FII/DII aggregate activity (NSE market-wide)
+// ---------------------------------------------------------------------------
+
+function DailyBarTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ name: string; value: number; color: string }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-lg border border-white/10 bg-zinc-900/95 backdrop-blur-sm p-2 shadow-xl">
+      <div className="text-[10px] text-muted-foreground mb-1">{label}</div>
+      {payload.map((entry) => (
+        <div key={entry.name} className="flex items-center gap-2 text-[10px]">
+          <div className="h-2 w-2 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className="text-muted-foreground">{entry.name}:</span>
+          <span className="font-mono tabular-nums text-white">
+            {entry.value >= 0 ? '+' : ''}
+            {entry.value.toFixed(0)} Cr
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function formatCr(val: number): string {
+  const abs = Math.abs(val);
+  if (abs >= 10000) return `${(val / 1000).toFixed(1)}K`;
+  return val.toFixed(0);
+}
+
+function DailyFIIDIISection() {
+  const [daily, setDaily] = useState<IFIIDIIDailyFlow[]>([]);
+  const [summary, setSummary] = useState<IFIIDIISummary | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+
+    Promise.all([getFIIDIIDaily(30), getFIIDIISummary()])
+      .then(([dailyRes, summaryRes]) => {
+        if (cancelled) return;
+        if (dailyRes.success && dailyRes.data) setDaily(dailyRes.data);
+        if (summaryRes.success && summaryRes.data) setSummary(summaryRes.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => { cancelled = true; };
+  }, []);
+
+  const chartData = useMemo(
+    () =>
+      daily.map((d) => ({
+        date: d.trade_date.slice(5), // MM-DD
+        fii_net: d.fii_net,
+        dii_net: d.dii_net,
+      })),
+    [daily],
+  );
+
+  if (loading) {
+    return (
+      <div className="animate-pulse rounded-xl bg-white/[0.04] h-[180px] mt-3" />
+    );
+  }
+
+  if (daily.length === 0 && !summary) return null;
+
+  const streakLabel =
+    summary && summary.fii_streak_days !== 0
+      ? summary.fii_streak_days > 0
+        ? `FII buying ${summary.fii_streak_days} consecutive days`
+        : `FII selling ${Math.abs(summary.fii_streak_days)} consecutive days`
+      : null;
+
+  return (
+    <div className="space-y-2 mt-1">
+      {/* Section header */}
+      <div className="flex items-center gap-1.5">
+        <Activity className="h-3 w-3 text-muted-foreground" />
+        <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          Daily FII/DII Activity (Market-Wide)
+        </span>
+      </div>
+
+      {/* MTD summary badges */}
+      {summary && (
+        <div className="flex flex-wrap gap-2">
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
+              summary.fii_net_total_cr >= 0
+                ? 'bg-emerald-500/10 text-emerald-400'
+                : 'bg-red-500/10 text-red-400',
+            )}
+          >
+            FII Net MTD: {summary.fii_net_total_cr >= 0 ? '+' : ''}
+            {formatCr(summary.fii_net_total_cr)} Cr
+          </span>
+          <span
+            className={cn(
+              'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
+              summary.dii_net_total_cr >= 0
+                ? 'bg-emerald-500/10 text-emerald-400'
+                : 'bg-red-500/10 text-red-400',
+            )}
+          >
+            DII Net MTD: {summary.dii_net_total_cr >= 0 ? '+' : ''}
+            {formatCr(summary.dii_net_total_cr)} Cr
+          </span>
+          {streakLabel && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full',
+                summary.fii_streak_days > 0
+                  ? 'bg-emerald-500/10 text-emerald-400'
+                  : 'bg-red-500/10 text-red-400',
+              )}
+            >
+              {streakLabel}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Daily net bar chart */}
+      {chartData.length > 0 && (
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-2">
+          <ResponsiveContainer width="100%" height={160}>
+            <BarChart
+              data={chartData}
+              margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
+            >
+              <XAxis
+                dataKey="date"
+                tick={{ fontSize: 8, fill: '#64748B' }}
+                axisLine={false}
+                tickLine={false}
+                interval="preserveStartEnd"
+              />
+              <YAxis
+                tick={{ fontSize: 8, fill: '#64748B' }}
+                axisLine={false}
+                tickLine={false}
+                tickFormatter={(v: number) => formatCr(v)}
+              />
+              <ReferenceLine y={0} stroke="#334155" strokeWidth={0.5} />
+              <Tooltip content={<DailyBarTooltip />} />
+              <Bar dataKey="fii_net" name="FII Net" maxBarSize={8}>
+                {chartData.map((entry, idx) => (
+                  <Cell
+                    key={idx}
+                    fill={entry.fii_net >= 0 ? '#4ADE80' : '#F87171'}
+                    fillOpacity={0.8}
+                  />
+                ))}
+              </Bar>
+              <Bar dataKey="dii_net" name="DII Net" maxBarSize={8}>
+                {chartData.map((entry, idx) => (
+                  <Cell
+                    key={idx}
+                    fill={entry.dii_net >= 0 ? '#34D399' : '#FB923C'}
+                    fillOpacity={0.5}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+
+          {/* Legend */}
+          <div className="flex items-center justify-center gap-4 mt-1">
+            <div className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-[9px] text-muted-foreground">FII Net</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="h-2 w-2 rounded-full bg-emerald-300 opacity-50" />
+              <span className="text-[9px] text-muted-foreground">DII Net</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Last updated */}
+      {summary?.last_updated && (
+        <div className="text-[9px] text-muted-foreground text-right tabular-nums">
+          Last: {summary.last_updated} · {summary.trading_days} trading days in {summary.month}
         </div>
       )}
     </div>

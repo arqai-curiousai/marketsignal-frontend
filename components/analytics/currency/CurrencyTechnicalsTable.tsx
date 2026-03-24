@@ -162,7 +162,7 @@ export function CurrencyTechnicalsTable({ technicals }: CurrencyTechnicalsTableP
   const rows = buildIndicatorRows(technicals);
 
   return (
-    <div className="rounded-xl border border-white/[0.06] overflow-hidden">
+    <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] overflow-hidden shadow-[0_2px_16px_rgba(0,0,0,0.15)]">
       {/* Header */}
       <div className="grid grid-cols-3 gap-px px-4 py-2 text-[10px] text-muted-foreground font-medium border-b border-white/[0.06] bg-white/[0.02]">
         <span>Indicator</span>
@@ -179,6 +179,7 @@ export function CurrencyTechnicalsTable({ technicals }: CurrencyTechnicalsTableP
           <div key={row.name}>
             <button
               onClick={() => setExpandedRow(isExpanded ? null : row.name)}
+              aria-expanded={isExpanded}
               className="w-full grid grid-cols-3 gap-px px-4 py-2.5 text-xs hover:bg-white/[0.03] transition-colors border-b border-white/[0.02]"
             >
               <div className="flex items-center gap-2">
@@ -206,7 +207,7 @@ export function CurrencyTechnicalsTable({ technicals }: CurrencyTechnicalsTableP
                   transition={{ duration: 0.2 }}
                   className="overflow-hidden"
                 >
-                  <div className="px-4 py-2 bg-white/[0.01] space-y-1 border-b border-white/[0.04]">
+                  <div role="region" aria-label={`${row.name} details`} className="px-4 py-2 bg-white/[0.01] space-y-1 border-b border-white/[0.04]">
                     {row.details.map((d) => (
                       <div key={d.label} className="flex justify-between text-[11px]">
                         <span className="text-muted-foreground">{d.label}</span>

@@ -13,6 +13,7 @@ const protectedRoutes = [
 ];
 
 export function middleware(request: NextRequest) {
+    if (process.env.NODE_ENV === 'development') return NextResponse.next();
     const { pathname } = request.nextUrl;
 
     // Check if the requested path is a protected route

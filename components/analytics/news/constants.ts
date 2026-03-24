@@ -2,6 +2,36 @@
 
 export type NewsViewMode = 'feed' | 'graph' | 'mindmap' | 'timeline';
 
+/** Quality tier thresholds for river visual hierarchy */
+export const QUALITY_TIERS = {
+  /** Full card with image, summary, ticker pills */
+  TIER_1: 0.7,
+  /** Compact card, headline + tickers as text */
+  TIER_2: 0.4,
+  /** Below: minimal single-line, muted */
+} as const;
+
+/** Story phase display configuration */
+export const STORY_PHASE_CONFIG: Record<string, { label: string; color: string }> = {
+  breaking: { label: 'Breaking', color: '#EF4444' },
+  developing: { label: 'Developing', color: '#F59E0B' },
+  analysis: { label: 'Analysis', color: '#818CF8' },
+  reaction: { label: 'Market Reaction', color: '#FB923C' },
+  concluded: { label: 'Concluded', color: '#64748B' },
+};
+
+/** Keyboard shortcut definitions */
+export const KEYBOARD_SHORTCUTS = [
+  { key: '/', description: 'Search' },
+  { key: 'Escape', description: 'Close overlay / search' },
+  { key: 'j', description: 'Next article' },
+  { key: 'k', description: 'Previous article' },
+  { key: 'o', description: 'Open article in new tab' },
+  { key: 'c', description: 'Toggle constellation map' },
+  { key: 't', description: 'Toggle timeline' },
+  { key: '?', description: 'Show shortcuts' },
+] as const;
+
 /** Unified sentiment thresholds — use these everywhere instead of magic numbers */
 export const SENTIMENT_THRESHOLDS = {
   BULLISH: 0.15,
@@ -76,6 +106,8 @@ export const SOURCE_DISPLAY_NAMES: Record<string, string> = {
   economic_times: 'Economic Times',
   livemint: 'LiveMint',
   hindu_businessline: 'The Hindu BusinessLine',
+  moneycontrol: 'Moneycontrol',
+  ndtv_profit: 'NDTV Profit',
   google_news_rss: 'Google News',
   searchapi: 'Google News',
   eodhd: 'EODHD',
@@ -92,6 +124,8 @@ export const SOURCE_FILTER_OPTIONS = [
   { label: 'Economic Times', value: 'economic_times' },
   { label: 'LiveMint', value: 'livemint' },
   { label: 'Hindu BusinessLine', value: 'hindu_businessline' },
+  { label: 'Moneycontrol', value: 'moneycontrol' },
+  { label: 'NDTV Profit', value: 'ndtv_profit' },
   { label: 'Google News', value: 'google_news_rss' },
 ] as const;
 
@@ -102,7 +136,7 @@ export const PRIMARY_SOURCES = new Set([
   'CNBC', 'Financial Express', 'Mint', 'ET',
   'The Hindu BusinessLine', 'NDTV Profit', 'Google News',
   // Backend identifiers (from RSS sources)
-  'economic_times', 'livemint', 'hindu_businessline', 'searchapi',
+  'economic_times', 'livemint', 'hindu_businessline', 'moneycontrol', 'ndtv_profit', 'searchapi',
 ]);
 
 /** Maps a numeric sentiment score (-1 to +1) to a color from the sentiment palette. */
