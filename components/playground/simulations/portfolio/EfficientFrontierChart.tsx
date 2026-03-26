@@ -201,7 +201,7 @@ export function EfficientFrontierChart({
       </div>
 
       <ResponsiveContainer width="100%" height={280}>
-        <ScatterChart margin={{ top: 10, right: 15, left: 5, bottom: 10 }}>
+        <ScatterChart margin={{ top: 10, right: 15, left: 5, bottom: 10 }} role="img" aria-label="Efficient frontier scatter chart">
           <CartesianGrid
             strokeDasharray="3 3"
             stroke="rgba(255,255,255,0.03)"
@@ -307,11 +307,10 @@ export function EfficientFrontierChart({
           {/* Strategy portfolios */}
           <Scatter
             data={strategyData}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            shape={(props: any) => {
-              const { cx, cy } = props as { cx: number; cy: number };
-              const entry = props.payload as { mode?: string };
-              const mode = entry?.mode ?? '';
+            shape={(rawProps: { cx?: number; cy?: number; payload?: { mode?: string; [key: string]: unknown } }) => {
+              const cx = rawProps.cx ?? 0;
+              const cy = rawProps.cy ?? 0;
+              const mode = rawProps.payload?.mode ?? '';
               const color = getStrategyColor(mode);
               const isActive = mode === activeStrategy;
 

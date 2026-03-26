@@ -1,13 +1,15 @@
 'use client';
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { AuthState } from '@/lib/types';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { apiClient } from '@/lib/api/apiClient';
 
 interface AuthContextType extends AuthState {
     logout: () => Promise<void>;
     checkAuth: () => Promise<void>;
+    clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -15,24 +17,20 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [state, setState] = useState<AuthState>({
         user: null,
-        tokens: null,
         isAuthenticated: false,
         isLoading: true,
         error: null,
     });
     const router = useRouter();
 
-    const checkAuth = async () => {
+    const checkAuth = useCallback(async () => {
         try {
-            // We check /api/auth/profile or a similar endpoint to validate the session cookie
-            const response = await fetch('/api/auth/profile');
+            const result = await apiClient.get<AuthState['user']>('/api/auth/profile');
 
-            if (response.ok) {
-                const data = await response.json();
-                // Assuming the profile endpoint returns the user object
+            if (result.success) {
                 setState(prev => ({
                     ...prev,
-                    user: data,
+                    user: result.data,
                     isAuthenticated: true,
                     isLoading: false,
                 }));
@@ -54,19 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 error: 'Failed to verify authentication status',
             }));
         }
-    };
+    }, []);
 
     useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]);
 
-    const logout = async () => {
+    const logout = useCallback(async () => {
         try {
-            await fetch('/api/auth/logout', { method: 'POST' });
+            await apiClient.post('/api/auth/logout');
             setState(prev => ({
                 ...prev,
                 user: null,
-                tokens: null,
                 isAuthenticated: false,
             }));
             toast.success('Logged out successfully');
@@ -75,10 +72,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             console.error('Logout failed:', error);
             toast.error('Failed to logout');
         }
-    };
+    }, [router]);
+
+    const clearError = useCallback(() => {
+        setState(prev => ({ ...prev, error: null }));
+    }, []);
+
+    const value = useMemo(
+        () => ({ ...state, logout, checkAuth, clearError }),
+        [state, logout, checkAuth, clearError],
+    );
 
     return (
-        <AuthContext.Provider value={{ ...state, logout, checkAuth }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

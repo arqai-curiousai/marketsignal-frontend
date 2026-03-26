@@ -6,6 +6,7 @@ import { Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import type { IFeatureInspection, IFeatureDetail } from '@/types/strategy';
 import { S, T, layerColor, fmtNum } from './tokens';
 import { LAYERS } from './constants';
@@ -276,7 +277,7 @@ export function FeatureInspector({
       <div className="flex items-center gap-2">
         <span className={cn(T.heading)}>{inspection.ticker}</span>
         <span className={T.caption}>
-          {new Date(inspection.generatedAt).toLocaleString('en-IN', {
+          {formatDateTime(inspection.generatedAt, 'NSE', {
             day: '2-digit',
             month: 'short',
             hour: '2-digit',

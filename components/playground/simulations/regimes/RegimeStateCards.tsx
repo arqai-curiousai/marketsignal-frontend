@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/src/lib/exchange/formatting';
 import type { IRegimeStatistic, IRegimeState, RegimeLabel } from '@/types/simulation';
 import { getRegimeColor, fmtReturn, fmtDays } from './regime-tokens';
 import { T, S } from '@/components/playground/pyramid/tokens';
@@ -110,7 +111,7 @@ function StateCard({
           <MetricRow label="Typical Duration" value={fmtDays(stat.typicalDurationDays)} />
           <MetricRow label="Max Duration" value={fmtDays(stat.maxDurationDays)} />
           <MetricRow label="Frequency" value={frequency} />
-          <MetricRow label="Total Days" value={stat.totalDays.toLocaleString('en-IN')} />
+          <MetricRow label="Total Days" value={formatNumber(stat.totalDays)} />
         </div>
 
         {/* Sample periods */}

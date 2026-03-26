@@ -8,6 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
     WatchlistItem,
@@ -42,6 +43,7 @@ interface UseWatchlistReturn {
 }
 
 export function useWatchlist(): UseWatchlistReturn {
+    const router = useRouter();
     const [items, setItems] = useState<WatchlistItem[]>([]);
     const [count, setCount] = useState(0);
     const [maxSize, setMaxSize] = useState(50);
@@ -98,7 +100,7 @@ export function useWatchlist(): UseWatchlistReturn {
         async (ticker: string, exchange: string, notes?: string, instrumentType?: string): Promise<boolean> => {
             if (!isAuthenticated) {
                 // Should be handled by UI, but safety check
-                window.location.href = '/login?from=/signals';
+                router.push('/login?from=/signals');
                 return false;
             }
 
@@ -136,7 +138,7 @@ export function useWatchlist(): UseWatchlistReturn {
                 return false;
             }
         },
-        [watchlistSet, count, maxSize, fetchWatchlist, isAuthenticated]
+        [watchlistSet, count, maxSize, fetchWatchlist, isAuthenticated, router]
     );
 
     // Remove stock from watchlist

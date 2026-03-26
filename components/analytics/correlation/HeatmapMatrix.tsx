@@ -180,11 +180,12 @@ export function HeatmapMatrix({
         )}
       </div>
 
-      <ScrollArea className="max-h-[550px]">
+      <ScrollArea className="max-h-[60vh] md:max-h-[550px]">
         <div className="p-3">
           <div
             className="inline-grid gap-px"
             role="grid"
+            aria-label="Correlation heatmap matrix"
             style={{
               gridTemplateColumns: `${headerSize}px repeat(${tickers.length}, ${cellSize}px)`,
               gridTemplateRows: `${headerSize}px repeat(${tickers.length}, ${cellSize}px)`,
@@ -280,6 +281,7 @@ export function HeatmapMatrix({
                     <div
                       key={`${row}-${col}`}
                       role="gridcell"
+                      title={cellLabel || undefined}
                       className={cn(
                         'relative flex items-center justify-center cursor-pointer transition-all duration-100',
                         isSelected && 'ring-2 ring-brand-blue ring-offset-1 ring-offset-[#0d1117]',

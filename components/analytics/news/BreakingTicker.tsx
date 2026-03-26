@@ -21,6 +21,17 @@ export function BreakingTicker({ articles, onSelect, onDismiss }: BreakingTicker
   const timersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
+    const currentIds = new Set(articles.map((a) => a.id));
+
+    // Clear timers for articles that are no longer present
+    timersRef.current.forEach((timer, id) => {
+      if (!currentIds.has(id)) {
+        clearTimeout(timer);
+        timersRef.current.delete(id);
+      }
+    });
+
+    // Create timers for new articles
     for (const article of articles) {
       if (!timersRef.current.has(article.id)) {
         const timer = setTimeout(() => {
@@ -30,11 +41,16 @@ export function BreakingTicker({ articles, onSelect, onDismiss }: BreakingTicker
         timersRef.current.set(article.id, timer);
       }
     }
-
-    return () => {
-      timersRef.current.forEach((timer) => clearTimeout(timer));
-    };
   }, [articles, onDismiss]);
+
+  // Clean up all timers on unmount
+  useEffect(() => {
+    const timers = timersRef.current;
+    return () => {
+      timers.forEach((timer) => clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
 
   if (!articles.length) return null;
 
@@ -43,15 +59,23 @@ export function BreakingTicker({ articles, onSelect, onDismiss }: BreakingTicker
   const sentimentColor = getSentimentColor(latest.sentiment, latest.sentiment_score);
 
   return (
-    <AnimatePresence>
-      <motion.button
+    <AnimatePresence mode="wait">
+      <motion.div
+        role="button"
+        tabIndex={0}
         key={latest.id}
         initial={{ opacity: 0, y: -20, height: 0 }}
         animate={{ opacity: 1, y: 0, height: 'auto' }}
         exit={{ opacity: 0, y: -10, height: 0 }}
         transition={{ duration: 0.2, ease: 'easeOut' }}
         onClick={() => onSelect(latest)}
-        className="w-full text-left group"
+        onKeyDown={(e: React.KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(latest);
+          }
+        }}
+        className="w-full text-left group cursor-pointer"
       >
         <div
           className="relative flex items-center gap-2.5 px-3 py-2 rounded-lg border border-white/[0.06] bg-white/[0.02] overflow-hidden transition-colors hover:bg-white/[0.04]"
@@ -89,7 +113,7 @@ export function BreakingTicker({ articles, onSelect, onDismiss }: BreakingTicker
             &times;
           </button>
         </div>
-      </motion.button>
+      </motion.div>
     </AnimatePresence>
   );
 }

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import type { StrategySignal } from '@/types/strategy';
 import { SignalDot } from '../SignalDot';
 import { ConfidenceRing } from './ConfidenceRing';
@@ -155,7 +156,7 @@ export function LiveSignalPanel({
         </Select>
         {generatedAt && (
           <span className={cn(T.caption, 'text-white/25')}>
-            {new Date(generatedAt).toLocaleTimeString('en-IN', {
+            {formatDateTime(generatedAt, 'NSE', {
               hour: '2-digit',
               minute: '2-digit',
             })}
@@ -249,6 +250,7 @@ export function LiveSignalPanel({
           </p>
           {reasoning.length > 200 && (
             <button
+              aria-expanded={showFullReasoning}
               onClick={() => setShowFullReasoning((v) => !v)}
               className={cn(
                 T.caption,

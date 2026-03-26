@@ -62,7 +62,7 @@ export interface UseNewsDataReturn {
   // Search
   searchResults: INewsArticle[];
   searchLoading: boolean;
-  handleSearch: (query: string) => Promise<void>;
+  handleSearch: (query: string) => void;
 
   // Breaking news (SSE)
   breakingArticles: INewsArticle[];
@@ -136,6 +136,7 @@ export function useNewsData(
   const [hasNewArticles, setHasNewArticles] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const seenArticleIdsRef = useRef(new Set<string>());
 
   // ── Feed fetch ─────────────────────────────────────────────────
   const fetchFeed = useCallback(async () => {
@@ -143,11 +144,15 @@ export function useNewsData(
     setFeedError(false);
     offsetRef.current = 0;
     try {
-      const [clustersRes, articlesRes, impactRes] = await Promise.all([
+      const settled = await Promise.allSettled([
         getNewsClusters(timeRange, 10, exchange),
         getMarketNews(timeRange, 50, exchange, 0),
         getNewsImpact(timeRange, undefined, 50, exchange),
       ]);
+
+      const clustersRes = settled[0].status === 'fulfilled' ? settled[0].value : { success: false as const, data: null };
+      const articlesRes = settled[1].status === 'fulfilled' ? settled[1].value : { success: false as const, data: null };
+      const impactRes = settled[2].status === 'fulfilled' ? settled[2].value : { success: false as const, data: null };
 
       if (clustersRes.success && clustersRes.data?.clusters) {
         setClusters(clustersRes.data.clusters);
@@ -204,34 +209,43 @@ export function useNewsData(
   useEffect(() => {
     let retryDelay = 1000;
     const maxRetryDelay = 30_000;
+    const MAX_RETRIES = 5;
+    let retryCount = 0;
+    const seenIds = seenArticleIdsRef.current;
 
     function connect() {
       if (eventSourceRef.current) eventSourceRef.current.close();
+      seenIds.clear();
 
       const es = new EventSource(
         `${NEWS_STREAM_URL}?exchange=${encodeURIComponent(exchange)}`
       );
       eventSourceRef.current = es;
 
+      es.onopen = () => {
+        retryCount = 0;
+        retryDelay = 1000;
+      };
+
       es.onmessage = (event) => {
         try {
+          // Guard against oversized payloads
+          if (event.data.length > 10_000) return;
+
           const article = JSON.parse(event.data) as INewsArticle;
 
-          setFallbackArticles((prev) => {
-            if (prev.some((a) => a.id === article.id)) return prev;
-            return [article, ...prev].slice(0, 100);
-          });
+          // O(1) dedup via Set
+          if (seenIds.has(article.id)) return;
+          seenIds.add(article.id);
+
+          setFallbackArticles((prev) => [article, ...prev].slice(0, 100));
 
           if (article.priority === 'breaking' || article.priority === 'high') {
-            setBreakingArticles((prev) => {
-              if (prev.some((a) => a.id === article.id)) return prev;
-              return [article, ...prev].slice(0, 5);
-            });
+            setBreakingArticles((prev) => [article, ...prev].slice(0, 5));
           }
 
           setHasNewArticles(true);
           setLastUpdated(new Date().toISOString());
-          retryDelay = 1000;
         } catch {
           // Ignore parse errors
         }
@@ -239,6 +253,12 @@ export function useNewsData(
 
       es.onerror = () => {
         es.close();
+        retryCount++;
+        if (retryCount > MAX_RETRIES) {
+          console.warn('SSE max retries exceeded, stopping reconnection');
+          setFeedError(true);
+          return;
+        }
         reconnectTimeoutRef.current = setTimeout(() => {
           retryDelay = Math.min(retryDelay * 2, maxRetryDelay);
           connect();
@@ -256,6 +276,7 @@ export function useNewsData(
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
+      seenIds.clear();
     };
   }, [exchange]);
 
@@ -281,47 +302,63 @@ export function useNewsData(
   }, [fetchFeed]);
 
   // ── Load more (pagination) ─────────────────────────────────────
+  const loadingMoreRef = useRef(false);
   const loadMore = useCallback(async () => {
-    if (loadingMore || !hasMore) return;
+    if (loadingMoreRef.current || !hasMore) return;
+    loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
       const res = await getMarketNews(timeRange, 50, exchange, offsetRef.current);
       if (res.success && res.data?.items) {
-        setFallbackArticles((prev) => [...prev, ...res.data!.items]);
+        setFallbackArticles((prev) => [...prev, ...res.data?.items ?? []]);
         setHasMore(res.data.has_more ?? false);
         offsetRef.current += res.data.items.length;
       }
     } catch {
       console.warn('Failed to load more news');
     } finally {
+      loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [timeRange, exchange, loadingMore, hasMore]);
+  }, [timeRange, exchange, hasMore]);
 
-  // ── Search ─────────────────────────────────────────────────────
+  // ── Search (debounced) ──────────────────────────────────────────
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleSearch = useCallback(
-    async (query: string) => {
+    (query: string) => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+
       if (!query || query.length < 2) {
         setSearchResults([]);
         setSearchLoading(false);
         return;
       }
+
       setSearchLoading(true);
-      try {
-        const res = await searchNews(query, 20, exchange);
-        if (res.success && res.data?.items) {
-          setSearchResults(res.data.items);
-        } else {
+      searchTimerRef.current = setTimeout(async () => {
+        try {
+          const res = await searchNews(query, 20, exchange);
+          if (res.success && res.data?.items) {
+            setSearchResults(res.data.items);
+          } else {
+            setSearchResults([]);
+          }
+        } catch {
           setSearchResults([]);
+        } finally {
+          setSearchLoading(false);
         }
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
+      }, 300);
     },
     [exchange]
   );
+
+  // Cleanup search timer
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
+  }, []);
 
   // ── Graph ──────────────────────────────────────────────────────
   const fetchGraph = useCallback(async () => {

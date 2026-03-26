@@ -116,6 +116,7 @@ export function ScatterPlotChart({
         </span>
       </div>
 
+      <div role="img" aria-label={`Price scatter plot for ${tickerA} vs ${tickerB}`}>
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart margin={{ top: 10, right: 15, bottom: 25, left: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -191,6 +192,7 @@ export function ScatterPlotChart({
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Quadrant labels */}
       <div className="flex items-center justify-between px-4 text-[8px] text-muted-foreground/50">

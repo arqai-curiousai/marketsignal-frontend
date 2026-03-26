@@ -4,7 +4,6 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 
 interface TechnicalSnapshotProps {
-  ticker: string;
   patternData: {
     overall_signal?: string;
     active_pattern_count?: number;
@@ -69,7 +68,7 @@ function GaugeIndicator({
   );
 }
 
-export function TechnicalSnapshot({ ticker: _ticker, patternData }: TechnicalSnapshotProps) {
+export function TechnicalSnapshot({ patternData }: TechnicalSnapshotProps) {
   if (!patternData) {
     return (
       <div className="text-xs text-muted-foreground py-2">
@@ -81,7 +80,7 @@ export function TechnicalSnapshot({ ticker: _ticker, patternData }: TechnicalSna
   const { momentum, indicators } = patternData;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3" role="img" aria-label="Technical indicators snapshot">
       <div className="flex items-center justify-between">
         <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">
           Technical Snapshot

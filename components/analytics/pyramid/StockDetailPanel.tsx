@@ -7,6 +7,7 @@ import {
   getStockOwnership,
   getStockFilings,
 } from '@/src/lib/api/analyticsApi';
+import apiClient from '@/src/lib/api/apiClient';
 import type {
   IStockFundamentals,
   IOwnershipSummary,
@@ -19,6 +20,9 @@ import { OwnershipPanel } from './OwnershipPanel';
 import { CorporateFilings } from './CorporateFilings';
 import { TechnicalSnapshot } from './TechnicalSnapshot';
 
+/* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+type PatternData = Parameters<typeof TechnicalSnapshot>[0]['patternData'];
+
 interface StockDetailPanelProps {
   ticker: string;
   onClose: () => void;
@@ -28,7 +32,7 @@ export function StockDetailPanel({ ticker, onClose }: StockDetailPanelProps) {
   const [fundamentals, setFundamentals] = useState<IStockFundamentals | null>(null);
   const [ownership, setOwnership] = useState<IOwnershipSummary | null>(null);
   const [filings, setFilings] = useState<IFilingSummary | null>(null);
-  const [patternData, setPatternData] = useState<Record<string, unknown> | null>(null);
+  const [patternData, setPatternData] = useState<PatternData>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -52,10 +56,9 @@ export function StockDetailPanel({ ticker, onClose }: StockDetailPanelProps) {
 
       // Try to fetch pattern data (may not exist)
       try {
-        const { default: apiClient } = await import('@/src/lib/api/apiClient');
         const patResult = await apiClient.get(`/api/analytics/${ticker}/patterns`);
         if (!cancelled && patResult.success) {
-          setPatternData(patResult.data as Record<string, unknown>);
+          setPatternData(patResult.data as PatternData);
         }
       } catch {
         // Pattern data is optional
@@ -115,7 +118,6 @@ export function StockDetailPanel({ ticker, onClose }: StockDetailPanelProps) {
           <FinancialHealth
             income={fundamentals.quarterly_financials.income_statement}
             balance={fundamentals.quarterly_financials.balance_sheet}
-            cashFlow={fundamentals.quarterly_financials.cash_flow}
           />
           <div className="border-t border-white/[0.06]" />
         </>
@@ -138,10 +140,7 @@ export function StockDetailPanel({ ticker, onClose }: StockDetailPanelProps) {
       )}
 
       {/* Section F: Technical Snapshot */}
-      <TechnicalSnapshot
-        ticker={ticker}
-        patternData={patternData as Parameters<typeof TechnicalSnapshot>[0]['patternData']}
-      />
+      <TechnicalSnapshot patternData={patternData} />
     </div>
   );
 }

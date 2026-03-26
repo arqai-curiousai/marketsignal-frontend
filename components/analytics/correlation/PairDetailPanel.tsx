@@ -131,11 +131,12 @@ export function PairDetailPanel({
   // ── Dynamics tab lazy fetch ──
   useEffect(() => {
     if (!visitedTabs.has('dynamics') || !selectedPair || !selectedPair[1]) return;
-    if (dccData || dccLoading) return; // already fetched or in progress
+    if (dccLoading) return; // fetch already in progress
 
     const [a, b] = selectedPair;
     let cancelled = false;
 
+    setDccData(null);
     setDccLoading(true);
     getDCCGarch(a, b, exA, exB).then((res) => {
       if (cancelled) return;
@@ -144,7 +145,7 @@ export function PairDetailPanel({
 
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [visitedTabs, selectedPair]);
+  }, [visitedTabs, selectedPair, windowValue]);
 
   // ── Trading tab lazy fetch ──
   useEffect(() => {

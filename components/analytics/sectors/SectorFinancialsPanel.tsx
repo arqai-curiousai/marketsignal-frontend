@@ -12,6 +12,8 @@ import {
 } from 'recharts';
 import { cn } from '@/lib/utils';
 import { getSectorFinancials } from '@/src/lib/api/analyticsApi';
+import { formatNumber } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 import type { ISectorFinancials } from '@/types/analytics';
 
 interface SectorFinancialsPanelProps {
@@ -26,15 +28,15 @@ const COLORS = {
 } as const;
 
 /**
- * Format large numbers into compact Indian notation (Cr / L Cr).
+ * Format large numbers into compact notation using exchange-aware locale.
  */
-function formatCompact(value: number): string {
+function formatCompact(value: number, exchange: ExchangeCode = 'NSE'): string {
   const abs = Math.abs(value);
   if (abs >= 1e12) return `${(value / 1e12).toFixed(1)}L Cr`;
   if (abs >= 1e9) return `${(value / 1e7 / 100).toFixed(0)} Cr`;
   if (abs >= 1e7) return `${(value / 1e7).toFixed(1)} Cr`;
   if (abs >= 1e5) return `${(value / 1e5).toFixed(1)} L`;
-  return value.toLocaleString('en-IN');
+  return formatNumber(value, exchange);
 }
 
 function SkeletonChart() {

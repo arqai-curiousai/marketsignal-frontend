@@ -56,6 +56,7 @@ export function FinalCTA() {
       {starPositions.map((star, i) => (
         <motion.div
           key={i}
+          aria-hidden="true"
           className="absolute w-1 h-1 rounded-full bg-white/30"
           style={{ left: star.left, top: star.top }}
           animate={{ opacity: [0.1, 0.5, 0.1], scale: [0.8, 1.2, 0.8] }}

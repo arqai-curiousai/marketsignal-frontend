@@ -7,36 +7,26 @@ const API_BASE = BACKEND_URL;
 /**
  * GET /api/watchlist - Get user's watchlist
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const accessToken = cookieStore.get('access_token');
 
         if (!accessToken) {
             return NextResponse.json({ detail: 'Not authenticated' }, { status: 401 });
         }
 
-        // Check if this is a count or check request
-        const { searchParams } = new URL(request.url);
-        const ticker = searchParams.get('ticker');
-        const exchange = searchParams.get('exchange');
-
-        let endpoint = `${API_BASE}/watchlist`;
-
-        // Forward query params if present
-        if (ticker && exchange) {
-            endpoint = `${API_BASE}/watchlist/check?ticker=${ticker}&exchange=${exchange}`;
-        }
-
-        const response = await fetch(endpoint, {
+        const response = await fetch(`${API_BASE}/watchlist`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
                 'Cookie': `access_token=${accessToken.value}`,
             },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(15_000),
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ detail: 'Invalid server response' }));
         return NextResponse.json(data, { status: response.status });
     } catch (error) {
         console.error('Watchlist GET error:', error);
@@ -49,7 +39,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const accessToken = cookieStore.get('access_token');
 
         if (!accessToken) {
@@ -65,9 +55,11 @@ export async function POST(request: NextRequest) {
                 'Cookie': `access_token=${accessToken.value}`,
             },
             body: JSON.stringify(body),
+            cache: 'no-store',
+            signal: AbortSignal.timeout(15_000),
         });
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ detail: 'Invalid server response' }));
         return NextResponse.json(data, { status: response.status });
     } catch (error) {
         console.error('Watchlist POST error:', error);
@@ -80,7 +72,7 @@ export async function POST(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const accessToken = cookieStore.get('access_token');
 
         if (!accessToken) {
@@ -95,18 +87,23 @@ export async function DELETE(request: NextRequest) {
             return NextResponse.json({ detail: 'Missing ticker or exchange' }, { status: 400 });
         }
 
+        const deleteUrl = new URL(`${API_BASE}/watchlist`);
+        deleteUrl.searchParams.append('ticker', ticker);
+        deleteUrl.searchParams.append('exchange', exchange);
         const response = await fetch(
-            `${API_BASE}/watchlist?ticker=${ticker}&exchange=${exchange}`,
+            deleteUrl.toString(),
             {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                     'Cookie': `access_token=${accessToken.value}`,
                 },
+                cache: 'no-store',
+                signal: AbortSignal.timeout(15_000),
             }
         );
 
-        const data = await response.json();
+        const data = await response.json().catch(() => ({ detail: 'Invalid server response' }));
         return NextResponse.json(data, { status: response.status });
     } catch (error) {
         console.error('Watchlist DELETE error:', error);

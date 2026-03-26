@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { IChatMessage, IAIResponse } from '@/types';
-import { aiClient } from '@/ai/aiClient';
+import { aiClient } from '@/lib/ai/aiClient';
 import { Message } from './Message';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 
 interface ChatWindowProps {
     onResponse?: (response: IAIResponse) => void;
-    initialContext?: string;
     initialMessage?: string;
 }
 
-export function ChatWindow({ onResponse, initialContext: _initialContext, initialMessage }: ChatWindowProps) {
+export function ChatWindow({ onResponse, initialMessage }: ChatWindowProps) {
     const [messages, setMessages] = useState<IChatMessage[]>([
         {
             id: 'welcome',
@@ -28,10 +27,19 @@ export function ChatWindow({ onResponse, initialContext: _initialContext, initia
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const mountedRef = useRef(true);
 
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        return () => { mountedRef.current = false; };
+    }, []);
+
+    useEffect(() => {
+        const container = scrollRef.current;
+        if (container) {
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+            if (isNearBottom) {
+                container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
+            }
         }
     }, [messages]);
 
@@ -52,6 +60,7 @@ export function ChatWindow({ onResponse, initialContext: _initialContext, initia
 
         try {
             const response = await aiClient.ask(input);
+            if (!mountedRef.current) return;
 
             const assistantMessage: IChatMessage = {
                 id: uuidv4(),
@@ -62,11 +71,19 @@ export function ChatWindow({ onResponse, initialContext: _initialContext, initia
             };
 
             setMessages(prev => [...prev, assistantMessage]);
-            if (onResponse) onResponse(response);
+            try { if (onResponse) onResponse(response); } catch { /* callback error */ }
         } catch (error) {
+            if (!mountedRef.current) return;
             console.error('Chat error:', error);
+            const errorMessage: IChatMessage = {
+                id: uuidv4(),
+                role: 'assistant',
+                content: 'Sorry, something went wrong. Please try again.',
+                timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, errorMessage]);
         } finally {
-            setIsLoading(false);
+            if (mountedRef.current) setIsLoading(false);
         }
     };
 
@@ -76,6 +93,8 @@ export function ChatWindow({ onResponse, initialContext: _initialContext, initia
             <div
                 ref={scrollRef}
                 className="flex-1 overflow-y-auto scrollbar-hide"
+                role="log"
+                aria-live="polite"
             >
                 {messages.map((msg) => (
                     <Message
@@ -100,13 +119,14 @@ export function ChatWindow({ onResponse, initialContext: _initialContext, initia
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder="Ask about market signals, sectors, or macro trends..."
+                        aria-label="Ask a question"
                         className="h-14 pl-6 pr-16 bg-white/5 border-white/10 rounded-2xl focus-visible:ring-brand-blue/50 text-white placeholder:text-white/20"
                     />
                     <div className="absolute right-2 top-2 flex items-center gap-2">
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-10 w-10 text-white/30 hover:text-white">
+                                    <Button variant="ghost" size="icon" className="h-10 w-10 text-white/30 hover:text-white" aria-label="Information">
                                         <Info className="h-5 w-5" />
                                     </Button>
                                 </TooltipTrigger>

@@ -6,13 +6,12 @@ import { Activity, RefreshCw, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { simulationApi } from '@/lib/api/simulationApi';
 import { useExchange } from '@/context/ExchangeContext';
 import type { IVolatilityAnalysis } from '@/types/simulation';
-import { downloadCSV, downloadPNG } from '@/lib/utils/export';
-import { T, S } from '@/components/playground/pyramid/tokens';
+import { downloadCSV } from '@/lib/utils/export';
+import { S } from '@/components/playground/pyramid/tokens';
 import { NIFTY50_TICKERS } from '@/components/playground/pyramid/constants';
 
 import { VolatilityStormGauge } from './VolatilityStormGauge';
@@ -87,7 +86,11 @@ export function VolatilityDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (ticker: string, isRefresh = false) => {
+  const fetchData = useCallback(async (
+    ticker: string,
+    isRefresh = false,
+    signal?: AbortSignal,
+  ) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -96,13 +99,16 @@ export function VolatilityDashboard() {
       const result = await simulationApi.getVolatility(
         ticker,
         exchangeConfig.code,
+        'yang_zhang',
+        { signal },
       );
       if (result.success) {
         setData(result.data);
       } else {
         setError(result.error.message);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError('Failed to fetch volatility data');
       toast.error('Failed to load volatility data');
     } finally {
@@ -112,7 +118,9 @@ export function VolatilityDashboard() {
   }, [exchangeConfig.code]);
 
   useEffect(() => {
-    fetchData(selectedTicker);
+    const controller = new AbortController();
+    fetchData(selectedTicker, false, controller.signal);
+    return () => controller.abort();
   }, [selectedTicker, fetchData]);
 
   const handleTickerChange = (ticker: string) => {
@@ -123,11 +131,6 @@ export function VolatilityDashboard() {
     if (!data) return;
     const rows = buildExportCSV(data);
     downloadCSV(rows, `volatility_${data.ticker}_${data.exchange}.csv`);
-  };
-
-  const handleExportPNG = async () => {
-    const el = document.getElementById('vol-dashboard-container');
-    if (el) await downloadPNG(el, `volatility_${selectedTicker}.png`);
   };
 
   // ── Regime config for header badge ──
@@ -143,6 +146,7 @@ export function VolatilityDashboard() {
           <select
             value={selectedTicker}
             onChange={(e) => handleTickerChange(e.target.value)}
+            aria-label="Select ticker"
             className={cn(
               'bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5',
               'text-xs font-mono text-white/80 focus:outline-none focus:border-indigo-500/30',

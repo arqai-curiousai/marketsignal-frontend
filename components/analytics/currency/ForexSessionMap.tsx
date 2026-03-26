@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarketAwarePolling } from '@/lib/hooks/useMarketAwarePolling';
 import { getCurrencyMarketClock } from '@/src/lib/api/analyticsApi';
 import type { IMarketClock } from '@/src/types/analytics';
 
@@ -95,9 +96,14 @@ export function ForexSessionMap() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 60_000);
-    return () => clearInterval(interval);
   }, [fetchData]);
+
+  useMarketAwarePolling({
+    fetchFn: fetchData,
+    marketType: 'forex',
+    activeIntervalMs: 60_000,
+    inactiveIntervalMs: 300_000,
+  });
 
   // Update "now" line every 30s
   useEffect(() => {
@@ -136,7 +142,7 @@ export function ForexSessionMap() {
       </div>
 
       <div className="overflow-x-auto">
-        <svg viewBox="0 0 1200 90" width="100%" className="min-w-[600px]">
+        <svg viewBox="0 0 1200 90" width="100%" className="min-w-[600px]" role="img" aria-label="Forex trading session map">
           {/* Hour grid lines */}
           {Array.from({ length: 25 }, (_, i) => (
             <g key={i}>

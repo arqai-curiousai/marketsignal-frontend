@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight } from 'lucide-react';
@@ -79,7 +79,6 @@ export function SectorDetailPanel({
       const q = s.rrg?.quadrant;
       if (q && q in quadrantCounts) quadrantCounts[q]++;
     });
-    const totalQ = Object.values(quadrantCounts).reduce((a, b) => a + b, 0);
     const bullish = quadrantCounts.leading + quadrantCounts.improving;
     const bearish = quadrantCounts.weakening + quadrantCounts.lagging;
     const regime = bullish > bearish * 1.5 ? 'Risk-On' : bearish > bullish * 1.5 ? 'Risk-Off' : bullish === bearish ? 'Consolidation' : 'Rotation';

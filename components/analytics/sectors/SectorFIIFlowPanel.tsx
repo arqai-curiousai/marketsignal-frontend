@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Minus, Activity } from 'lucide-react';
 import {
   AreaChart,
@@ -148,6 +148,7 @@ function ChartTooltip({ active, payload, label }: ChartTooltipProps) {
 }
 
 export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps) {
+  const gradientId = useId();
   const [data, setData] = useState<ISectorFIIFlow | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -219,19 +220,19 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
             margin={{ top: 4, right: 4, left: -20, bottom: 0 }}
           >
             <defs>
-              <linearGradient id="gradFII" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gradientId}-fii`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COLORS.fii} stopOpacity={0.3} />
                 <stop offset="95%" stopColor={COLORS.fii} stopOpacity={0.05} />
               </linearGradient>
-              <linearGradient id="gradDII" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gradientId}-dii`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COLORS.dii} stopOpacity={0.3} />
                 <stop offset="95%" stopColor={COLORS.dii} stopOpacity={0.05} />
               </linearGradient>
-              <linearGradient id="gradPromoter" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gradientId}-promoter`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COLORS.promoter} stopOpacity={0.3} />
                 <stop offset="95%" stopColor={COLORS.promoter} stopOpacity={0.05} />
               </linearGradient>
-              <linearGradient id="gradRetail" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gradientId}-retail`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor={COLORS.retail} stopOpacity={0.3} />
                 <stop offset="95%" stopColor={COLORS.retail} stopOpacity={0.05} />
               </linearGradient>
@@ -255,7 +256,7 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
               stackId="1"
               stroke={COLORS.promoter}
               strokeWidth={1.5}
-              fill="url(#gradPromoter)"
+              fill={`url(#${gradientId}-promoter)`}
             />
             <Area
               type="monotone"
@@ -263,7 +264,7 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
               stackId="1"
               stroke={COLORS.fii}
               strokeWidth={1.5}
-              fill="url(#gradFII)"
+              fill={`url(#${gradientId}-fii)`}
             />
             <Area
               type="monotone"
@@ -271,7 +272,7 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
               stackId="1"
               stroke={COLORS.dii}
               strokeWidth={1.5}
-              fill="url(#gradDII)"
+              fill={`url(#${gradientId}-dii)`}
             />
             <Area
               type="monotone"
@@ -279,7 +280,7 @@ export function SectorFIIFlowPanel({ sector, exchange }: SectorFIIFlowPanelProps
               stackId="1"
               stroke={COLORS.retail}
               strokeWidth={1.5}
-              fill="url(#gradRetail)"
+              fill={`url(#${gradientId}-retail)`}
             />
           </AreaChart>
         </ResponsiveContainer>

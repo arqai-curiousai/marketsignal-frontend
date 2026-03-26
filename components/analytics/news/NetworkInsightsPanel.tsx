@@ -50,7 +50,7 @@ export function NetworkInsightsPanel({
           <BarChart3 className="h-3.5 w-3.5 text-cyan-400" />
           <span className="text-xs font-semibold text-white">Network Insights</span>
         </div>
-        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-white transition-colors">
+        <button onClick={onClose} className="p-1 rounded hover:bg-white/10 text-muted-foreground hover:text-white transition-colors" aria-label="Close insights panel">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>

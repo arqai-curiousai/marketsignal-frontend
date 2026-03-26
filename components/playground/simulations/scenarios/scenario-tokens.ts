@@ -6,19 +6,6 @@ import { TAB_ACCENT } from '@/components/playground/simulations/shared/sim-token
 
 export const ACCENT = TAB_ACCENT.stress;
 
-// ── Scenario icons (Lucide icon names as keys for dynamic lookup) ──
-
-export const SCENARIO_ICONS: Record<string, string> = {
-  covid_crash: 'Skull',
-  rbi_rate_hike: 'Landmark',
-  crude_120: 'Flame',
-  fii_outflow: 'TrendingDown',
-  rupee_90: 'BadgeIndianRupee',
-  election_vol: 'Vote',
-  global_recession: 'Globe',
-  china_slowdown: 'Factory',
-};
-
 // ── Severity color for delta values ──
 
 export function deltaColor(value: number): string {

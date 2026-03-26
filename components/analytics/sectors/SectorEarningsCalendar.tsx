@@ -4,6 +4,8 @@ import React, { useEffect, useState } from 'react';
 import { Calendar, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getSectorEarningsCalendar } from '@/src/lib/api/analyticsApi';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 import type { ISectorEarningsCalendar, ISectorEarningsEntry } from '@/types/analytics';
 
 interface SectorEarningsCalendarProps {
@@ -29,9 +31,11 @@ function SkeletonList() {
 function EarningsEntry({
   entry,
   type,
+  exchange,
 }: {
   entry: ISectorEarningsEntry;
   type: 'upcoming' | 'recent';
+  exchange?: string;
 }) {
   const isUpcoming = type === 'upcoming';
   const daysLabel = isUpcoming
@@ -46,8 +50,7 @@ function EarningsEntry({
         ? 'Yesterday'
         : `${entry.days_ago}d ago`;
 
-  const dateObj = new Date(entry.earnings_date);
-  const dateStr = dateObj.toLocaleDateString('en-IN', {
+  const dateStr = formatDateTime(entry.earnings_date, (exchange ?? 'NSE') as ExchangeCode, {
     day: 'numeric',
     month: 'short',
   });
@@ -175,6 +178,7 @@ export function SectorEarningsCalendar({ sector, exchange }: SectorEarningsCalen
                 key={`upcoming-${entry.ticker}`}
                 entry={entry}
                 type="upcoming"
+                exchange={exchange}
               />
             ))}
           </div>
@@ -201,6 +205,7 @@ export function SectorEarningsCalendar({ sector, exchange }: SectorEarningsCalen
                 key={`recent-${entry.ticker}`}
                 entry={entry}
                 type="recent"
+                exchange={exchange}
               />
             ))}
           </div>

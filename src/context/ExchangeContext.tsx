@@ -1,6 +1,6 @@
 'use client';
 
-import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { type ExchangeCode, type ExchangeConfig, EXCHANGES, isValidExchange, ACTIVE_EXCHANGES } from '@/lib/exchange/config';
 
 interface ExchangeContextValue {
@@ -13,22 +13,18 @@ const ExchangeContext = createContext<ExchangeContextValue | null>(null);
 
 const STORAGE_KEY = 'ms_exchange';
 
-function getInitialExchange(): ExchangeCode {
-  if (typeof window === 'undefined') return 'NSE';
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored && isValidExchange(stored) && ACTIVE_EXCHANGES.has(stored)) return stored;
-  } catch {
-    // localStorage unavailable
-  }
-  return 'NSE';
-}
-
 export function ExchangeProvider({ children }: { children: React.ReactNode }) {
   const [selectedExchange, setSelectedExchange] = useState<ExchangeCode>('NSE');
 
   useEffect(() => {
-    setSelectedExchange(getInitialExchange());
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored && isValidExchange(stored) && ACTIVE_EXCHANGES.has(stored)) {
+        setSelectedExchange(stored);
+      }
+    } catch {
+      // localStorage unavailable
+    }
   }, []);
 
   const setExchange = useCallback((code: ExchangeCode) => {

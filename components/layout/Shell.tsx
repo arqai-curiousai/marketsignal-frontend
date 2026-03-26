@@ -1,13 +1,18 @@
+'use client';
+
 import React from 'react';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { CommandPalette } from './CommandPalette';
+import { useAuth } from '@/context/AuthContext';
 
 interface ShellProps {
     children: React.ReactNode;
 }
 
 export function Shell({ children }: ShellProps) {
+    const { error, clearError } = useAuth();
+
     return (
         <div className="relative flex min-h-screen flex-col bg-brand-slate">
             {/* Background Gradients */}
@@ -27,6 +32,24 @@ export function Shell({ children }: ShellProps) {
 
             <CommandPalette />
             <Header />
+
+            {/* Auth error banner */}
+            {error && (
+                <div
+                    role="alert"
+                    className="relative z-50 bg-red-900/50 border-b border-red-800 px-4 py-2 text-sm text-red-200 flex items-center justify-between"
+                >
+                    <span>Authentication error: {error}</span>
+                    <button
+                        onClick={clearError}
+                        className="text-red-300 hover:text-red-100 ml-4 shrink-0"
+                        aria-label="Dismiss error"
+                    >
+                        &#x2715;
+                    </button>
+                </div>
+            )}
+
             <main id="main-content" className="relative z-10 flex-1">
                 {children}
             </main>

@@ -25,7 +25,6 @@ import type {
   IStrategyCatalogItem,
   IRiskScoreResult,
   IRiskQuizResult,
-  IRiskQuizAnswer,
   IRiskSubScore,
   IRiskSuggestion,
   IRiskZone,
@@ -35,7 +34,6 @@ import type {
   IScenarioStockImpact,
   IFactorDecomposition,
   IFactorDefinition,
-  IStockFactorScores,
   IFactorAttribution,
 } from '@/types/simulation';
 
@@ -217,10 +215,12 @@ export const simulationApi = {
     ticker: string,
     exchange = 'NSE',
     estimator = 'yang_zhang',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IVolatilityAnalysis>> {
     const result = await apiClient.get<RawVolatilityAnalysis>(
       `/api/simulations/volatility/${encodeURIComponent(ticker)}`,
       { exchange, estimator },
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: transformAnalysis(result.data) };
@@ -232,10 +232,12 @@ export const simulationApi = {
     ticker: string,
     exchange = 'NSE',
     estimator = 'yang_zhang',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IVolatilityConePoint[]>> {
     const result = await apiClient.get<{ cone: RawConePoint[] }>(
       `/api/simulations/volatility/${encodeURIComponent(ticker)}/cone`,
       { exchange, estimator },
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: result.data.cone.map(transformConePoint) };
@@ -247,10 +249,12 @@ export const simulationApi = {
     ticker: string,
     exchange = 'NSE',
     horizon = 21,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IGARCHForecast>> {
     const result = await apiClient.get<{ forecast: RawGARCH }>(
       `/api/simulations/volatility/${encodeURIComponent(ticker)}/forecast`,
       { exchange, horizon },
+      { signal: options?.signal },
     );
     if (result.success && result.data.forecast) {
       const transformed = transformGARCH(result.data.forecast);
@@ -265,10 +269,12 @@ export const simulationApi = {
     tickers: string[],
     exchange = 'NSE',
     estimator = 'yang_zhang',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IVolatilityCompareItem[]>> {
     const result = await apiClient.get<{ items: RawCompareItem[] }>(
       '/api/simulations/volatility/compare',
       { tickers: tickers.join(','), exchange, estimator },
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: result.data.items.map(transformCompareItem) };
@@ -282,10 +288,12 @@ export const simulationApi = {
     ticker: string,
     exchange = 'NSE',
     maxStates = 3,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IRegimeAnalysis>> {
     const result = await apiClient.get<RawRegimeAnalysis>(
       `/api/simulations/regimes/${encodeURIComponent(ticker)}`,
       { exchange, max_states: maxStates },
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: transformRegimeAnalysis(result.data) };
@@ -301,12 +309,14 @@ export const simulationApi = {
     horizon = 252,
     nPaths = 10000,
     target?: number,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IMonteCarloAnalysis>> {
     const params: Record<string, string | number | boolean | undefined> = { exchange, horizon, n_paths: nPaths };
     if (target != null) params.target = target;
     const result = await apiClient.get<RawMonteCarloAnalysis>(
       `/api/simulations/montecarlo/${encodeURIComponent(ticker)}`,
       params,
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: transformMonteCarloAnalysis(result.data) };
@@ -319,10 +329,12 @@ export const simulationApi = {
     target: number,
     exchange = 'NSE',
     horizon = 252,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<ITargetProbabilityResult>> {
     const result = await apiClient.get<RawTargetProbabilityResult>(
       `/api/simulations/montecarlo/${encodeURIComponent(ticker)}/target`,
       { target, exchange, horizon },
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: transformTargetProbability(result.data) };
@@ -339,6 +351,7 @@ export const simulationApi = {
     maxWeight = 0.30,
     riskFreeRate = 0.065,
     modes?: string[],
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IPortfolioOptimization>> {
     const body: Record<string, unknown> = {
       tickers,
@@ -351,6 +364,7 @@ export const simulationApi = {
     const result = await apiClient.post<RawPortfolioOptimization>(
       '/api/simulations/portfolio/optimize',
       body,
+      { signal: options?.signal },
     );
     if (result.success) {
       try {
@@ -363,9 +377,13 @@ export const simulationApi = {
     return result as ApiResult<IPortfolioOptimization>;
   },
 
-  async getPresets(): Promise<ApiResult<IPresetBasket[]>> {
+  async getPresets(
+    options?: { signal?: AbortSignal },
+  ): Promise<ApiResult<IPresetBasket[]>> {
     const result = await apiClient.get<{ presets: Array<Record<string, unknown>> }>(
       '/api/simulations/portfolio/presets',
+      undefined,
+      { signal: options?.signal },
     );
     if (result.success) {
       return {
@@ -386,10 +404,12 @@ export const simulationApi = {
     exchange = 'NSE',
     lookbackDays = 756,
     maxWeight = 0.30,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IPortfolioOptimization>> {
     const result = await apiClient.get<RawPortfolioOptimization>(
       `/api/simulations/portfolio/presets/${encodeURIComponent(presetId)}`,
       { exchange, lookback_days: lookbackDays, max_weight: maxWeight },
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: transformPortfolioOptimization(result.data) };
@@ -405,6 +425,7 @@ export const simulationApi = {
     strategies?: string[],
     lookbackYears = 3,
     paramsOverride?: Record<string, Record<string, number>>,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IBacktestAnalysis>> {
     const body: Record<string, unknown> = {
       tickers,
@@ -416,6 +437,7 @@ export const simulationApi = {
     const result = await apiClient.post<RawBacktestAnalysis>(
       '/api/simulations/backtest/run',
       body,
+      { signal: options?.signal },
     );
     if (result.success) {
       try {
@@ -428,9 +450,13 @@ export const simulationApi = {
     return result as ApiResult<IBacktestAnalysis>;
   },
 
-  async getBacktestStrategies(): Promise<ApiResult<IStrategyCatalogItem[]>> {
+  async getBacktestStrategies(
+    options?: { signal?: AbortSignal },
+  ): Promise<ApiResult<IStrategyCatalogItem[]>> {
     const result = await apiClient.get<{ strategies: Array<Record<string, unknown>> }>(
       '/api/simulations/backtest/strategies',
+      undefined,
+      { signal: options?.signal },
     );
     if (result.success) {
       return {
@@ -453,12 +479,14 @@ export const simulationApi = {
     tickers: string[],
     weights?: number[],
     exchange = 'NSE',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IRiskScoreResult>> {
     const body: Record<string, unknown> = { tickers, exchange };
     if (weights) body.weights = weights;
     const result = await apiClient.post<RawRiskScoreResult>(
       '/api/simulations/risk-score',
       body,
+      { signal: options?.signal },
     );
     if (result.success) {
       try {
@@ -475,12 +503,14 @@ export const simulationApi = {
     tickers: string[],
     weights?: number[],
     exchange = 'NSE',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IRiskSuggestion[]>> {
     const body: Record<string, unknown> = { tickers, exchange };
     if (weights) body.weights = weights;
     const result = await apiClient.post<{ suggestions: RawRiskSuggestion[] }>(
       '/api/simulations/risk-score/suggest',
       body,
+      { signal: options?.signal },
     );
     if (result.success) {
       return {
@@ -491,9 +521,13 @@ export const simulationApi = {
     return result as ApiResult<IRiskSuggestion[]>;
   },
 
-  async getRiskBenchmarks(): Promise<ApiResult<Record<string, { label: string; score: number; description: string }>>> {
+  async getRiskBenchmarks(
+    options?: { signal?: AbortSignal },
+  ): Promise<ApiResult<Record<string, { label: string; score: number; description: string }>>> {
     const result = await apiClient.get<{ benchmarks: Record<string, Record<string, unknown>> }>(
       '/api/simulations/risk-score/benchmarks',
+      undefined,
+      { signal: options?.signal },
     );
     if (result.success) {
       const benchmarks: Record<string, { label: string; score: number; description: string }> = {};
@@ -511,6 +545,7 @@ export const simulationApi = {
 
   async submitRiskQuiz(
     answers: Array<{ questionId: number; answer: number }>,
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IRiskQuizResult>> {
     const body = {
       answers: answers.map((a) => ({
@@ -521,6 +556,7 @@ export const simulationApi = {
     const result = await apiClient.post<RawRiskQuizResult>(
       '/api/simulations/risk-score/quiz',
       body,
+      { signal: options?.signal },
     );
     if (result.success) {
       return { success: true, data: transformRiskQuizResult(result.data) };
@@ -536,6 +572,7 @@ export const simulationApi = {
     customParams?: Record<string, unknown>,
     weights?: number[],
     exchange: string = 'NSE',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IScenarioResult>> {
     const res = await apiClient.post<RawScenarioResult>('/api/simulations/scenarios/run', {
       tickers,
@@ -543,7 +580,7 @@ export const simulationApi = {
       exchange,
       scenario_id: scenarioId ?? null,
       custom_params: customParams ?? null,
-    });
+    }, { signal: options?.signal });
     if (res.success) {
       try {
         return { ...res, data: transformScenarioResult(res.data) };
@@ -555,8 +592,14 @@ export const simulationApi = {
     return res;
   },
 
-  async getScenarioPresets(): Promise<ApiResult<IScenarioPreset[]>> {
-    const res = await apiClient.get<{ presets: RawScenarioPreset[] }>('/api/simulations/scenarios/presets');
+  async getScenarioPresets(
+    options?: { signal?: AbortSignal },
+  ): Promise<ApiResult<IScenarioPreset[]>> {
+    const res = await apiClient.get<{ presets: RawScenarioPreset[] }>(
+      '/api/simulations/scenarios/presets',
+      undefined,
+      { signal: options?.signal },
+    );
     if (res.success) {
       return { ...res, data: res.data.presets.map(transformScenarioPreset) };
     }
@@ -569,12 +612,13 @@ export const simulationApi = {
     tickers: string[],
     weights?: number[],
     exchange: string = 'NSE',
+    options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IFactorDecomposition>> {
     const res = await apiClient.post<RawFactorDecomposition>('/api/simulations/factors/analyze', {
       tickers,
       weights: weights ?? null,
       exchange,
-    });
+    }, { signal: options?.signal });
     if (res.success) {
       try {
         return { ...res, data: transformFactorDecomposition(res.data) };
@@ -586,8 +630,14 @@ export const simulationApi = {
     return res;
   },
 
-  async getFactorUniverse(): Promise<ApiResult<IFactorDefinition[]>> {
-    const res = await apiClient.get<{ factors: RawFactorDefinition[] }>('/api/simulations/factors/universe');
+  async getFactorUniverse(
+    options?: { signal?: AbortSignal },
+  ): Promise<ApiResult<IFactorDefinition[]>> {
+    const res = await apiClient.get<{ factors: RawFactorDefinition[] }>(
+      '/api/simulations/factors/universe',
+      undefined,
+      { signal: options?.signal },
+    );
     if (res.success) {
       return { ...res, data: res.data.factors };
     }

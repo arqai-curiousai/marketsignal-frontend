@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { T, S } from '@/components/playground/pyramid/tokens';
@@ -309,8 +309,9 @@ export function PortfolioFlowHero({
     ? `+${(annualReturn * 100).toFixed(1)}%`
     : `${(annualReturn * 100).toFixed(1)}%`;
 
-  // Unique gradient IDs
-  const uid = useMemo(() => Math.random().toString(36).slice(2, 8), []);
+  // Unique gradient IDs (SSR-safe — useId is deterministic across server/client)
+  const rawId = useId();
+  const uid = rawId.replace(/:/g, '');
 
   if (sectorNodes.length === 0) {
     return null;

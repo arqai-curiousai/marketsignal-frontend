@@ -25,7 +25,6 @@
     "paths": {
       "@/*": [
         "./*",
-        "./src/lib/*",
         "./src/*"
       ],
       "@/types": [
@@ -45,7 +44,6 @@
     ".next/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules",
-    "components/ui/form.tsx"
+    "node_modules"
   ]
 }

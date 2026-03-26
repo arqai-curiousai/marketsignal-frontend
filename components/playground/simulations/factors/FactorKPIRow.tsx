@@ -3,6 +3,7 @@
 import React, { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { formatNumber } from '@/src/lib/exchange/formatting';
 import { T, S } from '@/components/playground/pyramid/tokens';
 
 // ─── Types ──────────────────────────────────────────────────────────
@@ -116,7 +117,7 @@ function computeKPIs(data: FactorKPIRowProps['data']): KPIItem[] {
     },
     {
       label: 'Data Quality',
-      value: `${dataQuality.toLocaleString('en-IN')} days`,
+      value: `${formatNumber(dataQuality)} days`,
     },
   ];
 }

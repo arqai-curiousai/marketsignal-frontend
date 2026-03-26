@@ -38,7 +38,7 @@ export function sectorAnalyticsToPyramidSectors(
       weight_pct: (sectorMcap / totalMcap) * 100,
       avg_change_pct: s.avg_change_pct,
       momentum_score: s.momentum_score,
-      performance: { ...s.performance } as Record<string, number>,
+      performance: { ...s.performance },
       stock_count: s.stock_count,
       stocks,
     };

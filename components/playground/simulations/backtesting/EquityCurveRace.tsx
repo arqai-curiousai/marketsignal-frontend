@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useId, useState, useMemo, useCallback } from 'react';
 import {
   ComposedChart,
   Line,
@@ -65,6 +65,7 @@ function RaceTooltip({
 // ─── Main Component ──────────────────────────────────────────────
 
 export function EquityCurveRace({ strategies, className }: Props) {
+  const gId = useId();
   const [hidden, setHidden] = useState<Set<string>>(new Set());
   const [animKey, setAnimKey] = useState(0);
   const [raceComplete, setRaceComplete] = useState(false);
@@ -212,7 +213,7 @@ export function EquityCurveRace({ strategies, className }: Props) {
             <defs>
               {strategies.map((s) => (
                 <React.Fragment key={`defs-${s.name}`}>
-                  <filter id={`glow-${s.name}`}>
+                  <filter id={`${gId}-glow-${s.name}`}>
                     <feGaussianBlur stdDeviation="3" result="blur" />
                     <feMerge>
                       <feMergeNode in="blur" />
@@ -220,14 +221,14 @@ export function EquityCurveRace({ strategies, className }: Props) {
                     </feMerge>
                   </filter>
                   {/* Gradient fill for winner */}
-                  <linearGradient id={`fill-${s.name}`} x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id={`${gId}-fill-${s.name}`} x1="0" y1="0" x2="0" y2="1">
                     <stop offset="0%" stopColor={strategyHex(s.name)} stopOpacity={0.15} />
                     <stop offset="100%" stopColor={strategyHex(s.name)} stopOpacity={0.0} />
                   </linearGradient>
                 </React.Fragment>
               ))}
               {/* Finish line gradient */}
-              <linearGradient id="finishGrad" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gId}-finishGrad`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
                 <stop offset="50%" stopColor="rgba(255,255,255,0.05)" />
                 <stop offset="100%" stopColor="rgba(255,255,255,0.15)" />
@@ -255,14 +256,17 @@ export function EquityCurveRace({ strategies, className }: Props) {
               onClick={handleLegendClick}
               wrapperStyle={{ fontSize: 10, cursor: 'pointer' }}
               formatter={(value: string) => (
-                <span
+                <button
+                  type="button"
                   className={cn(
-                    'text-[10px] font-mono',
+                    'text-[10px] font-mono bg-transparent border-none p-0 cursor-pointer',
                     hidden.has(value) ? 'text-white/20 line-through' : 'text-white/60',
                   )}
+                  aria-pressed={!hidden.has(value)}
+                  aria-label={`Toggle ${value} visibility`}
                 >
                   {value}
-                </span>
+                </button>
               )}
             />
 
@@ -299,7 +303,7 @@ export function EquityCurveRace({ strategies, className }: Props) {
               <Area
                 type="monotone"
                 dataKey={winner.label}
-                fill={`url(#fill-${winner.name})`}
+                fill={`url(#${gId}-fill-${winner.name})`}
                 stroke="none"
                 animationDuration={2500}
                 animationEasing="ease-out"
@@ -328,7 +332,7 @@ export function EquityCurveRace({ strategies, className }: Props) {
                   hide={hidden.has(s.label)}
                   animationDuration={2500}
                   animationEasing="ease-out"
-                  filter={isWinner ? `url(#glow-${s.name})` : undefined}
+                  filter={isWinner ? `url(#${gId}-glow-${s.name})` : undefined}
                 />
               );
             })}

@@ -111,11 +111,7 @@ export function ConvergencePlot({ convergence, qualityScore, className }: Props)
             />
             <YAxis
               yAxisId="std"
-              tick={AXIS_STYLE}
-              axisLine={false}
-              tickLine={false}
-              width={35}
-              tickFormatter={() => ''}
+              hide
               orientation="right"
             />
             <Tooltip content={<ConvTooltip />} />

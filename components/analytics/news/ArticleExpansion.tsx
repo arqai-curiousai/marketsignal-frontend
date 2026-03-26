@@ -3,9 +3,11 @@
 import React, { useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ExternalLink, Clock, X, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import * as FocusScope from '@radix-ui/react-focus-scope';
 import type { INewsArticle } from '@/types/analytics';
 import type { EntityData } from './hooks/useNewsData';
 import { getSentimentColor, THEME_COLORS, THEME_LABELS, formatTimeAgo } from './constants';
+import { sanitizeUrl } from '@/lib/security/xss';
 import { NewsFingerprint } from './NewsFingerprint';
 import { ImpactReplay } from './ImpactReplay';
 
@@ -44,7 +46,8 @@ export function ArticleExpansion({
   const handleKeyActions = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === 'o' && article?.url) {
-        window.open(article.url, '_blank', 'noopener');
+        const safe = sanitizeUrl(article.url);
+        if (safe) window.open(safe, '_blank', 'noopener');
       }
     },
     [article]
@@ -55,9 +58,7 @@ export function ArticleExpansion({
     return () => window.removeEventListener('keydown', handleKeyActions);
   }, [article, handleKeyActions]);
 
-  if (!article) return null;
-
-  const sentimentColor = getSentimentColor(article.sentiment, article.sentiment_score);
+  const sentimentColor = article ? getSentimentColor(article.sentiment, article.sentiment_score) : undefined;
 
   return (
     <AnimatePresence>
@@ -74,7 +75,11 @@ export function ArticleExpansion({
           />
 
           {/* Expanded card */}
+          <FocusScope.Root trapped asChild>
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={article.headline}
             layoutId={`article-${article.id}`}
             initial={{ opacity: 0, y: 40, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -291,7 +296,7 @@ export function ArticleExpansion({
               {/* Read full article link */}
               {article.url && (
                 <a
-                  href={article.url}
+                  href={sanitizeUrl(article.url) ?? '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-blue-400/60 hover:text-blue-400 transition-colors"
@@ -302,6 +307,7 @@ export function ArticleExpansion({
               )}
             </div>
           </motion.div>
+          </FocusScope.Root>
         </>
       )}
     </AnimatePresence>

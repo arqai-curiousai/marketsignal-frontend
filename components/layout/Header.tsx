@@ -1,12 +1,13 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu, DollarSign, Radar, Sun, Moon, Monitor, Search, Sparkles } from 'lucide-react';
+import { Activity, MessageSquare, Library, Settings, Shield, LogOut, FlaskConical, Menu, DollarSign, Radar, Sun, Moon, Sparkles } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { useTheme } from 'next-themes';
 import { ExchangeSelector } from '@/components/layout/ExchangeSelector';
 import {
     DropdownMenu,
@@ -42,24 +43,12 @@ export function Header() {
     const [scrolled, setScrolled] = useState(false);
     const isLanding = pathname === '/';
 
-    // Theme — cycle dark → light → system
-    const [currentTheme, setCurrentTheme] = useState('dark');
-    useEffect(() => {
-        setCurrentTheme(document.documentElement.classList.contains('dark') ? 'dark' : 'light');
-    }, []);
-    const ThemeIcon = currentTheme === 'dark' ? Moon : Sun;
-    const cycleTheme = useCallback(() => {
-        try {
-            const html = document.documentElement;
-            if (html.classList.contains('dark')) {
-                html.classList.remove('dark');
-                setCurrentTheme('light');
-            } else {
-                html.classList.add('dark');
-                setCurrentTheme('dark');
-            }
-        } catch { /* noop */ }
-    }, []);
+    // Theme — cycle dark → light via next-themes
+    const { theme, setTheme } = useTheme();
+    const ThemeIcon = theme === 'dark' ? Moon : Sun;
+    const cycleTheme = () => {
+        setTheme(theme === 'dark' ? 'light' : 'dark');
+    };
 
     useEffect(() => {
         if (!isLanding) return;
@@ -80,7 +69,7 @@ export function Header() {
                     {/* Mobile hamburger menu */}
                     <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                         <SheetTrigger asChild>
-                            <Button variant="ghost" size="sm" className="md:hidden p-2">
+                            <Button variant="ghost" size="sm" className="md:hidden p-2" aria-label="Open navigation menu">
                                 <Menu className="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
@@ -117,7 +106,7 @@ export function Header() {
                                     className="flex items-center gap-3 px-4 py-3 text-sm text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors w-full"
                                 >
                                     <ThemeIcon className="h-4 w-4" />
-                                    {currentTheme === 'dark' ? 'Light mode' : 'Dark mode'}
+                                    {theme === 'dark' ? 'Light mode' : 'Dark mode'}
                                 </button>
                                 <Link
                                     href="/legal"
@@ -202,17 +191,17 @@ export function Header() {
                         <ThemeIcon className="h-4 w-4" />
                     </Button>
 
-                    <Link href="/legal">
-                        <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white">
+                    <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-white" asChild>
+                        <Link href="/legal">
                             <Shield className="h-4 w-4 mr-2" />
                             Compliance
-                        </Button>
-                    </Link>
+                        </Link>
+                    </Button>
 
                     {isAuthenticated ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                <Button variant="ghost" className="relative h-8 w-8 rounded-full" aria-label="User menu">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={user?.avatar} alt={user?.name || 'User'} />
                                         <AvatarFallback>{user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}</AvatarFallback>
@@ -222,7 +211,7 @@ export function Header() {
                             <DropdownMenuContent className="w-56" align="end" forceMount>
                                 <DropdownMenuLabel className="font-normal">
                                     <div className="flex flex-col space-y-1">
-                                        <p className="text-sm font-medium leading-none">{user?.name || `${user?.firstName} ${user?.lastName}`}</p>
+                                        <p className="text-sm font-medium leading-none">{user?.name || `${user?.firstName ?? ''} ${user?.lastName ?? ''}`.trim() || 'User'}</p>
                                         <p className="text-xs leading-none text-muted-foreground">
                                             {user?.email}
                                         </p>

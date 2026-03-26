@@ -40,7 +40,7 @@ export function ExchangeSelector() {
         align="start"
         sideOffset={8}
       >
-        <div className="grid grid-cols-2 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5" role="listbox" aria-label="Select exchange">
           {EXCHANGE_CODES.map((code) => {
             const config = EXCHANGES[code];
             const isSelected = code === selectedExchange;
@@ -48,6 +48,8 @@ export function ExchangeSelector() {
             return (
               <button
                 key={code}
+                role="option"
+                aria-selected={isSelected && isActive}
                 onClick={() => isActive && handleSelect(code)}
                 disabled={!isActive}
                 className={cn(

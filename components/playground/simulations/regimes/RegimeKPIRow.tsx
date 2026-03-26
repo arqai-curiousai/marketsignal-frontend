@@ -1,45 +1,13 @@
 'use client';
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import { cn } from '@/lib/utils';
 import type { IRegimeAnalysis } from '@/types/simulation';
 import { getRegimeColor, fmtProb, fmtDays } from './regime-tokens';
-import { T } from '@/components/playground/pyramid/tokens';
+import { SimKPIStrip, type SimKPI } from '../shared/SimKPIStrip';
+import { formatNumber } from '@/src/lib/exchange/formatting';
 
 interface Props {
   data: IRegimeAnalysis;
   className?: string;
-}
-
-interface KPIBadgeProps {
-  label: string;
-  value: string;
-  color?: 'default' | 'regime';
-  regimeHex?: string;
-  index: number;
-}
-
-function KPIBadge({ label, value, color = 'default', regimeHex, index }: KPIBadgeProps) {
-  return (
-    <motion.div
-      className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.04]"
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.05 + 0.1, type: 'spring', stiffness: 150, damping: 20 }}
-    >
-      <span className={cn(T.badge, 'text-white/35 uppercase tracking-wider')}>{label}</span>
-      <span
-        className={cn(
-          'text-sm font-semibold tabular-nums font-mono',
-          color === 'regime' ? '' : 'text-white/80',
-        )}
-        style={color === 'regime' && regimeHex ? { color: regimeHex } : undefined}
-      >
-        {value}
-      </span>
-    </motion.div>
-  );
 }
 
 export function RegimeKPIRow({ data, className }: Props) {
@@ -55,12 +23,11 @@ export function RegimeKPIRow({ data, className }: Props) {
     }
   }
 
-  const kpis = [
+  const kpis: SimKPI[] = [
     {
       label: 'Current Regime',
       value: currentColor.label,
-      color: 'regime' as const,
-      regimeHex: currentColor.hex,
+      colorHex: currentColor.hex,
     },
     {
       label: 'Confidence',
@@ -80,22 +47,9 @@ export function RegimeKPIRow({ data, className }: Props) {
     },
     {
       label: 'Data Points',
-      value: data.dataPoints.toLocaleString('en-IN'),
+      value: formatNumber(data.dataPoints),
     },
   ];
 
-  return (
-    <div className={cn('grid grid-cols-3 sm:grid-cols-6 gap-2', className)}>
-      {kpis.map((kpi, i) => (
-        <KPIBadge
-          key={kpi.label}
-          label={kpi.label}
-          value={kpi.value}
-          color={kpi.color}
-          regimeHex={kpi.regimeHex}
-          index={i}
-        />
-      ))}
-    </div>
-  );
+  return <SimKPIStrip kpis={kpis} className={className} />;
 }

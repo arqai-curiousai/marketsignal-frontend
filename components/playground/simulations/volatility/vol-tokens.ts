@@ -103,6 +103,6 @@ export function fmtPctl(value: number | null | undefined): string {
   return `P${Math.round(value * 100)}`;
 }
 
-export function getRegimeConfig(regime: VolRegimeLevel | string) {
+export function getRegimeConfig(regime: VolRegimeLevel | string): (typeof VOL_REGIME)[VolRegimeLevel] {
   return VOL_REGIME[regime as VolRegimeLevel] ?? VOL_REGIME.moderate;
 }

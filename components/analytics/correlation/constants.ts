@@ -247,13 +247,13 @@ const NYSE_QUICK_GROUPS = [
 const LSE_QUICK_GROUPS = [
   { label: 'Energy', tickers: ['SHEL', 'BP'] },
   { label: 'Banks', tickers: ['HSBA', 'LLOY', 'BARC', 'PRU'] },
-  { label: 'Mining', tickers: ['RIO', 'BHP', 'GLEN', 'AAL'] },
+  { label: 'Mining', tickers: ['RIO', 'BHP', 'GLEN'] },
   { label: 'Consumer', tickers: ['ULVR', 'DGE', 'BATS', 'TSCO'] },
 ];
 
 const SGX_QUICK_GROUPS = [
   { label: 'Banks', tickers: ['D05', 'O39', 'U11'] },
-  { label: 'REITs', tickers: ['C38U', 'A17U', 'ME8U'] },
+  { label: 'REITs', tickers: ['C38U', 'A17U'] },
   { label: 'Industrials', tickers: ['BN4', 'S58', 'C6L', 'BS6'] },
 ];
 

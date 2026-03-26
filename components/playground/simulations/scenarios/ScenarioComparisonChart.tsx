@@ -20,7 +20,7 @@ interface MetricRow {
 }
 
 function fmtVal(v: number): string {
-  return `${v >= 0 ? '' : ''}${v.toFixed(1)}%`;
+  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`;
 }
 
 function deltaColor(baseline: number, stressed: number, worseMeansHigher: boolean): string {

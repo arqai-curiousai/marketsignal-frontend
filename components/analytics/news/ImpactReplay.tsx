@@ -99,9 +99,6 @@ export function ImpactReplay({ impact, ticker, priceSeries }: ImpactReplayProps)
 
   return (
     <div className="relative">
-      <div className="text-[10px] uppercase tracking-wider text-white/25 mb-1.5">
-        Impact Replay
-      </div>
       <div
         className="rounded-lg border border-white/[0.06] bg-white/[0.02] p-2 cursor-pointer"
         onClick={() => setIsPlaying(true)}

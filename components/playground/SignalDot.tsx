@@ -3,10 +3,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import type { PlaygroundSignal } from '@/types/playground';
+import type { StrategySignal } from '@/types/strategy';
 
 interface SignalDotProps {
-  signal: PlaygroundSignal;
+  signal: StrategySignal;
   size?: 'sm' | 'md' | 'lg';
   pulse?: boolean;
   className?: string;
@@ -18,13 +18,13 @@ const sizeMap = {
   lg: 'h-5 w-5',
 };
 
-const colorMap: Record<PlaygroundSignal, string> = {
+const colorMap: Record<StrategySignal, string> = {
   buy: 'bg-green-400 shadow-green-400/50',
   sell: 'bg-red-400 shadow-red-400/50',
   hold: 'bg-white shadow-white/30',
 };
 
-const pulseColorMap: Record<PlaygroundSignal, string> = {
+const pulseColorMap: Record<StrategySignal, string> = {
   buy: 'bg-green-400/40',
   sell: 'bg-red-400/40',
   hold: 'bg-white/30',

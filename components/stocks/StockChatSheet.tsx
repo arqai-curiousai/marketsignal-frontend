@@ -23,9 +23,6 @@ export function StockChatSheet({ isOpen, onClose, stock }: StockChatSheetProps) 
 
     const initialMessage = `Hello! I see you're interested in ${stock.ticker} (${stock.name}). I can help you analyze its recent price action, ${stock.sector} sector trends, or technical signals. What would you like to know?`;
 
-    // Context to potentially pass to AI (if supported by backend later)
-    const context = `Context: User is asking about stock ${stock.ticker} (${stock.name}) on exchange ${stock.exchange}. Last price: ${stock.lastPrice}.`;
-
     return (
         <Sheet open={isOpen} onOpenChange={(open) => !open && onClose()}>
             {/* Custom overlay with no background/blur to avoid overpowering the UI */}
@@ -55,8 +52,8 @@ export function StockChatSheet({ isOpen, onClose, stock }: StockChatSheetProps) 
                 <div className="flex-1 overflow-hidden bg-transparent">
                     {/* Reusing existing ChatWindow with stock-specific context */}
                     <ChatWindow
+                        key={stock.ticker}
                         initialMessage={initialMessage}
-                        initialContext={context}
                     />
                 </div>
             </SheetContent>

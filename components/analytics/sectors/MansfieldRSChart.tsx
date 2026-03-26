@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 import {
   ResponsiveContainer,
   AreaChart,
@@ -21,6 +21,7 @@ interface MansfieldRSChartProps {
 }
 
 export function MansfieldRSChart({ data, sectorColor }: MansfieldRSChartProps) {
+  const gradientId = useId();
   const chartData = data.dates.map((date, i) => ({
     date: date.slice(5),
     rs: data.mansfield_rs[i],
@@ -30,7 +31,7 @@ export function MansfieldRSChart({ data, sectorColor }: MansfieldRSChartProps) {
   const stageColor = MANSFIELD_STAGE_COLORS[data.stage] ?? '#94A3B8';
   const stageLabel = MANSFIELD_STAGE_LABELS[data.stage] ?? data.stage;
   const latestRS = data.mansfield_rs.length > 0 ? data.mansfield_rs[data.mansfield_rs.length - 1] : 0;
-  const areaFill = latestRS >= 0 ? 'url(#mansfield-pos)' : 'url(#mansfield-neg)';
+  const areaFill = latestRS >= 0 ? `url(#${gradientId}-pos)` : `url(#${gradientId}-neg)`;
 
   return (
     <div>
@@ -53,11 +54,11 @@ export function MansfieldRSChart({ data, sectorColor }: MansfieldRSChartProps) {
       <ResponsiveContainer width="100%" height={130}>
         <AreaChart data={chartData} margin={{ top: 5, right: 5, bottom: 0, left: -10 }}>
           <defs>
-            <linearGradient id="mansfield-pos" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${gradientId}-pos`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
               <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
             </linearGradient>
-            <linearGradient id="mansfield-neg" x1="0" y1="1" x2="0" y2="0">
+            <linearGradient id={`${gradientId}-neg`} x1="0" y1="1" x2="0" y2="0">
               <stop offset="0%" stopColor="#EF4444" stopOpacity={0.3} />
               <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
             </linearGradient>

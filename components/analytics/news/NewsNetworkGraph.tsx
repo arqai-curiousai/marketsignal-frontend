@@ -164,8 +164,8 @@ export function NewsNetworkGraph({
     for (const e of edges) {
       if (!map.has(e.source)) map.set(e.source, new Set());
       if (!map.has(e.target)) map.set(e.target, new Set());
-      map.get(e.source)!.add(e.target);
-      map.get(e.target)!.add(e.source);
+      map.get(e.source)?.add(e.target);
+      map.get(e.target)?.add(e.source);
     }
     return map;
   }, [edges]);
@@ -508,6 +508,7 @@ export function NewsNetworkGraph({
           onClick={() => setShowInsights((v) => !v)}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title={showInsights ? 'Hide insights' : 'Show insights'}
+          aria-label={showInsights ? 'Hide insights' : 'Show insights'}
         >
           {showInsights ? <PanelLeftClose className="h-3.5 w-3.5" /> : <PanelLeftOpen className="h-3.5 w-3.5" />}
         </button>
@@ -515,6 +516,7 @@ export function NewsNetworkGraph({
           onClick={() => setZoom((z) => Math.min(z + 0.2, 3))}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Zoom in"
+          aria-label="Zoom in"
         >
           <ZoomIn className="h-3.5 w-3.5" />
         </button>
@@ -522,6 +524,7 @@ export function NewsNetworkGraph({
           onClick={() => setZoom((z) => Math.max(z - 0.2, 0.3))}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Zoom out"
+          aria-label="Zoom out"
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </button>
@@ -529,6 +532,7 @@ export function NewsNetworkGraph({
           onClick={resetView}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Reset view"
+          aria-label="Reset view"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
@@ -536,6 +540,7 @@ export function NewsNetworkGraph({
           onClick={toggleFullscreen}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
         >
           {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
@@ -548,6 +553,7 @@ export function NewsNetworkGraph({
           <button
             onClick={() => setFocusNode(null)}
             className="p-0.5 rounded-full hover:bg-white/10 transition-colors"
+            aria-label="Dismiss focus"
           >
             <X className="h-3 w-3" />
           </button>
@@ -577,6 +583,8 @@ export function NewsNetworkGraph({
         ref={svgRef}
         width={dimensions.width}
         height={dimensions.height}
+        role="img"
+        aria-label="News topic network graph"
         className="cursor-grab active:cursor-grabbing touch-none"
         onMouseDown={(e) => {
           if (!dragging) {

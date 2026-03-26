@@ -5,11 +5,11 @@ import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { SignalOrb, SignalType } from './SignalOrb';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatPriceByCurrency } from '@/lib/exchange/formatting';
 
 interface StockListItemProps {
     ticker: string;
     name: string;
-    exchange: string;
     signal: SignalType | null;
     price?: number | null;
     change?: number | null;
@@ -26,10 +26,9 @@ interface StockListItemProps {
  *
  * Detailed list view offering more precision and scannability.
  */
-export function StockListItem({
+export const StockListItem = React.memo(function StockListItem({
     ticker,
     name,
-    exchange: _exchange,
     signal,
     price,
     change,
@@ -51,30 +50,16 @@ export function StockListItem({
         sell: 'border-l-4 border-l-red-500',
     };
 
-    const getCurrencySymbol = (curr: string) => {
-        switch (curr?.toUpperCase()) {
-            case 'INR': return '₹';
-            case 'EUR': return '€';
-            case 'GBP': return '£';
-            case 'JPY': return '¥';
-            default: return '$';
-        }
-    };
-
-    const formatPrice = (p: number) => {
-        return new Intl.NumberFormat('en-IN', {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2,
-        }).format(p);
-    };
-
     return (
         <motion.div
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             whileHover={{ scale: 1.002, backgroundColor: 'rgba(255, 255, 255, 0.03)' }}
             transition={{ duration: 0.15 }}
+            role="button"
+            tabIndex={0}
             onClick={onSelect}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(); } }}
             className={cn(
                 "group flex items-center justify-between px-4 py-3 rounded-lg bg-white/[0.03] border border-white/[0.06] cursor-pointer transition-all hover:border-white/10",
                 signal ? signalBorderClass[signal] : 'border-l-4 border-l-transparent',
@@ -125,7 +110,7 @@ export function StockListItem({
                     {price != null ? (
                         <>
                             <div className="font-mono font-medium text-white text-sm">
-                                {getCurrencySymbol(currency)}{formatPrice(price)}
+                                {formatPriceByCurrency(price, currency)}
                             </div>
                             <div className={cn(
                                 "flex items-center justify-end gap-1 text-xs font-medium",
@@ -153,7 +138,7 @@ export function StockListItem({
                             onSelect?.();
                         }}
                         className="p-1.5 rounded-md bg-white/5 hover:bg-white/10 text-muted-foreground hover:text-white transition-colors"
-                        title="View Chart"
+                        aria-label="View Chart"
                     >
                         <TrendingUp className="h-3.5 w-3.5" />
                     </button>
@@ -161,6 +146,6 @@ export function StockListItem({
             </div>
         </motion.div>
     );
-}
+});
 
 export default StockListItem;

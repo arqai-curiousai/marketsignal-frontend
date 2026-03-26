@@ -17,7 +17,6 @@ import { signalColor, layerColor, T, S, fmtPct } from './tokens';
 interface SignalPyramidMobileProps {
   layers: Record<string, ILayerResult>;
   finalSignal: StrategySignal;
-  finalConfidence: number;
   selectedLayer: string | null;
   onLayerClick: (layerId: string) => void;
 }
@@ -68,7 +67,6 @@ function ConfidenceBar({
 export function SignalPyramidMobile({
   layers,
   finalSignal,
-  finalConfidence: _finalConfidence,
   selectedLayer,
   onLayerClick,
 }: SignalPyramidMobileProps) {

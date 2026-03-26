@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Briefcase, ChevronRight } from 'lucide-react';
+import { Briefcase } from 'lucide-react';
 import { getPortfolioNews } from '@/src/lib/api/analyticsApi';
 import type { IPortfolioTickerDigest } from '@/src/lib/api/analyticsApi';
 import { getSentimentColor } from './constants';
@@ -27,25 +27,35 @@ export function PortfolioNewsPanel({ exchange, onTickerFilter }: PortfolioNewsPa
   const [activeTicker, setActiveTicker] = useState<string | null>(null);
   const fetchedAt = useRef(0);
 
-  const fetchData = useCallback(async () => {
+  const fetchControllerRef = useRef<AbortController | null>(null);
+
+  const fetchData = useCallback(async (signal?: AbortSignal) => {
     // Respect cache
     if (Date.now() - fetchedAt.current < CACHE_MS) return;
     setLoading(true);
     try {
-      const res = await getPortfolioNews(exchange, 24);
+      const res = await getPortfolioNews(exchange, 24, signal);
+      if (signal?.aborted) return;
       if (res.success && res.data?.tickers) {
         setTickers(res.data.tickers);
         fetchedAt.current = Date.now();
       }
     } catch {
-      // silent — auth may fail if not logged in
+      // Auth failures are expected when not logged in — clear tickers gracefully
+      setTickers([]);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
     }
   }, [exchange]);
 
   useEffect(() => {
-    fetchData();
+    fetchControllerRef.current?.abort();
+    const controller = new AbortController();
+    fetchControllerRef.current = controller;
+    fetchData(controller.signal);
+    return () => controller.abort();
   }, [fetchData]);
 
   const handleTickerClick = useCallback(

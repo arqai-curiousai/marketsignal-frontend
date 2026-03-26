@@ -28,7 +28,7 @@ function NetBar({ value, maxAbs }: { value: number; maxAbs: number }) {
   const isPositive = value >= 0;
 
   return (
-    <div className="flex items-center gap-1 h-4">
+    <div className="flex items-center gap-1 h-4" role="img" aria-label={`Net position: ${value >= 0 ? '+' : ''}${(value / 1000).toFixed(1)}K contracts, ${isPositive ? 'long' : 'short'}`}>
       {/* Negative side */}
       <div className="flex-1 flex justify-end">
         {!isPositive && (
@@ -153,7 +153,7 @@ function CurrencyRow({ data, maxNetAbs }: { data: ICotCurrencyData; maxNetAbs: n
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 
-export function CotDashboard() {
+export function CotDashboard({ refreshTrigger }: { refreshTrigger?: number }) {
   const [data, setData] = useState<ICotDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -174,7 +174,7 @@ export function CotDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshTrigger]);
 
   if (loading && !data) {
     return <Skeleton className="h-64 w-full rounded-xl" />;

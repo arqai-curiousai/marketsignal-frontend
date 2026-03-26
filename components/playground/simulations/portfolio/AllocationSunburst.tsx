@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useId, useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from 'recharts';
 import { cn } from '@/lib/utils';
@@ -30,52 +30,63 @@ interface StockSlice {
 
 // ─── Active sector shape (for hover) ────────────────────────────
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ActiveSectorShape(props: any) {
-  const {
-    cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill,
-  } = props as {
-    cx: number; cy: number; innerRadius: number; outerRadius: number;
-    startAngle: number; endAngle: number; fill: string;
-  };
+interface ActiveSectorShapeProps {
+  cx: number;
+  cy: number;
+  innerRadius: number;
+  outerRadius: number;
+  startAngle: number;
+  endAngle: number;
+  fill: string;
+}
 
-  return (
-    <g>
-      <defs>
-        <filter id="sector-glow" x="-50%" y="-50%" width="200%" height="200%">
-          <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
-          <feColorMatrix
-            in="blur"
-            type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.6 0"
-            result="glow"
-          />
-          <feMerge>
-            <feMergeNode in="glow" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <Sector
-        cx={cx}
-        cy={cy}
-        innerRadius={innerRadius}
-        outerRadius={(outerRadius as number) + 4}
-        startAngle={startAngle}
-        endAngle={endAngle}
-        fill={fill}
-        opacity={0.9}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        {...({ filter: 'url(#sector-glow)' } as any)}
-      />
-    </g>
-  );
+function createActiveSectorShape(filterId: string) {
+  return function ActiveSectorShape(rawProps: unknown) {
+    const props = rawProps as ActiveSectorShapeProps;
+    const {
+      cx, cy, innerRadius, outerRadius, startAngle, endAngle, fill,
+    } = props;
+
+    return (
+      <g>
+        <defs>
+          <filter id={filterId} x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+            <feColorMatrix
+              in="blur"
+              type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.6 0"
+              result="glow"
+            />
+            <feMerge>
+              <feMergeNode in="glow" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
+        <Sector
+          cx={cx}
+          cy={cy}
+          innerRadius={innerRadius}
+          outerRadius={outerRadius + 4}
+          startAngle={startAngle}
+          endAngle={endAngle}
+          fill={fill}
+          opacity={0.9}
+          filter={`url(#${filterId})`}
+        />
+      </g>
+    );
+  };
 }
 
 // ─── Main Component ─────────────────────────────────────────────
 
 export function AllocationSunburst({ strategy, sectors, onCycleStrategy, className }: Props) {
+  const gId = useId();
   const [activeInnerIndex, setActiveInnerIndex] = useState<number | null>(null);
+
+  const activeSectorShape = useMemo(() => createActiveSectorShape(`${gId}-sector-glow`), [gId]);
 
   // Build sector aggregation
   const { sectorSlices, stockSlices } = useMemo(() => {
@@ -149,7 +160,7 @@ export function AllocationSunburst({ strategy, sectors, onCycleStrategy, classNa
               animationDuration={800}
               animationEasing="ease-out"
               activeIndex={activeInnerIndex ?? undefined}
-              activeShape={ActiveSectorShape}
+              activeShape={activeSectorShape}
               onMouseEnter={(_, index) => setActiveInnerIndex(index)}
               onMouseLeave={() => setActiveInnerIndex(null)}
             >
@@ -196,7 +207,7 @@ export function AllocationSunburst({ strategy, sectors, onCycleStrategy, classNa
           type="button"
           className="absolute inset-0 flex flex-col items-center justify-center cursor-pointer group"
           onClick={onCycleStrategy}
-          title="Click to cycle strategy"
+          aria-label="Click to cycle strategy"
         >
           <AnimatePresence mode="wait">
             <motion.div

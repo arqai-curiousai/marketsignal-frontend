@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, GitBranch, ExternalLink, Clock } from 'lucide-react';
+import { X, GitBranch, Clock } from 'lucide-react';
+import * as FocusScope from '@radix-ui/react-focus-scope';
 import type { IStoryArc } from '@/types/analytics';
 import { THEME_COLORS, THEME_LABELS, formatTimeAgo, getSentimentColor } from './constants';
 
@@ -28,15 +29,18 @@ const PHASE_ORDER = ['breaking', 'developing', 'analysis', 'reaction', 'conclude
  * sentiment dots, and phase transition markers.
  */
 export function StoryThread({ story, open, onClose }: StoryThreadProps) {
-  if (!story) return null;
-
-  const themeColor = THEME_COLORS[story.primary_theme] || '#94A3B8';
-  const phase = PHASE_LABELS[story.story_phase] || PHASE_LABELS.developing;
-  const currentPhaseIdx = PHASE_ORDER.indexOf(story.story_phase);
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    if (open) window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [open, onClose]);
 
   // Build sentiment sparkline from trajectory
   const sparkline = useMemo(() => {
-    if (!story.sentiment_trajectory || story.sentiment_trajectory.length < 2) return '';
+    if (!story?.sentiment_trajectory || story.sentiment_trajectory.length < 2) return '';
     const w = 280;
     const h = 32;
     const pad = 4;
@@ -49,13 +53,19 @@ export function StoryThread({ story, open, onClose }: StoryThreadProps) {
         return `${i === 0 ? 'M' : 'L'} ${x.toFixed(1)} ${y.toFixed(1)}`;
       })
       .join(' ');
-  }, [story.sentiment_trajectory]);
+  }, [story?.sentiment_trajectory]);
 
   // Avg sentiment for sparkline color
   const avgSent = useMemo(() => {
-    if (!story.sentiment_trajectory?.length) return 0;
+    if (!story?.sentiment_trajectory?.length) return 0;
     return story.sentiment_trajectory.reduce((s, p) => s + p.score, 0) / story.sentiment_trajectory.length;
-  }, [story.sentiment_trajectory]);
+  }, [story?.sentiment_trajectory]);
+
+  if (!story) return null;
+
+  const themeColor = THEME_COLORS[story.primary_theme] || '#94A3B8';
+  const phase = PHASE_LABELS[story.story_phase] || PHASE_LABELS.developing;
+  const currentPhaseIdx = PHASE_ORDER.indexOf(story.story_phase);
 
   return (
     <AnimatePresence>
@@ -71,7 +81,11 @@ export function StoryThread({ story, open, onClose }: StoryThreadProps) {
           />
 
           {/* Slide-over panel */}
+          <FocusScope.Root trapped asChild>
           <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-label={story ? `Story Thread: ${story.story_label}` : 'Story Thread'}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -88,6 +102,7 @@ export function StoryThread({ story, open, onClose }: StoryThreadProps) {
                 <button
                   onClick={onClose}
                   className="text-white/30 hover:text-white/60 p-1"
+                  aria-label="Close story thread"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -286,6 +301,7 @@ export function StoryThread({ story, open, onClose }: StoryThreadProps) {
               </div>
             </div>
           </motion.div>
+          </FocusScope.Root>
         </>
       )}
     </AnimatePresence>

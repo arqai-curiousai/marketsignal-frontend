@@ -6,7 +6,7 @@ const API_BASE = BACKEND_URL;
 
 export async function POST(_request: NextRequest) {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const accessToken = cookieStore.get('access_token');
 
         // Calls backend logout to invalidate session if needed
@@ -18,6 +18,8 @@ export async function POST(_request: NextRequest) {
                     headers: {
                         'Cookie': `access_token=${accessToken.value}`,
                     },
+                    cache: 'no-store',
+                    signal: AbortSignal.timeout(15_000),
                 });
             }
         } catch (e) {
@@ -26,9 +28,9 @@ export async function POST(_request: NextRequest) {
 
         const response = NextResponse.json({ message: 'Logged out successfully' });
 
-        // Clear cookies
-        response.cookies.delete('access_token');
-        response.cookies.delete('refresh_token');
+        // Clear cookies with explicit attributes for reliable deletion
+        response.cookies.set('access_token', '', { maxAge: 0, httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
+        response.cookies.set('refresh_token', '', { maxAge: 0, httpOnly: true, secure: true, sameSite: 'lax', path: '/' });
 
         return response;
     } catch (error) {

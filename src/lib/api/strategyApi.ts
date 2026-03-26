@@ -172,7 +172,8 @@ function transformFeatureInspection(raw: RawFeatureInspection): IFeatureInspecti
 
 export async function getDashboard(
   exchange?: string,
-  ticker?: string
+  ticker?: string,
+  signal?: AbortSignal
 ): Promise<ApiResult<IStrategyDashboard>> {
   const params: Record<string, string | undefined> = {};
   if (exchange) params.exchange = exchange;
@@ -183,7 +184,7 @@ export async function getDashboard(
     recent_outcomes: RawStrategySignal[];
     performance: RawStrategyPerformance[];
     pipeline_health: Record<string, boolean>;
-  }>('/api/playground/strategy/dashboard', params);
+  }>('/api/playground/strategy/dashboard', params, { signal });
 
   if (!result.success) return result;
 
@@ -198,76 +199,18 @@ export async function getDashboard(
   };
 }
 
-export async function getSignals(params?: {
-  ticker?: string;
-  signal?: string;
-  page?: number;
-  pageSize?: number;
-}): Promise<ApiResult<{ items: IStrategySignal[]; total: number }>> {
-  const result = await apiClient.get<{
-    items: RawStrategySignal[];
-    total: number;
-  }>('/api/playground/strategy/signals', {
-    ticker: params?.ticker,
-    signal: params?.signal,
-    page: params?.page || 1,
-    page_size: params?.pageSize || 20,
-  });
-
-  if (!result.success) return result;
-
-  return {
-    success: true,
-    data: {
-      items: result.data.items.map(transformSignal),
-      total: result.data.total,
-    },
-  };
-}
-
-export async function getSignalHistory(
-  ticker: string,
-  limit?: number
-): Promise<ApiResult<IStrategySignal[]>> {
-  const params: Record<string, string | number | undefined> = {};
-  if (limit) params.limit = limit;
-
-  const result = await apiClient.get<RawStrategySignal[]>(
-    `/api/playground/strategy/signals/${ticker}`,
-    params
-  );
-
-  if (!result.success) return result;
-  return { success: true, data: result.data.map(transformSignal) };
-}
-
-export async function getPerformance(): Promise<ApiResult<IStrategyPerformance[]>> {
-  const result = await apiClient.get<RawStrategyPerformance[]>(
-    '/api/playground/strategy/performance'
-  );
-
-  if (!result.success) return result;
-  return { success: true, data: result.data.map(transformPerformance) };
-}
-
 export async function getFeatures(
-  ticker: string
+  ticker: string,
+  signal?: AbortSignal
 ): Promise<ApiResult<IFeatureInspection>> {
   const result = await apiClient.get<RawFeatureInspection>(
-    `/api/playground/strategy/features/${ticker}`
+    `/api/playground/strategy/features/${ticker}`,
+    undefined,
+    { signal }
   );
 
   if (!result.success) return result;
   return { success: true, data: transformFeatureInspection(result.data) };
-}
-
-export async function triggerRun(
-  exchange?: string
-): Promise<ApiResult<{ tickers_processed: number; signals_created: number }>> {
-  const url = exchange
-    ? `/api/playground/strategy/run?exchange=${encodeURIComponent(exchange)}`
-    : '/api/playground/strategy/run';
-  return apiClient.post(url, undefined);
 }
 
 // =============================================================================
@@ -276,11 +219,7 @@ export async function triggerRun(
 
 export const strategyApi = {
   getDashboard,
-  getSignals,
-  getSignalHistory,
-  getPerformance,
   getFeatures,
-  triggerRun,
 };
 
 export default strategyApi;

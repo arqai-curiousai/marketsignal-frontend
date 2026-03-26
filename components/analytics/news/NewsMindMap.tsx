@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { hierarchy, tree as d3Tree, type HierarchyPointNode } from 'd3-hierarchy';
+import { hierarchy, tree as d3Tree, type HierarchyPointNode, type HierarchyNode } from 'd3-hierarchy';
 import { Loader2, Search, ZoomIn, ZoomOut, Maximize2, Minimize2, RotateCcw } from 'lucide-react';
 import type { INewsMindMapNode } from '@/types/analytics';
 import { cn } from '@/lib/utils';
@@ -210,7 +210,8 @@ export function NewsMindMap({
       const d = allNodes[di];
       const depth = d.depth;
       if (!byDepth.has(depth)) byDepth.set(depth, []);
-      byDepth.get(depth)!.push(d);
+      const arr = byDepth.get(depth);
+      if (arr) arr.push(d);
     }
     const depthGroups = Array.from(byDepth.values());
     for (let gi = 0; gi < depthGroups.length; gi++) {
@@ -227,7 +228,7 @@ export function NewsMindMap({
     }
 
     return root;
-  }, [prunedTree, dimensions]);
+  }, [prunedTree, dimensions, isFullscreen]);
 
   // Ancestor path set for hovered node (highlight root-to-node path)
   const hoveredPath = useMemo(() => {
@@ -235,8 +236,7 @@ export function NewsMindMap({
     const found = layout.descendants().find((d) => d.data.id === hoveredNode);
     if (!found) return new Set<string>();
     const pathIds = new Set<string>();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let current: any = found;
+    let current: HierarchyNode<TreeNode> | null = found;
     while (current) {
       pathIds.add(current.data.id);
       current = current.parent;
@@ -325,6 +325,7 @@ export function NewsMindMap({
                 }}
                 onFocus={() => setShowSearch(true)}
                 placeholder="Search ticker..."
+                aria-label="Search ticker"
                 className="bg-transparent text-xs text-white placeholder:text-muted-foreground outline-none flex-1"
               />
             </div>
@@ -382,6 +383,7 @@ export function NewsMindMap({
           onClick={() => setMapZoom((z) => Math.min(z + 0.2, 2.5))}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Zoom in"
+          aria-label="Zoom in"
         >
           <ZoomIn className="h-3.5 w-3.5" />
         </button>
@@ -389,6 +391,7 @@ export function NewsMindMap({
           onClick={() => setMapZoom((z) => Math.max(z - 0.2, 0.4))}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Zoom out"
+          aria-label="Zoom out"
         >
           <ZoomOut className="h-3.5 w-3.5" />
         </button>
@@ -396,6 +399,7 @@ export function NewsMindMap({
           onClick={resetView}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title="Reset view"
+          aria-label="Reset view"
         >
           <RotateCcw className="h-3.5 w-3.5" />
         </button>
@@ -403,6 +407,7 @@ export function NewsMindMap({
           onClick={toggleFullscreen}
           className="p-1.5 rounded-md bg-white/5 border border-white/10 text-muted-foreground hover:text-white hover:bg-white/10 transition-colors"
           title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+          aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
         >
           {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
         </button>
@@ -438,6 +443,8 @@ export function NewsMindMap({
         ref={svgRef}
         width={dimensions.width}
         height={dimensions.height}
+        role="img"
+        aria-label="News topic mind map"
         className="cursor-grab active:cursor-grabbing touch-none"
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyVolatility } from '@/src/lib/api/analyticsApi';
@@ -61,6 +61,12 @@ export function CurrencyVolatility({ pair }: Props) {
   }, [pair]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Pre-compute max RV outside the per-bar render callback to avoid O(N^2)
+  const maxRv = useMemo(() => {
+    if (!data?.term_structure?.length) return 1;
+    return Math.max(...data.term_structure.map(t => t.rv), 1);
+  }, [data?.term_structure]);
 
   if (loading && !data) {
     return <div className="space-y-3"><Skeleton className="h-48" /><Skeleton className="h-48" /></div>;
@@ -133,7 +139,6 @@ export function CurrencyVolatility({ pair }: Props) {
         <h3 className="text-sm font-semibold mb-3">Volatility Term Structure</h3>
         <div className="flex items-end gap-2 h-48">
           {data.term_structure.map((ts, i) => {
-            const maxRv = Math.max(...data.term_structure.map(t => t.rv), 1);
             const height = (ts.rv / maxRv) * 100;
             const isInverted = i > 0 && ts.rv < data.term_structure[i - 1].rv;
             return (

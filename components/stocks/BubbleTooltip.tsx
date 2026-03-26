@@ -3,6 +3,8 @@
 import React from 'react';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { formatPriceCompact } from '@/lib/exchange/formatting';
+import type { ExchangeCode } from '@/lib/exchange/config';
 
 interface BubbleTooltipProps {
   ticker: string;
@@ -13,6 +15,7 @@ interface BubbleTooltipProps {
   x: number;
   y: number;
   visible: boolean;
+  exchange?: ExchangeCode;
 }
 
 export function BubbleTooltip({
@@ -24,6 +27,7 @@ export function BubbleTooltip({
   x,
   y,
   visible,
+  exchange = 'NSE',
 }: BubbleTooltipProps) {
   if (!visible) return null;
 
@@ -55,7 +59,7 @@ export function BubbleTooltip({
         <div className="flex items-center justify-between text-xs">
           <span className="text-muted-foreground">Price</span>
           <span className="font-semibold text-white">
-            {lastPrice != null ? `₹${lastPrice.toLocaleString()}` : '—'}
+            {lastPrice != null ? formatPriceCompact(lastPrice, exchange) : '—'}
           </span>
         </div>
         <div className="flex items-center justify-between text-xs mt-0.5">

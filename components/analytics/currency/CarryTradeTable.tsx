@@ -60,7 +60,7 @@ function SortIcon({ field, sortField, sortDir }: { field: SortField; sortField: 
   );
 }
 
-export function CarryTradeTable() {
+export function CarryTradeTable({ refreshTrigger }: { refreshTrigger?: number }) {
   const [data, setData] = useState<ICurrencyCarry | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -88,7 +88,7 @@ export function CarryTradeTable() {
 
   useEffect(() => {
     fetchData(category);
-  }, [category, fetchData]);
+  }, [category, fetchData, refreshTrigger]);
 
   const handleSort = (field: SortField) => {
     if (field === sortField) {

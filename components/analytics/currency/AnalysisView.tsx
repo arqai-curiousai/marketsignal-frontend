@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarketAwarePolling } from '@/lib/hooks/useMarketAwarePolling';
 import { CurrencyPulseStrip } from './CurrencyPulseStrip';
 import { CurrencyChartPanel } from './CurrencyChartPanel';
 import { CurrencyTechnicalsTable } from './CurrencyTechnicalsTable';
@@ -61,13 +62,20 @@ export function AnalysisView({ selectedPair, timeframe, onTimeframeChange, chart
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [techRes, volRes, mcRes, mrRes, rgRes] = await Promise.all([
+      const settled = await Promise.allSettled([
         getCurrencyTechnicals(selectedPair),
         getCurrencyVolatilityApi(selectedPair),
         getCurrencyMarketClock(),
         getCurrencyMeanReversion(selectedPair),
         getCurrencyRegime(selectedPair),
       ]);
+      const unwrap = <T,>(r: PromiseSettledResult<T>): T | { success: false; data: null } =>
+        r.status === 'fulfilled' ? r.value : { success: false, data: null };
+      const techRes = unwrap(settled[0]);
+      const volRes = unwrap(settled[1]);
+      const mcRes = unwrap(settled[2]);
+      const mrRes = unwrap(settled[3]);
+      const rgRes = unwrap(settled[4]);
       if (techRes.success) setTechnicals(techRes.data);
       if (volRes.success) setVolatility(volRes.data);
       if (mcRes.success) setMarketClock(mcRes.data);
@@ -86,11 +94,13 @@ export function AnalysisView({ selectedPair, timeframe, onTimeframeChange, chart
     fetchData();
   }, [fetchData]);
 
-  // Auto-refresh 60s
-  useEffect(() => {
-    const interval = setInterval(fetchData, 60_000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+  // Market-hours-aware polling: 60s when open, 5min when closed
+  useMarketAwarePolling({
+    fetchFn: fetchData,
+    marketType: 'forex',
+    activeIntervalMs: 60_000,
+    inactiveIntervalMs: 300_000,
+  });
 
   // Update "minutes ago" display every 30s
   useEffect(() => {

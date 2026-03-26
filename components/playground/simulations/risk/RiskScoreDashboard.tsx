@@ -106,13 +106,18 @@ export function RiskScoreDashboard() {
 
   // Fetch presets once
   useEffect(() => {
-    simulationApi.getPresets().then((res) => {
+    const controller = new AbortController();
+    simulationApi.getPresets({ signal: controller.signal }).then((res) => {
       if (res.success) setPresets(res.data);
-    }).catch((err) => { console.warn('Failed to load presets:', err); });
+    }).catch((err) => {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      console.warn('Failed to load presets:', err);
+    });
+    return () => controller.abort();
   }, []);
 
   const fetchData = useCallback(
-    async (tickerList: string[], isRefresh = false) => {
+    async (tickerList: string[], isRefresh = false, signal?: AbortSignal) => {
       if (tickerList.length === 0) return;
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
@@ -123,13 +128,16 @@ export function RiskScoreDashboard() {
           tickerList,
           undefined,
           exchangeConfig.code,
+          { signal },
         );
+        if (signal?.aborted) return;
         if (result.success) {
           setData(result.data);
         } else {
           setError(result.error.message);
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError('Failed to compute risk score');
         toast.error('Failed to load risk data');
       } finally {
@@ -142,9 +150,11 @@ export function RiskScoreDashboard() {
 
   // Fetch on ticker or exchange change
   useEffect(() => {
+    const controller = new AbortController();
     if (tickers.length > 0) {
-      fetchData(tickers);
+      fetchData(tickers, false, controller.signal);
     }
+    return () => controller.abort();
   }, [tickers, fetchData]);
 
   const handleTickersChange = useCallback((newTickers: string[]) => {

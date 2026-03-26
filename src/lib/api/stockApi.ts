@@ -1,11 +1,9 @@
 /**
  * Stock API service for frontend-backend communication.
- * 
+ *
  * Provides typed methods for:
  * - Stock list by exchange
  * - Historical OHLCV data
- * - Real-time quotes
- * - Exchange information
  */
 
 import apiClient, { ApiResult } from './apiClient';
@@ -13,9 +11,6 @@ import {
     IStock,
     IStockListResponse,
     IOHLCVResponse,
-    IStockQuote,
-    IExchange,
-    ISignal,
     OHLCVPeriod,
 } from '@/types/stock';
 
@@ -23,7 +18,7 @@ import {
 // Stock List
 // =============================================================================
 
-export interface StockListParams {
+interface StockListParams {
     exchange?: string;
     page?: number;
     pageSize?: number;
@@ -31,20 +26,10 @@ export interface StockListParams {
     search?: string;
 }
 
-export interface ExchangeData {
-    code: string;
-    name: string;
-    country: string;
-    stock_count: number;
-    timezone?: string;
-    market_open?: string;
-    market_close?: string;
-}
-
 /**
  * Fetch list of stocks for an exchange
  */
-export async function getStocks(params: StockListParams = {}): Promise<ApiResult<IStockListResponse>> {
+export async function getStocks(params: StockListParams = {}, signal?: AbortSignal): Promise<ApiResult<IStockListResponse>> {
     const result = await apiClient.get<{
         items: Array<{
             ticker: string;
@@ -69,7 +54,7 @@ export async function getStocks(params: StockListParams = {}): Promise<ApiResult
         page_size: params.pageSize || 50,
         sector: params.sector,
         search: params.search,
-    });
+    }, { signal });
 
     if (!result.success) {
         return result;
@@ -104,7 +89,7 @@ export async function getStocks(params: StockListParams = {}): Promise<ApiResult
 // OHLCV Data
 // =============================================================================
 
-export interface OHLCVParams {
+interface OHLCVParams {
     ticker: string;
     exchange?: string;
     period?: OHLCVPeriod;
@@ -116,7 +101,7 @@ export interface OHLCVParams {
 /**
  * Fetch historical OHLCV data for a stock
  */
-export async function getOHLCV(params: OHLCVParams): Promise<ApiResult<IOHLCVResponse>> {
+export async function getOHLCV(params: OHLCVParams, signal?: AbortSignal): Promise<ApiResult<IOHLCVResponse>> {
     const result = await apiClient.get<{
         ticker: string;
         exchange: string;
@@ -137,7 +122,7 @@ export async function getOHLCV(params: OHLCVParams): Promise<ApiResult<IOHLCVRes
         from_date: params.fromDate,
         to_date: params.toDate,
         limit: params.limit || 100,
-    });
+    }, { signal });
 
     if (!result.success) {
         return result;
@@ -165,118 +150,6 @@ export async function getOHLCV(params: OHLCVParams): Promise<ApiResult<IOHLCVRes
 }
 
 // =============================================================================
-// Quote
-// =============================================================================
-
-/**
- * Fetch real-time quote for a stock
- */
-export async function getQuote(
-    ticker: string,
-    exchange: string = 'NSE'
-): Promise<ApiResult<IStockQuote>> {
-    const result = await apiClient.get<{
-        ticker: string;
-        exchange: string;
-        price: number;
-        change: number;
-        change_percent: number;
-        high: number;
-        low: number;
-        volume: number;
-        timestamp: string;
-    }>(`/api/stocks/${ticker}/quote`, { exchange });
-
-    if (!result.success) {
-        return result;
-    }
-
-    return {
-        success: true,
-        data: {
-            ticker: result.data.ticker,
-            exchange: result.data.exchange,
-            price: result.data.price,
-            change: result.data.change,
-            changePercent: result.data.change_percent,
-            high: result.data.high,
-            low: result.data.low,
-            volume: result.data.volume,
-            timestamp: new Date(result.data.timestamp),
-        },
-    };
-}
-
-// =============================================================================
-// Exchanges
-// =============================================================================
-
-/**
- * Fetch list of available exchanges
- */
-export async function getExchanges(): Promise<ApiResult<IExchange[]>> {
-    const result = await apiClient.get<Array<{
-        code: string;
-        name: string;
-        country: string;
-        stock_count: number;
-    }>>('/api/stocks/exchanges');
-
-    if (!result.success) {
-        return result;
-    }
-
-    return {
-        success: true,
-        data: result.data.map(exch => ({
-            code: exch.code,
-            name: exch.name,
-            country: exch.country,
-            stockCount: exch.stock_count,
-        })),
-    };
-}
-
-// =============================================================================
-// Stock Signal
-// =============================================================================
-
-/**
- * Fetch latest algo signal for a stock
- */
-export async function getStockSignal(
-    ticker: string,
-    exchange: string = 'NSE'
-): Promise<ApiResult<ISignal>> {
-    const result = await apiClient.get<{
-        ticker: string;
-        exchange: string;
-        signal: string;
-        confidence: number;
-        algo_name: string;
-        generated_at: string;
-    }>(`/api/stocks/${ticker}/signal`, { exchange });
-
-    if (!result.success) {
-        return result;
-    }
-
-    return {
-        success: true,
-        data: {
-            signal: result.data.signal as ISignal['signal'],
-            confidence: result.data.confidence,
-            algoName: result.data.algo_name,
-            generatedAt: new Date(result.data.generated_at),
-        },
-    };
-}
-
-// =============================================================================
-// Export all functions
-// =============================================================================
-
-// =============================================================================
 // Instruments (NSE / Currency / Commodity)
 // =============================================================================
 
@@ -286,9 +159,6 @@ export { getMarketStatus, activateSignal, deactivateSignal, getActiveSignals } f
 export const stockApi = {
     getStocks,
     getOHLCV,
-    getQuote,
-    getExchanges,
-    getStockSignal,
 };
 
 export default stockApi;

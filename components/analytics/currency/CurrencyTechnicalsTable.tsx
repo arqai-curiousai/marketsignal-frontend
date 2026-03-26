@@ -31,7 +31,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'RSI (14)',
       value: t.rsi.value.toFixed(1),
-      signal: rsiSignal as 'BUY' | 'SELL' | 'NEUTRAL',
+      signal: rsiSignal,
       details: [
         { label: 'Zone', value: t.rsi.signal },
       ],
@@ -44,7 +44,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'MACD',
       value: t.macd.macd.toFixed(5),
-      signal: macdSignal as 'BUY' | 'SELL' | 'NEUTRAL',
+      signal: macdSignal,
       details: [
         { label: 'Signal Line', value: t.macd.signal.toFixed(5) },
         { label: 'Histogram', value: t.macd.histogram.toFixed(5) },
@@ -59,7 +59,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'Bollinger Bands',
       value: `%B: ${t.bollinger.pctB.toFixed(2)}`,
-      signal: bbSignal as 'BUY' | 'SELL' | 'NEUTRAL',
+      signal: bbSignal,
       details: [
         { label: 'Upper', value: t.bollinger.upper.toFixed(4) },
         { label: 'Middle', value: t.bollinger.middle.toFixed(4) },
@@ -75,7 +75,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'ADX',
       value: t.adx.value.toFixed(1),
-      signal: adxSignal as 'BUY' | 'SELL' | 'NEUTRAL',
+      signal: adxSignal,
       details: [
         { label: 'Trend Strength', value: t.adx.trend_strength },
       ],
@@ -88,7 +88,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'Stochastic',
       value: `%K: ${t.stochastic.k.toFixed(1)}`,
-      signal: stochSignal as 'BUY' | 'SELL' | 'NEUTRAL',
+      signal: stochSignal,
       details: [
         { label: '%D', value: t.stochastic.d.toFixed(1) },
         { label: 'Signal', value: t.stochastic.signal },
@@ -103,7 +103,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'SMA 20 / 50 / 200',
       value: t.sma.sma20.toFixed(4),
-      signal: sma20Signal as 'BUY' | 'SELL',
+      signal: sma20Signal,
       details: [
         { label: 'SMA 20', value: t.sma.sma20.toFixed(4) },
         { label: 'SMA 50', value: t.sma.sma50.toFixed(4) },
@@ -119,7 +119,7 @@ function buildIndicatorRows(t: ICurrencyTechnicals): IndicatorRow[] {
     rows.push({
       name: 'EMA 9 / 21',
       value: t.ema.ema9.toFixed(4),
-      signal: emaSignal as 'BUY' | 'SELL',
+      signal: emaSignal,
       details: [
         { label: 'EMA 9', value: t.ema.ema9.toFixed(4) },
         { label: 'EMA 21', value: t.ema.ema21.toFixed(4) },

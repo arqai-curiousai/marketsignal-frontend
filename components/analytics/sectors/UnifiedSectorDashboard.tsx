@@ -14,7 +14,7 @@ import { SectorHeatmapGrid } from './SectorHeatmapGrid'; // Eager: default mobil
 import { SectorDrillSheet } from './SectorDrillSheet';
 import { PyramidMobileFallback } from '../pyramid/PyramidMobileFallback';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { getExchangeConfig } from '@/src/lib/exchange/config';
+import { getExchangeConfig, type ExchangeCode } from '@/src/lib/exchange/config';
 import { downloadCSV, downloadPNG } from '@/src/lib/utils/export';
 
 // Lazy-loaded view components — only the active view is loaded
@@ -39,6 +39,7 @@ function readUrlParams() {
 }
 
 function writeUrlParams(params: Record<string, string | null>) {
+  if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   for (const [key, value] of Object.entries(params)) {
     if (value) {
@@ -68,10 +69,9 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
   // Read initial state from URL params
   const urlParams = readUrlParams();
 
-  // View + controls — default to heatmap on mobile (treemap tiles are too small)
+  // View + controls — SSR-safe default; mobile override applied in useEffect below
   const defaultView = (): SectorViewMode => {
     if (urlParams.view && VALID_VIEWS.has(urlParams.view)) return urlParams.view;
-    if (typeof window !== 'undefined' && window.innerWidth < 1024) return 'heatmap';
     return 'treemap';
   };
   const [viewMode, setViewMode] = useState<SectorViewMode>(defaultView);
@@ -81,9 +81,9 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
   const [sortBy, setSortBy] = useState<SortOption>('performance');
   const [colorMode, setColorMode] = useState<PyramidColorMode>('performance');
 
-  // Selection state — sector/stock restored after data loads
-  const [pendingSector] = useState(urlParams.sector);
-  const [pendingStock] = useState(urlParams.stock);
+  // Selection state — sector/stock restored after data loads (read-only from URL)
+  const pendingSector = useRef(urlParams.sector).current;
+  const pendingStock = useRef(urlParams.stock).current;
   const [selectedSector, setSelectedSector] = useState<ISectorAnalytics | null>(null);
   const [selectedStock, setSelectedStock] = useState<string | null>(null);
 
@@ -94,11 +94,16 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
   // Track mobile breakpoint reactively (avoids SSR mismatch + responds to resize)
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
+    const check = () => {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      // Apply mobile-friendly default view on first client render
+      if (mobile && !urlParams.view) setViewMode('heatmap');
+    };
     check();
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Restore sector/stock selection from URL once data is loaded
   useEffect(() => {
@@ -394,6 +399,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
               timeframe={timeframe}
               selectedSector={selectedSector?.sector ?? null}
               onSectorClick={handleSectorClick}
+              exchange={exchange as ExchangeCode}
             />
           )}
           {viewMode === 'table' && (
@@ -425,6 +431,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
                   selectedStock={selectedStock}
                   onSectorClick={handlePyramidSectorClick}
                   onStockClick={handlePyramidStockClick}
+                  exchange={exchange as ExchangeCode}
                 />
               </div>
               {/* Mobile: accordion fallback */}
@@ -432,6 +439,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
                 <PyramidMobileFallback
                   sectors={pyramidSectors}
                   onStockClick={handlePyramidStockClick}
+                  exchange={exchange as ExchangeCode}
                 />
               </div>
             </>
@@ -485,6 +493,7 @@ export function UnifiedSectorDashboard({ exchange }: UnifiedSectorDashboardProps
         open={drillOpen}
         onOpenChange={setDrillOpen}
         timeframe={timeframe}
+        exchange={exchange as ExchangeCode}
       />
 
       {/* Keyboard shortcuts overlay */}

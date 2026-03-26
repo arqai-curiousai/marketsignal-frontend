@@ -3,12 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
 import {
   Check,
   DollarSign,
-  Newspaper,
-  FlaskConical,
   Zap,
   ArrowRight,
   Crown,
@@ -157,6 +154,7 @@ export default function PricingPage() {
       {stars.map((star, i) => (
         <motion.div
           key={i}
+          aria-hidden="true"
           className="absolute w-1 h-1 rounded-full bg-white/20"
           style={{ left: star.left, top: star.top }}
           animate={{ opacity: [0.05, 0.4, 0.05], scale: [0.8, 1.3, 0.8] }}
@@ -206,11 +204,6 @@ export default function PricingPage() {
                   key={plan.name}
                   variants={fadeUp}
                   className={`relative rounded-2xl ${plan.borderColor} border p-px group`}
-                  style={{
-                    background: plan.highlighted
-                      ? undefined
-                      : undefined,
-                  }}
                 >
                   {/* Animated gradient border for highlighted card */}
                   {plan.highlighted && (
@@ -292,13 +285,12 @@ export default function PricingPage() {
                       </ul>
 
                       {/* CTA */}
-                      <Link href="/login" className="mt-auto">
-                        <Button
-                          className={`w-full h-12 rounded-xl text-sm font-medium transition-all duration-300 ${plan.ctaStyle}`}
-                        >
-                          {plan.ctaLabel}
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
+                      <Link
+                        href="/login"
+                        className={`mt-auto w-full h-12 rounded-xl text-sm font-medium transition-all duration-300 inline-flex items-center justify-center ${plan.ctaStyle}`}
+                      >
+                        {plan.ctaLabel}
+                        <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </div>
                   </div>
@@ -321,9 +313,9 @@ export default function PricingPage() {
             {/* FAQ / Trust badges */}
             <div className="flex flex-wrap items-center justify-center gap-8 mt-10">
               {[
-                { label: 'Cancel anytime', icon: '~' },
-                { label: 'Secure payments', icon: '~' },
-                { label: '7-day free trial', icon: '~' },
+                { label: 'Cancel anytime' },
+                { label: 'Secure payments' },
+                { label: '7-day free trial' },
               ].map((item) => (
                 <div
                   key={item.label}

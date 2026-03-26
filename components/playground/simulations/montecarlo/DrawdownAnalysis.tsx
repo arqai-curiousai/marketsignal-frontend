@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -52,6 +52,7 @@ function DDTooltip({
 }
 
 export function DrawdownAnalysis({ drawdown, className }: Props) {
+  const gId = useId();
   const { underwaterChart, maxDrawdownDistribution, recoveryStats } = drawdown;
 
   const annotation = useMemo(() => {
@@ -90,7 +91,7 @@ export function DrawdownAnalysis({ drawdown, className }: Props) {
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={underwaterChart} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <defs>
-              <linearGradient id="ddBandGrad" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gId}-ddBandGrad`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#FB7185" stopOpacity={0.15} />
                 <stop offset="100%" stopColor="#FB7185" stopOpacity={0.02} />
               </linearGradient>
@@ -117,7 +118,7 @@ export function DrawdownAnalysis({ drawdown, className }: Props) {
               type="monotone"
               dataKey="p25"
               stroke="none"
-              fill="url(#ddBandGrad)"
+              fill={`url(#${gId}-ddBandGrad)`}
               fillOpacity={1}
               animationDuration={800}
             />

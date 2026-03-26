@@ -154,7 +154,7 @@ function EventRow({ event }: { event: IEconomicEvent }) {
   );
 }
 
-export function EconomicCalendar() {
+export function EconomicCalendar({ refreshTrigger }: { refreshTrigger?: number }) {
   const [data, setData] = useState<IEconomicCalendar | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -181,7 +181,7 @@ export function EconomicCalendar() {
 
   useEffect(() => {
     fetchData(days, currency);
-  }, [days, currency, fetchData]);
+  }, [days, currency, fetchData, refreshTrigger]);
 
   // Group events by date
   const groupedEvents = useMemo(() => {

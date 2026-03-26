@@ -1,14 +1,17 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyTopMovers } from '@/src/lib/api/analyticsApi';
 import type { ITopMovers, ITopMover } from '@/src/types/analytics';
 import { TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight } from 'lucide-react';
+import { DataFreshness } from '@/components/analytics/DataFreshness';
 
 interface Props {
   onSelectPair: (pair: string) => void;
+  /** Pre-fetched data from parent — skips internal fetch when provided. */
+  initialData?: ITopMovers | null;
 }
 
 function MoverChip({
@@ -51,18 +54,32 @@ function MoverChip({
   );
 }
 
-export function ForexTopMovers({ onSelectPair }: Props) {
-  const [data, setData] = useState<ITopMovers | null>(null);
-  const [loading, setLoading] = useState(true);
+export function ForexTopMovers({ onSelectPair, initialData }: Props) {
+  const [data, setData] = useState<ITopMovers | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(initialData ? new Date().toISOString() : null);
+  const hasLoaded = useRef(!!initialData);
+
+  // Sync external data when parent refreshes
+  useEffect(() => {
+    if (initialData) {
+      setData(initialData);
+      setLastFetchedAt(new Date().toISOString());
+      hasLoaded.current = true;
+      setLoading(false);
+    }
+  }, [initialData]);
 
   const fetchData = useCallback(async () => {
-    setLoading(prev => !data ? true : prev);
+    if (!hasLoaded.current) setLoading(true);
     setError(null);
     try {
       const res = await getCurrencyTopMovers();
       if (res.success) {
         setData(res.data);
+        setLastFetchedAt(new Date().toISOString());
+        hasLoaded.current = true;
       } else {
         setError(res.error?.message || 'Failed to load top movers');
       }
@@ -71,11 +88,14 @@ export function ForexTopMovers({ onSelectPair }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [data]);
+  }, []);
 
+  // Only self-fetch if no data was provided by parent
   useEffect(() => {
-    fetchData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!initialData) {
+      fetchData();
+    }
+  }, [fetchData, initialData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (loading && !data) {
     return (
@@ -108,6 +128,12 @@ export function ForexTopMovers({ onSelectPair }: Props) {
 
   return (
     <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-3 shadow-[0_2px_12px_rgba(0,0,0,0.1)]">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-semibold text-muted-foreground">Top Movers</h3>
+          <DataFreshness computedAt={lastFetchedAt} staleTTLMinutes={2} />
+        </div>
+      </div>
       <div className="flex items-center gap-3 overflow-x-auto scrollbar-thin pb-1">
         {/* Gainers */}
         {gainers.length > 0 && (

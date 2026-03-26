@@ -28,32 +28,42 @@ export function MarketStatusBadge({ market, className }: MarketStatusBadgeProps)
     const [status, setStatus] = useState<IMarketStatus | null>(null);
 
     useEffect(() => {
-        async function fetch() {
-            const result = await getMarketStatus();
-            if (result.success) {
+        const controller = new AbortController();
+        async function fetchStatus() {
+            const result = await getMarketStatus(controller.signal);
+            if (!controller.signal.aborted && result.success) {
                 setStatus(result.data);
             }
         }
-        fetch();
+        fetchStatus();
 
         // Poll every 60 seconds
-        const interval = setInterval(fetch, 60_000);
-        return () => clearInterval(interval);
+        const interval = setInterval(() => {
+            if (!controller.signal.aborted) fetchStatus();
+        }, 60_000);
+        return () => {
+            controller.abort();
+            clearInterval(interval);
+        };
     }, []);
 
     // For equity exchanges, try the multi-exchange status shape first, then fall back
     const isOpen = (() => {
+        if (!status) return false;
         if (EQUITY_EXCHANGES.has(market)) {
             const exchangeKey = market.toUpperCase();
             // New multi-exchange shape: status.exchanges.NSE.is_open
-            const multiExchange = (status as Record<string, unknown>)?.exchanges as
-                Record<string, { is_open?: boolean }> | undefined;
-            if (multiExchange?.[exchangeKey]?.is_open !== undefined) {
-                return multiExchange[exchangeKey].is_open;
+            const exEntry = status.exchanges?.[exchangeKey];
+            if (exEntry && typeof exEntry.is_open === 'boolean') {
+                return exEntry.is_open;
             }
         }
         // Backward-compatible: status.nse.is_open / status.forex.is_open
-        return (status as Record<string, { is_open?: boolean }>)?.[market]?.is_open ?? false;
+        const marketEntry = status[market as keyof IMarketStatus];
+        if (marketEntry && typeof marketEntry === 'object' && 'is_open' in marketEntry) {
+            return Boolean(marketEntry.is_open);
+        }
+        return false;
     })();
 
     return (

@@ -148,6 +148,7 @@ export function TickerCombobox({ value, onChange, className }: Props) {
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search ticker or name..."
+                aria-label="Search tickers"
                 className="flex-1 bg-transparent text-[10px] font-mono text-white/70 placeholder:text-white/20 outline-none"
               />
             </div>

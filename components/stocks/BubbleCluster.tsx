@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useMemo, useCallback } from 'react';
+import React, { useEffect, useId, useState, useRef, useMemo, useCallback } from 'react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { hierarchy, pack, type HierarchyCircularNode } from 'd3-hierarchy';
@@ -51,6 +51,7 @@ interface BubbleClusterProps {
 }
 
 export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
+  const gradientId = useId();
   const router = useRouter();
   const containerRef = useRef<HTMLDivElement>(null);
   const [stocks, setStocks] = useState<IStock[]>([]);
@@ -70,15 +71,19 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
 
   // Fetch stocks
   useEffect(() => {
+    const controller = new AbortController();
     async function load() {
       setLoading(true);
-      const res = await getStocks({ exchange, pageSize: 50 });
-      if (res.success && res.data) {
-        setStocks(res.data.items);
+      const res = await getStocks({ exchange, pageSize: 50 }, controller.signal);
+      if (!controller.signal.aborted) {
+        if (res.success && res.data) {
+          setStocks(res.data.items);
+        }
+        setLoading(false);
       }
-      setLoading(false);
     }
     load();
+    return () => controller.abort();
   }, [exchange]);
 
   // Measure container
@@ -113,7 +118,8 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
     for (const stock of stocks) {
       const sector = stock.sector || 'Other';
       if (!grouped.has(sector)) grouped.set(sector, []);
-      grouped.get(sector)!.push(stock);
+      const arr = grouped.get(sector);
+      if (arr) arr.push(stock);
     }
 
     return {
@@ -241,6 +247,7 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search stocks..."
+            aria-label="Search tickers"
             className="w-full px-4 py-2 text-sm rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-brand-blue/50"
           />
         </div>
@@ -257,16 +264,16 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
         className="relative w-full rounded-2xl border border-white/10 bg-gradient-to-b from-white/[0.02] to-transparent overflow-hidden"
         style={{ height: 'clamp(350px, 55vh, 600px)' }}
       >
-        <svg className="absolute inset-0 w-full h-full">
+        <svg className="absolute inset-0 w-full h-full" role="img" aria-label="Stock bubble chart">
           <defs>
-            <filter id="bubble-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <filter id={`${gradientId}-glow`} x="-50%" y="-50%" width="200%" height="200%">
               <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
               </feMerge>
             </filter>
-            <radialGradient id="bubble-gradient" cx="35%" cy="35%">
+            <radialGradient id={`${gradientId}-gradient`} cx="35%" cy="35%">
               <stop offset="0%" stopColor="rgba(255,255,255,0.15)" />
               <stop offset="100%" stopColor="rgba(255,255,255,0)" />
             </radialGradient>
@@ -349,14 +356,33 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
             return (
               <g
                 key={ticker}
+                tabIndex={0}
+                role="button"
+                aria-label={`${ticker} — ${stock.name}, ${changePercent >= 0 ? '+' : ''}${changePercent.toFixed(1)}%`}
                 style={{
                   cursor: 'pointer',
                   opacity: isFiltered ? (mounted ? 1 : 0) : 0.12,
                   transition: `opacity 0.4s ease ${sectorIdx * 60 + 100}ms`,
+                  outline: 'none',
                 }}
                 onMouseEnter={(e) => handleBubbleHover(node, e)}
                 onMouseLeave={handleBubbleLeave}
+                onFocus={() => {
+                  setHoveredId(ticker);
+                  setTooltip({
+                    visible: true,
+                    ticker,
+                    name: stock.name,
+                    sector: node.data.sector ?? '',
+                    lastPrice: stock.lastPrice ?? null,
+                    changePercent: stock.changePercent ?? null,
+                    x: node.x + 5,
+                    y: node.y + 5 - r,
+                  });
+                }}
+                onBlur={handleBubbleLeave}
                 onClick={() => handleBubbleClick(ticker)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleBubbleClick(ticker); } }}
               >
                 {/* Glow circle */}
                 {changeMag > 0.1 && isFiltered && (
@@ -367,7 +393,7 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
                     fill="none"
                     stroke={glowColor}
                     strokeWidth={1 + changeMag * 1.5}
-                    filter="url(#bubble-glow)"
+                    filter={`url(#${gradientId}-glow)`}
                     style={{ transition: `r 0.6s ease-out ${sectorIdx * 60}ms` }}
                   />
                 )}
@@ -392,7 +418,7 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
                   cx={node.x + 5}
                   cy={node.y + 5}
                   r={mounted ? (isHovered ? r * 1.12 : r) : 0}
-                  fill="url(#bubble-gradient)"
+                  fill={`url(#${gradientId}-gradient)`}
                   style={{ transition: `r 0.6s ease-out ${sectorIdx * 60}ms` }}
                 />
 
@@ -453,6 +479,7 @@ export function BubbleCluster({ exchange = 'NSE' }: BubbleClusterProps) {
           x={tooltip.x}
           y={tooltip.y}
           visible={tooltip.visible}
+          exchange={exchange}
         />
       </div>
     </div>

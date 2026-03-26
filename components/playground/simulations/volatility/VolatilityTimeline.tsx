@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useId, useState, useMemo } from 'react';
 import {
   AreaChart,
   Area,
@@ -67,21 +67,18 @@ function TimelineTooltip({
 // ─── Main Component ───────────────────────────────────────────────
 
 export function VolatilityTimeline({ rollingSeries, className }: Props) {
+  const gradientId = useId();
   const [range, setRange] = useState<number>(252);
 
   // Use 21-day rolling series
   const series21 = rollingSeries['21'];
-  if (!series21 || series21.values.length < 10) {
-    return (
-      <div className={cn(S.card, 'p-4', className)}>
-        <p className="text-center text-muted-foreground text-xs py-8">
-          Insufficient rolling volatility data.
-        </p>
-      </div>
-    );
-  }
+  const hasData = !!series21 && series21.values.length >= 10;
 
   const chartData = useMemo(() => {
+    if (!series21 || series21.values.length < 10) {
+      return null;
+    }
+
     const n = series21.dates.length;
     const sliceStart = range >= n ? 0 : n - range;
 
@@ -106,6 +103,16 @@ export function VolatilityTimeline({ rollingSeries, className }: Props) {
     };
   }, [series21, range]);
 
+  if (!hasData || !chartData) {
+    return (
+      <div className={cn(S.card, 'p-4', className)}>
+        <p className="text-center text-muted-foreground text-xs py-8">
+          Insufficient rolling volatility data.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <motion.div
       className={cn(S.card, 'p-4', className)}
@@ -121,6 +128,7 @@ export function VolatilityTimeline({ rollingSeries, className }: Props) {
             <button
               key={tr.label}
               type="button"
+              aria-pressed={range === tr.days}
               className={cn(
                 'px-2 py-0.5 rounded-full text-[9px] font-medium transition-all',
                 range === tr.days
@@ -139,7 +147,7 @@ export function VolatilityTimeline({ rollingSeries, className }: Props) {
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={chartData.points} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>
-            <linearGradient id="volTimelineFill" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${gradientId}-fill`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#818CF8" stopOpacity={0.15} />
               <stop offset="100%" stopColor="#818CF8" stopOpacity={0.01} />
             </linearGradient>
@@ -192,7 +200,7 @@ export function VolatilityTimeline({ rollingSeries, className }: Props) {
             dataKey="vol"
             stroke="#818CF8"
             strokeWidth={1.5}
-            fill="url(#volTimelineFill)"
+            fill={`url(#${gradientId}-fill)`}
             dot={false}
             animationDuration={1200}
             animationEasing="ease-out"

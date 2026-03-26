@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Wifi, WifiOff, Layers } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -39,11 +39,15 @@ export function SignalLabContent() {
   const [featureData, setFeatureData] = useState<IFeatureInspection | null>(null);
   const [featureLoading, setFeatureLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('timeline');
+  const isFetchingRef = useRef(false);
 
-  const fetchDashboard = useCallback(async (showRefresh = false) => {
+  const fetchDashboard = useCallback(async (signal?: AbortSignal, showRefresh = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     if (showRefresh) setRefreshing(true);
     try {
-      const result = await strategyApi.getDashboard();
+      const result = await strategyApi.getDashboard(undefined, undefined, signal);
+      if (signal?.aborted) return;
       if (result.success) {
         setDashboard(result.data);
         setLastUpdated(new Date());
@@ -51,22 +55,26 @@ export function SignalLabContent() {
       } else {
         setError(result.error.message);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError('Failed to fetch dashboard data');
     } finally {
+      isFetchingRef.current = false;
       setLoading(false);
       setRefreshing(false);
     }
   }, []);
 
-  const fetchFeatures = useCallback(async (ticker: string) => {
+  const fetchFeatures = useCallback(async (ticker: string, signal?: AbortSignal) => {
     setFeatureLoading(true);
     try {
-      const result = await strategyApi.getFeatures(ticker);
+      const result = await strategyApi.getFeatures(ticker, signal);
+      if (signal?.aborted) return;
       if (result.success) {
         setFeatureData(result.data);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       console.error(`Failed to fetch features for ${ticker}`);
     } finally {
       setFeatureLoading(false);
@@ -78,13 +86,21 @@ export function SignalLabContent() {
   }, [exchangeConfig.defaultTicker]);
 
   useEffect(() => {
-    fetchDashboard();
-    const interval = setInterval(() => fetchDashboard(), REFRESH_INTERVAL_MS);
-    return () => clearInterval(interval);
+    const controller = new AbortController();
+    fetchDashboard(controller.signal);
+    const interval = setInterval(() => {
+      if (!controller.signal.aborted) fetchDashboard(controller.signal);
+    }, REFRESH_INTERVAL_MS);
+    return () => {
+      controller.abort();
+      clearInterval(interval);
+    };
   }, [fetchDashboard]);
 
   useEffect(() => {
-    fetchFeatures(selectedTicker);
+    const controller = new AbortController();
+    fetchFeatures(selectedTicker, controller.signal);
+    return () => controller.abort();
   }, [selectedTicker, fetchFeatures]);
 
   const currentSignal: IStrategySignal | null = useMemo(() => {
@@ -149,7 +165,7 @@ export function SignalLabContent() {
       <div className="flex items-center justify-center py-24">
         <div className="text-center">
           <p className="text-red-400 mb-4">{error}</p>
-          <Button onClick={() => fetchDashboard()} variant="outline">
+          <Button onClick={() => fetchDashboard(undefined)} variant="outline">
             Retry
           </Button>
         </div>
@@ -174,7 +190,7 @@ export function SignalLabContent() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => fetchDashboard(true)}
+          onClick={() => fetchDashboard(undefined, true)}
           disabled={refreshing}
           className="border-white/10"
         >
@@ -212,7 +228,6 @@ export function SignalLabContent() {
               <SignalPyramid
                 layers={layerOutputs}
                 finalSignal={currentSignal?.signal ?? 'hold'}
-                finalConfidence={currentSignal?.confidence ?? 0}
                 selectedLayer={selectedLayer}
                 onLayerClick={handleLayerClick}
               />
@@ -222,7 +237,6 @@ export function SignalLabContent() {
               <SignalPyramidMobile
                 layers={layerOutputs}
                 finalSignal={currentSignal?.signal ?? 'hold'}
-                finalConfidence={currentSignal?.confidence ?? 0}
                 selectedLayer={selectedLayer}
                 onLayerClick={handleLayerClick}
               />
@@ -296,7 +310,6 @@ export function SignalLabContent() {
           {currentSignal && (
             <LayerSensitivityPanel
               layers={layerOutputs}
-              topFeatures={currentSignal.topFeatures}
             />
           )}
         </TabsContent>

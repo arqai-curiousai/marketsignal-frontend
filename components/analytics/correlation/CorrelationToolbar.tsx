@@ -36,7 +36,6 @@ interface CorrelationToolbarProps {
   exchange: string;
   equityMatrix: ICorrelationMatrix | null;
   enhancedMatrix: IEnhancedMatrix | null;
-  lastUpdatedLabel: string | null;
   computedAt?: string | null;
   onAddAsset: (ticker: string) => void;
   onAddGroup: (tickers: string[]) => void;
@@ -64,7 +63,6 @@ export function CorrelationToolbar({
   exchange,
   equityMatrix,
   enhancedMatrix,
-  lastUpdatedLabel,
   computedAt,
   onAddAsset,
   onAddGroup,
@@ -460,7 +458,7 @@ export function CorrelationToolbar({
         <button
           onClick={onRefresh}
           className="p-2 bg-white/5 border border-white/10 rounded-lg text-muted-foreground hover:text-white transition-colors"
-          title="Refresh correlation data"
+          aria-label="Refresh correlation data"
         >
           <RefreshCw className="h-3.5 w-3.5" />
         </button>

@@ -4,7 +4,7 @@ import { BACKEND_URL } from '@/lib/api/backendUrl';
 
 export async function POST(_request: NextRequest) {
     try {
-        const cookieStore = cookies();
+        const cookieStore = await cookies();
         const refreshToken = cookieStore.get('refresh_token');
 
         if (!refreshToken) {
@@ -17,6 +17,8 @@ export async function POST(_request: NextRequest) {
                 'Content-Type': 'application/json',
                 'Cookie': `refresh_token=${refreshToken.value}`,
             },
+            cache: 'no-store',
+            signal: AbortSignal.timeout(15_000),
         });
 
         if (!backendRes.ok) {

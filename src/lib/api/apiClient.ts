@@ -27,20 +27,27 @@ interface RequestOptions {
     body?: unknown;
     headers?: Record<string, string>;
     params?: Record<string, string | number | boolean | undefined>;
+    signal?: AbortSignal;
 }
 
 /** Retry configuration */
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
 
+/** Default request timeout (30 seconds) */
+const REQUEST_TIMEOUT_MS = 30_000;
+
 /** Protected route prefixes — a 401 on these triggers refresh */
 const PROTECTED_PREFIXES = [
-    '/chatbot', '/stocks', '/signals', '/playground',
-    '/assistant', '/research', '/settings',
+    '/stocks', '/signals', '/playground',
+    '/assistant', '/research', '/settings', '/forex',
 ];
 
 /** Shared promise so concurrent 401s all await the same refresh */
 let refreshPromise: Promise<boolean> | null = null;
+
+/** Guard to prevent multiple concurrent redirects to /login (timestamp-based auto-reset) */
+let isRedirecting: number = 0;
 
 /**
  * Build URL with query parameters (relative paths for browser security)
@@ -94,7 +101,7 @@ async function request<T>(
     options: RequestOptions = {},
     _retryCount: number = 0,
 ): Promise<ApiResult<T>> {
-    const { method = 'GET', body, headers = {}, params } = options;
+    const { method = 'GET', body, headers = {}, params, signal } = options;
 
     const url = buildUrl(endpoint, params);
 
@@ -107,13 +114,24 @@ async function request<T>(
         ...csrfHeaders,
     };
 
+    // Create timeout abort controller
+    const timeoutController = new AbortController();
+    const timeoutId = setTimeout(() => timeoutController.abort(), REQUEST_TIMEOUT_MS);
+    // If caller provided a signal, forward its abort to our controller
+    if (signal) {
+        signal.addEventListener('abort', () => timeoutController.abort(), { once: true });
+    }
+
     try {
         const response = await fetch(url, {
             method,
             headers: requestHeaders,
             body: body ? JSON.stringify(body) : undefined,
             credentials: 'include',
+            signal: timeoutController.signal,
         });
+
+        clearTimeout(timeoutId);
 
         // Handle 401 — attempt token refresh on protected routes
         if (response.status === 401 && typeof window !== 'undefined') {
@@ -126,7 +144,10 @@ async function request<T>(
                     // Retry the original request once
                     return request<T>(endpoint, options, 1);
                 }
-                window.location.href = '/login?message=session-expired';
+                if (!isRedirecting || Date.now() - isRedirecting > 5000) {
+                    isRedirecting = Date.now();
+                    window.location.href = '/login?message=session-expired';
+                }
             }
 
             return {
@@ -143,9 +164,12 @@ async function request<T>(
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
 
-            // Retry on 5xx (transient server errors)
-            if (response.status >= 500 && _retryCount < MAX_RETRIES) {
-                await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (_retryCount + 1)));
+            // Retry on 5xx (transient server errors) — only for safe methods
+            const upperMethod = (method || 'GET').toUpperCase();
+            const isRetryable = ['GET', 'HEAD', 'OPTIONS'].includes(upperMethod);
+            if (isRetryable && response.status >= 500 && _retryCount < MAX_RETRIES) {
+                const jitter = Math.random() * RETRY_DELAY_MS * 0.3;
+                await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (_retryCount + 1) + jitter));
                 return request<T>(endpoint, options, _retryCount + 1);
             }
 
@@ -164,9 +188,13 @@ async function request<T>(
         return { success: true, data: data as T };
 
     } catch (error) {
-        // Network errors — retry once
-        if (_retryCount < MAX_RETRIES) {
-            await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (_retryCount + 1)));
+        clearTimeout(timeoutId);
+        // Network errors — retry only for safe methods
+        const safeMethod = (method || 'GET').toUpperCase();
+        const canRetry = ['GET', 'HEAD', 'OPTIONS'].includes(safeMethod);
+        if (canRetry && _retryCount < MAX_RETRIES) {
+            const jitter = Math.random() * RETRY_DELAY_MS * 0.3;
+                await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * (_retryCount + 1) + jitter));
             return request<T>(endpoint, options, _retryCount + 1);
         }
 
@@ -187,21 +215,22 @@ async function request<T>(
 export const apiClient = {
     get<T>(
         endpoint: string,
-        params?: Record<string, string | number | boolean | undefined>
+        params?: Record<string, string | number | boolean | undefined>,
+        options?: { signal?: AbortSignal },
     ): Promise<ApiResult<T>> {
-        return request<T>(endpoint, { method: 'GET', params });
+        return request<T>(endpoint, { method: 'GET', params, signal: options?.signal });
     },
 
-    post<T>(endpoint: string, body?: unknown): Promise<ApiResult<T>> {
-        return request<T>(endpoint, { method: 'POST', body });
+    post<T>(endpoint: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<ApiResult<T>> {
+        return request<T>(endpoint, { method: 'POST', body, signal: options?.signal });
     },
 
-    put<T>(endpoint: string, body?: unknown): Promise<ApiResult<T>> {
-        return request<T>(endpoint, { method: 'PUT', body });
+    put<T>(endpoint: string, body?: unknown, options?: { signal?: AbortSignal }): Promise<ApiResult<T>> {
+        return request<T>(endpoint, { method: 'PUT', body, signal: options?.signal });
     },
 
-    delete<T>(endpoint: string): Promise<ApiResult<T>> {
-        return request<T>(endpoint, { method: 'DELETE' });
+    delete<T>(endpoint: string, options?: { signal?: AbortSignal }): Promise<ApiResult<T>> {
+        return request<T>(endpoint, { method: 'DELETE', signal: options?.signal });
     },
 };
 

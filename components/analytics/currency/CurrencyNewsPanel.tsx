@@ -2,19 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { Newspaper } from 'lucide-react';
+import { sanitizeUrl } from '@/lib/security/xss';
 import { Skeleton } from '@/components/ui/skeleton';
 import { searchNews } from '@/src/lib/api/analyticsApi';
 import type { INewsArticle } from '@/src/types/analytics';
 
 interface Props {
   pair: string;
+  refreshTrigger?: number;
 }
 
-export function CurrencyNewsPanel({ pair }: Props) {
+export function CurrencyNewsPanel({ pair, refreshTrigger }: Props) {
   const [news, setNews] = useState<INewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    const controller = new AbortController();
     const fetchNews = async () => {
       setLoading(true);
       try {
@@ -22,17 +25,18 @@ export function CurrencyNewsPanel({ pair }: Props) {
         const [base, quote] = pair.split('/');
         const query = `forex currency ${base} ${quote} rupee exchange rate`;
         const res = await searchNews(query, 8, 'FX');
-        if (res.success && res.data?.items) {
+        if (!controller.signal.aborted && res.success && res.data?.items) {
           setNews(res.data.items);
         }
       } catch {
         // silent
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
     fetchNews();
-  }, [pair]);
+    return () => controller.abort();
+  }, [pair, refreshTrigger]);
 
   if (loading) {
     return <Skeleton className="h-32 rounded-lg" />;
@@ -48,12 +52,12 @@ export function CurrencyNewsPanel({ pair }: Props) {
         <p className="text-xs text-muted-foreground">No currency-related news found</p>
       ) : (
         <div className="space-y-2">
-          {news.map((item, i) => (
-            <div key={i} className="flex items-start justify-between gap-2 py-1.5 border-b border-white/[0.04] last:border-0">
+          {news.map((item) => (
+            <div key={item.id ?? item.url} className="flex items-start justify-between gap-2 py-1.5 border-b border-white/[0.04] last:border-0">
               <div className="flex-1 min-w-0">
                 {item.url ? (
                   <a
-                    href={item.url}
+                    href={sanitizeUrl(item.url) ?? '#'}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-xs font-medium hover:text-primary transition-colors line-clamp-2"

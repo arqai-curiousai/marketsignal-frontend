@@ -1,5 +1,3 @@
-'use client';
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Shield, Info, Scale, Gavel } from 'lucide-react';
@@ -70,22 +68,22 @@ export default function LegalPage() {
                             <li className="flex gap-4">
                                 <div className="h-1.5 w-1.5 rounded-full bg-brand-blue mt-2 flex-shrink-0" />
                                 <div>
-                                    <span className="text-sm font-medium text-white">Institutional Market Data</span>
-                                    <p className="text-xs text-muted-foreground">Real-time pricing, volume, and volatility metrics from global exchanges.</p>
+                                    <span className="text-sm font-medium text-white">Exchange Market Data</span>
+                                    <p className="text-xs text-muted-foreground">Live and historical pricing from NSE via Kite Connect (Zerodha), and global exchanges (NASDAQ, NYSE, LSE, SGX, HKSE) via EODHD.</p>
                                 </div>
                             </li>
                             <li className="flex gap-4">
                                 <div className="h-1.5 w-1.5 rounded-full bg-brand-emerald mt-2 flex-shrink-0" />
                                 <div>
-                                    <span className="text-sm font-medium text-white">Global News Feeds</span>
-                                    <p className="text-xs text-muted-foreground">Curated financial news from Bloomberg, Reuters, WSJ, and FT.</p>
+                                    <span className="text-sm font-medium text-white">News Aggregation</span>
+                                    <p className="text-xs text-muted-foreground">Financial news aggregated from Indian and global sources including Economic Times, NDTV Profit, Livemint, Moneycontrol, and Hindu Business Line.</p>
                                 </div>
                             </li>
                             <li className="flex gap-4">
                                 <div className="h-1.5 w-1.5 rounded-full bg-brand-violet mt-2 flex-shrink-0" />
                                 <div>
-                                    <span className="text-sm font-medium text-white">Regulatory Filings</span>
-                                    <p className="text-xs text-muted-foreground">Direct integration with SEC EDGAR and other global regulatory repositories.</p>
+                                    <span className="text-sm font-medium text-white">Currency &amp; Commodity Data</span>
+                                    <p className="text-xs text-muted-foreground">Forex rates and commodity pricing via EODHD and FCSAPI data feeds.</p>
                                 </div>
                             </li>
                         </ul>
@@ -94,7 +92,7 @@ export default function LegalPage() {
 
                 <div className="pt-12 border-t border-white/5 text-center">
                     <p className="text-xs text-muted-foreground">
-                        Last updated: January 24, 2026
+                        Last updated: March 25, 2026
                     </p>
                 </div>
             </div>

@@ -23,7 +23,7 @@ export interface ISectorAggregate {
 
 // ─── Enhanced Sector Analytics ──────────────────────────────
 
-export interface ISectorPerformance {
+interface ISectorPerformance {
   '1d': number;
   '1w': number;
   '1m': number;
@@ -47,7 +47,7 @@ export interface ISectorRRG {
   trail: ISectorRRGPoint[];
 }
 
-export interface ISectorBreadth {
+interface ISectorBreadth {
   above_20dma_pct: number;
   above_50dma_pct: number;
   above_200dma_pct: number;
@@ -59,7 +59,7 @@ export interface ISectorBreadth {
   new_52w_lows: number;
 }
 
-export interface ISectorVolatility {
+interface ISectorVolatility {
   avg_hv_20d: number | null;
   avg_hv_60d: number | null;
   avg_beta: number | null;
@@ -77,7 +77,7 @@ export interface ISectorStockEnriched extends ISectorStock {
   sparkline_7d: number[];
 }
 
-export interface ISectorDispersion {
+interface ISectorDispersion {
   dispersion_1d: number;
   dispersion_20d: number;
   hhi: number;
@@ -354,7 +354,7 @@ export interface IRollingCorrelation {
   lookback_days: number;
 }
 
-export interface ICorrelationStability {
+interface ICorrelationStability {
   std: number | null;
   label: 'Stable' | 'Variable' | 'Unstable' | null;
   rolling_mean: number | null;
@@ -747,7 +747,7 @@ export interface IOverlayData {
 
 // ─── Pattern Detection V2 (Enhanced) ──────────────────────────────────
 
-export interface IQualityScore {
+export interface IPatternQualityScore {
   score: number;
   grade: 'A+' | 'A' | 'B' | 'C';
   factors: {
@@ -889,7 +889,7 @@ export interface IPatternDetectionV2 {
   computed_at: string;
 
   overall_signal: 'bullish' | 'bearish' | 'neutral';
-  overall_quality: IQualityScore;
+  overall_quality: IPatternQualityScore;
   active_pattern_count: number;
 
   regime: {
@@ -1040,193 +1040,10 @@ export interface IVolatilityMetrics {
   computed_at: string;
 }
 
-// ─── F&O Dashboard ─────────────────────────────────────────
-
-export interface IOptionStrike {
-  strike: number;
-  ce_ltp: number | null;
-  ce_oi: number;
-  ce_volume: number;
-  ce_bid: number | null;
-  ce_ask: number | null;
-  ce_iv: number | null;
-  ce_delta: number | null;
-  ce_gamma: number | null;
-  ce_theta: number | null;
-  ce_vega: number | null;
-  ce_vanna: number | null;
-  ce_charm: number | null;
-  ce_volga: number | null;
-  ce_oi_change: number | null;
-  ce_ltp_change: number | null;
-  pe_ltp: number | null;
-  pe_oi: number;
-  pe_volume: number;
-  pe_bid: number | null;
-  pe_ask: number | null;
-  pe_iv: number | null;
-  pe_delta: number | null;
-  pe_gamma: number | null;
-  pe_theta: number | null;
-  pe_vega: number | null;
-  pe_vanna: number | null;
-  pe_charm: number | null;
-  pe_volga: number | null;
-  pe_oi_change: number | null;
-  pe_ltp_change: number | null;
-}
-
-export interface IFnOSnapshot {
-  underlying: string;
-  underlying_price: number;
-  futures_price: number | null;
-  expiry: string;
-  available_expiries: string[];
-  lot_size: number;
-  chain: IOptionStrike[];
-  pcr_oi: number | null;
-  pcr_volume: number | null;
-  max_pain_strike: number | null;
-  max_ce_oi_strike: number | null;
-  max_pe_oi_strike: number | null;
-  total_ce_oi: number;
-  total_pe_oi: number;
-  total_ce_volume: number;
-  total_pe_volume: number;
-  atm_iv: number | null;
-  iv_skew: number | null;
-  futures_basis: number | null;
-  futures_basis_pct: number | null;
-  near_month_futures_oi: number | null;
-  next_month_futures_oi: number | null;
-  sentiment: FnOSentiment | null;
-  // GEX analytics
-  zero_gamma_level: number | null;
-  call_wall_strike: number | null;
-  put_wall_strike: number | null;
-  dealer_regime: 'positive_gamma' | 'negative_gamma' | null;
-  gex_predicted_range_low: number | null;
-  gex_predicted_range_high: number | null;
-  net_gex: number | null;
-  net_dex: number | null;
-  total_vanna_exposure: number | null;
-  total_charm_exposure: number | null;
-  total_vex: number | null;
-  // India VIX
-  india_vix?: number | null;
-  india_vix_change?: number | null;
-  // IV Rank / Percentile
-  iv_rank: number | null;
-  iv_percentile: number | null;
-  iv_52w_high: number | null;
-  iv_52w_low: number | null;
-  computed_at: string;
-}
-
-export interface IFnOHistory {
-  timestamp: string;
-  pcr_oi: number | null;
-  pcr_volume: number | null;
-  atm_iv: number | null;
-  futures_basis: number | null;
-  futures_basis_pct: number | null;
-  underlying_price: number;
-  max_pain_strike: number | null;
-  zero_gamma_level: number | null;
-  dealer_regime: string | null;
-  net_gex: number | null;
-  // Expanded fields
-  net_dex: number | null;
-  total_vanna: number | null;
-  total_charm: number | null;
-  total_vex: number | null;
-  call_wall_strike: number | null;
-  put_wall_strike: number | null;
-  gex_predicted_range_low: number | null;
-  gex_predicted_range_high: number | null;
-  iv_skew: number | null;
-  total_ce_oi: number | null;
-  total_pe_oi: number | null;
-  max_ce_oi_strike: number | null;
-  max_pe_oi_strike: number | null;
-  sentiment: string | null;
-  futures_price: number | null;
-  india_vix: number | null;
-}
-
-export type OIBuildupType = 'long_buildup' | 'short_buildup' | 'short_covering' | 'long_unwinding' | 'neutral';
-
-export interface IOIBuildup {
-  strike: number;
-  ce_buildup: OIBuildupType;
-  pe_buildup: OIBuildupType;
-  ce_oi_change: number;
-  pe_oi_change: number;
-  ce_price_change: number;
-  pe_price_change: number;
-}
-
-export interface IGEXLevels {
-  underlying: string;
-  underlying_price: number;
-  zero_gamma_level: number | null;
-  call_wall_strike: number | null;
-  put_wall_strike: number | null;
-  dealer_regime: 'positive_gamma' | 'negative_gamma' | null;
-  gex_predicted_range_low: number | null;
-  gex_predicted_range_high: number | null;
-  net_gex: number | null;
-  net_dex: number | null;
-  total_vanna_exposure: number | null;
-  total_charm_exposure: number | null;
-  total_vex: number | null;
-  computed_at: string;
-}
-
-export interface IFnOUnderlying {
-  symbol: string;
-  name: string;
-  lot_size: number;
-  type: 'index' | 'stock';
-}
-
-export type FnOSentiment = 'BULLISH' | 'BEARISH' | 'NEUTRAL';
-
-export interface IIVTermStructure {
-  underlying: string;
-  term_structure: Array<{
-    expiry: string;
-    days_to_expiry: number;
-    atm_iv: number | null;
-  }>;
-  available_expiries: string[];
-  volatility_cone: {
-    current: number | null;
-    median: number;
-    p25: number;
-    p75: number;
-    p10: number;
-    p90: number;
-    min: number;
-    max: number;
-    history: Array<{ date: string; iv: number }>;
-  } | null;
-  error?: string;
-}
-
-// ─── Bubble Chart (for /stocks page) ────────────────────────
-
-export interface IBubbleStock {
-  ticker: string;
-  name: string;
-  sector: string;
-  lastPrice: number | null;
-  change: number | null;
-  changePercent: number | null;
-  marketCap: number | null;
-}
-
 // ─── Sector Colors ──────────────────────────────────────────
+// NOTE: These are the analytics-dashboard palette (softer/pastel).
+// exchange/sectors.ts has SECTOR_COLORS_INDIAN (saturated Tailwind palette)
+// used by the exchange-aware helpers. Both cover the same Indian sectors.
 
 export const SECTOR_COLORS: Record<string, string> = {
   IT: '#60A5FA',
@@ -1250,12 +1067,6 @@ export const SECTOR_COLORS: Record<string, string> = {
 };
 
 // ─── News Intelligence ─────────────────────────────────────
-
-export interface INewsEntity {
-  name: string;
-  type: 'company' | 'person' | 'event' | 'sector' | 'policy';
-  ticker: string | null;
-}
 
 export interface INewsCluster {
   cluster_label: string;
@@ -1665,154 +1476,6 @@ export interface IPriceAlert {
   created_at: string;
 }
 
-// ─── Commodity Dashboard ────────────────────────────────────
-
-export interface ICommoditySnapshot {
-  ticker: string;
-  price_usd: number;
-  price_inr: number | null;
-  change_pct: number;
-  high_52w: number | null;
-  low_52w: number | null;
-  sparkline: number[];
-}
-
-export interface ICommodityOverview {
-  commodities: ICommoditySnapshot[];
-  computed_at: string;
-}
-
-export interface IMonthlyReturn {
-  month: number;
-  avg_1y: number;
-  avg_3y: number;
-  avg_5y: number;
-  win_rate_5y: number;
-}
-
-export interface ICommoditySeasonality {
-  ticker: string;
-  monthly_returns: IMonthlyReturn[];
-}
-
-// =============================================================================
-// Factor Models (Phase 4A)
-// =============================================================================
-
-export interface IFactorExposures {
-  ticker: string;
-  exchange: string;
-  alpha_annualized: number;
-  r_squared: number;
-  betas: Record<string, number>;
-  window_days: number;
-  factor_stats: Record<string, { annualized_return: number; annualized_vol: number }>;
-  sector: string;
-  error?: string;
-}
-
-export interface IFactorReturns {
-  dates: string[];
-  series: Record<string, number[]>;
-  rf_annual: number;
-  error?: string;
-}
-
-// =============================================================================
-// Portfolio Risk (Phase 4B)
-// =============================================================================
-
-export interface IStressTest {
-  scenario_id: string;
-  label: string;
-  description: string;
-  portfolio_loss_pct: number;
-  stressed_daily_vol: number;
-  per_stock_impact: Record<string, number>;
-}
-
-export interface IPortfolioRisk {
-  tickers: string[];
-  weights: Record<string, number>;
-  var_95_1d: number;
-  cvar_95_1d: number;
-  portfolio_vol_daily: number;
-  portfolio_vol_annual: number;
-  historical_var_95: number;
-  historical_cvar_95: number;
-  cornish_fisher_var_95: number;
-  skewness: number;
-  excess_kurtosis: number;
-  marginal_var: Record<string, number>;
-  component_var: Record<string, number>;
-  component_var_pct: Record<string, number>;
-  incremental_var: Record<string, number>;
-  stress_tests: IStressTest[];
-  observation_days: number;
-  error?: string;
-}
-
-// =============================================================================
-// Alpha Attribution (Phase 4C)
-// =============================================================================
-
-export interface IAlphaAttribution {
-  ticker: string;
-  exchange: string;
-  period_days: number;
-  beta: number;
-  jensens_alpha: number;
-  information_ratio: number;
-  treynor_ratio: number;
-  m_squared: number;
-  sharpe_ratio: number;
-  active_share: number;
-  tracking_error: number;
-  tracking_error_factor: number;
-  tracking_error_specific: number;
-  annualized_return: number;
-  annualized_vol: number;
-  benchmark_return: number;
-  benchmark_vol: number;
-  risk_free_rate: number;
-  error?: string;
-}
-
-// =============================================================================
-// Quality Scores (Phase 4D)
-// =============================================================================
-
-export interface IPiotroskiScore {
-  score: number | null;
-  max_score: number;
-  label: string;
-  signals?: Record<string, number>;
-  error?: string;
-}
-
-export interface IAltmanZScore {
-  score: number | null;
-  label: string;
-  components?: Record<string, number>;
-  error?: string;
-}
-
-export interface IBeneishMScore {
-  score: number | null;
-  threshold: number;
-  label: string;
-  components?: Record<string, number>;
-  error?: string;
-}
-
-export interface IQualityScores {
-  ticker: string;
-  exchange: string;
-  piotroski: IPiotroskiScore;
-  altman_z: IAltmanZScore;
-  beneish_m: IBeneishMScore;
-}
-
 // ─── News Intelligence: Portfolio News ──────────────────────────
 
 export interface IPortfolioTickerDigest {
@@ -1836,4 +1499,22 @@ export interface EntityData {
   entities: Array<{ name: string; type: string; ticker: string | null }>;
   themes: string[];
   key_facts: string[];
+}
+
+// ─── Currency Candles ────────────────────────────────────────
+
+export interface ICurrencyCandle {
+  time: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
+export interface ICurrencyCandlesResponse {
+  pair: string;
+  interval: string;
+  count: number;
+  candles: ICurrencyCandle[];
 }

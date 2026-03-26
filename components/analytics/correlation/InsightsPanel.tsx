@@ -81,7 +81,7 @@ export function InsightsPanel({ insights, onPairSelect, onAddAsset, dismissed: e
                   <div className="flex items-center gap-2 mt-1.5">
                     {insight.pair && (
                       <button
-                        onClick={() => onPairSelect(insight.pair!)}
+                        onClick={() => { if (insight.pair) onPairSelect(insight.pair); }}
                         className={cn('text-[9px] font-medium px-2 py-0.5 rounded-full transition-colors', config.color, 'bg-white/5 hover:bg-white/10')}
                       >
                         View Pair
@@ -89,7 +89,7 @@ export function InsightsPanel({ insights, onPairSelect, onAddAsset, dismissed: e
                     )}
                     {insight.suggestedAsset && (
                       <button
-                        onClick={() => onAddAsset(insight.suggestedAsset!)}
+                        onClick={() => { if (insight.suggestedAsset) onAddAsset(insight.suggestedAsset); }}
                         className="text-[9px] font-medium text-brand-blue px-2 py-0.5 rounded-full bg-brand-blue/10 hover:bg-brand-blue/20 transition-colors"
                       >
                         + Add {insight.suggestedAsset}

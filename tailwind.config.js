@@ -72,14 +72,24 @@ module.exports = {
                     ring: 'hsl(var(--sidebar-ring))'
                 },
                 // Custom Market Signal brand colors — organic green palette
+                // Keys are semantic roles (primary/secondary action), not literal hues
                 brand: {
-                    slate: '#0B1A12',
-                    emerald: '#6EE7B7',
-                    blue: '#4ADE80',
-                    violet: '#22C55E',
-                    sage: '#86EFAC',
-                    moss: '#166534',
+                    slate: '#0B1A12',      // Deep dark green-black (backgrounds)
+                    emerald: '#6EE7B7',    // Light emerald (accents)
+                    blue: '#4ADE80',       // Primary action (green-400)
+                    violet: '#22C55E',     // Secondary action (green-500)
+                    sage: '#86EFAC',       // Light sage (highlights)
+                    moss: '#166534',       // Deep moss (dark accents)
                 }
+            },
+            zIndex: {
+                'overlay': '5',
+                'dropdown': '10',
+                'sticky': '20',
+                'modal': '30',
+                'toast': '40',
+                'popover': '50',
+                'skip': '100',
             },
             borderRadius: {
                 lg: 'var(--radius)',

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   CommandDialog,
@@ -20,13 +20,13 @@ import {
   Library,
   Settings,
   LogOut,
-  Search,
   TrendingUp,
   Moon,
   Sun,
   Keyboard,
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
+import { useTheme } from "next-themes";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
 
 const NAV_ITEMS = [
@@ -43,14 +43,16 @@ export function CommandPalette() {
   const [search, setSearch] = useState("");
   const router = useRouter();
   const { logout, isAuthenticated } = useAuth();
+  const { theme, setTheme } = useTheme();
 
   // Cmd+K to open
-  useHotkeys([
+  const hotkeys = useMemo(() => [
     {
       key: "mod+k",
-      handler: () => setOpen((o) => !o),
+      handler: () => setOpen((o: boolean) => !o),
     },
-  ]);
+  ], []);
+  useHotkeys(hotkeys);
 
   const runCommand = useCallback(
     (command: () => void) => {
@@ -110,8 +112,7 @@ export function CommandPalette() {
           <CommandItem
             onSelect={() =>
               runCommand(() => {
-                const html = document.documentElement;
-                html.classList.toggle("dark");
+                setTheme(theme === "dark" ? "light" : "dark");
               })
             }
           >

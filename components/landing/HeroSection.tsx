@@ -39,7 +39,7 @@ function MarketPulse() {
       />
 
       {/* Waves */}
-      <svg viewBox="0 0 400 140" className="w-full h-auto relative z-10" preserveAspectRatio="xMidYMid meet">
+      <svg viewBox="0 0 400 140" className="w-full h-auto relative z-10" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Market pulse visualization">
         <defs>
           <filter id="glow">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -107,10 +107,11 @@ function MarketPulse() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.2, duration: 0.6 }}
         className="absolute top-4 right-4 rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-md px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.2)]"
+        aria-hidden="true"
       >
         <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">EUR/USD</div>
-        <div className="text-sm font-bold text-white tabular-nums font-display">1.0847</div>
-        <div className="text-[10px] text-green-400 font-medium">+0.32%</div>
+        <div className="text-sm font-bold text-white tabular-nums font-display">Live</div>
+        <div className="text-[10px] text-green-400 font-medium">Real-time</div>
       </motion.div>
 
       <motion.div
@@ -118,12 +119,13 @@ function MarketPulse() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.6, duration: 0.6 }}
         className="absolute bottom-6 left-4 rounded-xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-md px-4 py-2.5 shadow-[0_4px_24px_rgba(0,0,0,0.2)]"
+        aria-hidden="true"
       >
-        <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">USD Strength</div>
+        <div className="text-[9px] text-muted-foreground uppercase tracking-wider font-medium">DXY Index</div>
         <div className="flex items-center gap-2 mt-0.5">
-          <div className="w-2 h-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.6)]" />
-          <span className="text-xs font-bold text-red-400">Weakening</span>
-          <span className="text-[10px] text-muted-foreground tabular-nums">42</span>
+          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.6)]" />
+          <span className="text-xs font-bold text-emerald-400">Tracked</span>
+          <span className="text-[10px] text-muted-foreground tabular-nums">24/5</span>
         </div>
       </motion.div>
     </div>

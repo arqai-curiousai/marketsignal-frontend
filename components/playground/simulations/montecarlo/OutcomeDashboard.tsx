@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import type { IMonteCarloResult } from '@/types/simulation';
 import { fmtPrice, fmtPct, fmtProb, fmtProbWords } from './mc-tokens';
 import { T, S } from '@/components/playground/pyramid/tokens';
+import { formatNumber } from '@/src/lib/exchange/formatting';
 
 interface Props {
   data: IMonteCarloResult;
@@ -115,7 +116,7 @@ export function OutcomeDashboard({ data, currentPrice, className }: Props) {
     {
       title: 'Expected Return',
       value: fmtPct(rm.expectedReturn),
-      description: `The average outcome across all ${(10000).toLocaleString('en-IN')} simulated paths. Median final price: ${fmtPrice(stats.median)}.`,
+      description: `The average outcome across all ${formatNumber(10000)} simulated paths. Median final price: ${fmtPrice(stats.median)}.`,
       accent: rm.expectedReturn >= 0 ? 'emerald' : 'red',
       progress: Math.min(Math.abs(rm.expectedReturn) * 2, 1),
       index: 1,

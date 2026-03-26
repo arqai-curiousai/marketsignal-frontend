@@ -11,6 +11,7 @@ import {
   ReferenceArea,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import { T, S, TOOLTIP_STYLE, AXIS_STYLE } from '@/components/playground/pyramid/tokens';
 import type { IRiskScoreResult } from '@/types/simulation';
 import { RISK_ZONES, getZoneForScore } from './risk-tokens';
@@ -25,7 +26,7 @@ interface Props {
 function buildChartData(score: number, computedAt: string) {
   // Single-point placeholder (historical data not yet available)
   const date = computedAt
-    ? new Date(computedAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })
+    ? formatDateTime(computedAt, 'NSE', { day: '2-digit', month: 'short' })
     : 'Now';
   return [{ date, score: Math.round(score) }];
 }

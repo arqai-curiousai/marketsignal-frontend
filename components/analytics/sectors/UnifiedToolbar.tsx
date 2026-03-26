@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Grid3X3, LayoutGrid, Table as TableIcon, Zap, Triangle, RefreshCw, Download, FileSpreadsheet, Image, Eye } from 'lucide-react';
+import { Grid3X3, LayoutGrid, Table as TableIcon, Zap, Triangle, RefreshCw, FileSpreadsheet, Image, Eye } from 'lucide-react';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { toggleColorblindMode, isColorblindMode } from './constants';
 import { cn } from '@/lib/utils';

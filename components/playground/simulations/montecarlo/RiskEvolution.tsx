@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import {
   ComposedChart,
   Line,
@@ -53,6 +53,8 @@ function EvoTooltip({
 }
 
 export function RiskEvolution({ evolution, className }: Props) {
+  const gId = useId();
+
   const annotation = useMemo(() => {
     if (!evolution.length) return null;
     const maxVarPoint = evolution.reduce((worst, p) =>
@@ -88,7 +90,7 @@ export function RiskEvolution({ evolution, className }: Props) {
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={evolution} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
             <defs>
-              <linearGradient id="riskEvoBand" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gId}-riskEvoBand`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#FB7185" stopOpacity={0.08} />
                 <stop offset="100%" stopColor="#FB7185" stopOpacity={0.02} />
               </linearGradient>
@@ -128,7 +130,7 @@ export function RiskEvolution({ evolution, className }: Props) {
               type="monotone"
               dataKey="cvar5"
               stroke="none"
-              fill="url(#riskEvoBand)"
+              fill={`url(#${gId}-riskEvoBand)`}
               fillOpacity={1}
               animationDuration={800}
             />

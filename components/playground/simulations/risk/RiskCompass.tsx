@@ -23,7 +23,6 @@ interface Props {
 // ─── Constants ──────────────────────────────────────────────
 const GAUGE_SIZE = 360;
 const GAUGE_RADIUS = 100;
-const ARC_FRACTION = 0.75;
 const START_ANGLE = 135;
 const CENTER = GAUGE_SIZE / 2;
 

@@ -19,29 +19,17 @@ export interface WatchlistItem {
   currency?: string;
 }
 
-export interface WatchlistResponse {
+interface WatchlistResponse {
   items: WatchlistItem[];
   count: number;
   max_size: number;
 }
 
-export interface WatchlistStatusResponse {
+interface WatchlistStatusResponse {
   success: boolean;
   message: string;
   ticker?: string;
   exchange?: string;
-}
-
-export interface WatchlistCheckResponse {
-  is_in_watchlist: boolean;
-  ticker: string;
-  exchange: string;
-}
-
-export interface WatchlistCountResponse {
-  count: number;
-  max_size: number;
-  remaining: number;
 }
 
 /**
@@ -80,19 +68,3 @@ export function removeFromWatchlist(
   );
 }
 
-/**
- * Check if a stock is in user's watchlist.
- */
-export function checkWatchlist(
-  ticker: string,
-  exchange: string
-): Promise<ApiResult<WatchlistCheckResponse>> {
-  return apiClient.get<WatchlistCheckResponse>('/api/watchlist/check', { ticker, exchange });
-}
-
-/**
- * Get watchlist count and remaining capacity.
- */
-export function getWatchlistCount(): Promise<ApiResult<WatchlistCountResponse>> {
-  return apiClient.get<WatchlistCountResponse>('/api/watchlist/count');
-}

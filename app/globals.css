@@ -230,6 +230,12 @@
   border-left: 2px solid rgba(251, 191, 36, 0.3);
 }
 
+/* Global thin scrollbar */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+}
+
 /* Custom Scrollbar for Smooth Scrolling */
 .custom-scrollbar {
   scrollbar-width: thin;

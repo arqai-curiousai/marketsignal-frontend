@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { INewsArticle } from '@/types/analytics';
 import { THEME_COLORS, THEME_LABELS } from './constants';
 
@@ -99,6 +99,18 @@ export function SentimentTopography({
     return { buckets: bucketLabels, matrix: mat, maxCount: maxC };
   }, [articles, hours]);
 
+  // Track container width via ResizeObserver instead of reading during render
+  const [containerWidth, setContainerWidth] = useState(0);
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(entries => {
+      setContainerWidth(entries[0].contentRect.width);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Sentiment score → color
   const scoreToColor = (score: number, count: number): string => {
     if (count === 0) return 'transparent';
@@ -110,8 +122,8 @@ export function SentimentTopography({
 
   const cellWidth = Math.max(
     CELL_MIN_WIDTH,
-    containerRef.current
-      ? (containerRef.current.clientWidth - LABEL_WIDTH) / buckets.length
+    containerWidth > 0
+      ? (containerWidth - LABEL_WIDTH) / buckets.length
       : CELL_MIN_WIDTH
   );
 

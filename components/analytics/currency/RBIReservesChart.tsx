@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Building2, TrendingUp, TrendingDown, Minus, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import { getRBIReserves } from '@/src/lib/api/analyticsApi';
 import type { IRBIReserves, IRBIReservesPoint } from '@/src/types/analytics';
 
@@ -55,12 +56,12 @@ function ReservesChart({ data }: { data: IRBIReservesPoint[] }) {
   const step = Math.max(1, Math.floor(data.length / 4));
   const xLabels = data
     .filter((_, i) => i % step === 0 || i === data.length - 1)
-    .map((d, origIdx) => {
+    .map((d, _origIdx) => {
       const idx = data.indexOf(d);
       const dt = new Date(d.date);
       return {
         x: pad.left + (idx / (data.length - 1)) * chartW,
-        label: dt.toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }),
+        label: formatDateTime(dt, 'NSE', { month: 'short', year: '2-digit' }),
       };
     });
 
@@ -121,6 +122,8 @@ function CompositionBar({ current }: { current: IRBIReservesPoint }) {
             key={seg.label}
             className={cn(seg.color, 'transition-all')}
             style={{ width: `${(seg.value / total) * 100}%` }}
+            role="img"
+            aria-label={`${seg.label}: $${seg.value.toFixed(1)}B (${((seg.value / total) * 100).toFixed(1)}%)`}
             title={`${seg.label}: $${seg.value.toFixed(1)}B (${((seg.value / total) * 100).toFixed(1)}%)`}
           />
         ))}
@@ -147,7 +150,7 @@ const TREND_CONFIG = {
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 
-export function RBIReservesChart() {
+export function RBIReservesChart({ refreshTrigger }: { refreshTrigger?: number }) {
   const [data, setData] = useState<IRBIReserves | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -168,7 +171,7 @@ export function RBIReservesChart() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshTrigger]);
 
   if (loading && !data) {
     return <Skeleton className="h-72 w-full rounded-xl" />;

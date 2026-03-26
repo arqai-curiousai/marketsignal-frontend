@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useId, useMemo, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { T, S } from '@/components/playground/pyramid/tokens';
@@ -125,6 +125,7 @@ export function FactorFingerprint({
   benchmarkTilts,
   className,
 }: FactorFingerprintProps) {
+  const gId = useId();
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
 
   const n = factors.length;
@@ -230,7 +231,7 @@ export function FactorFingerprint({
       >
         <defs>
           {/* Glow filter for score dots */}
-          <filter id="factor-dot-glow">
+          <filter id={`${gId}-factor-dot-glow`}>
             <feGaussianBlur stdDeviation="2" />
             <feMerge>
               <feMergeNode />
@@ -335,7 +336,7 @@ export function FactorFingerprint({
               cy={pt.y}
               r={4}
               fill={VIOLET}
-              filter="url(#factor-dot-glow)"
+              filter={`url(#${gId}-factor-dot-glow)`}
               initial={{ scale: 0, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.5 + i * 0.08, type: 'spring', stiffness: 200, damping: 15 }}

@@ -1,5 +1,7 @@
 /** Market Pyramid shared constants, types, colors, and helpers. */
 
+import { getCurrencySymbolByCode } from '@/lib/exchange/formatting';
+
 export { SECTOR_COLORS } from '@/types/analytics';
 export { perfColor, formatMarketCap, perfTextClass } from '../sectors/constants';
 
@@ -258,13 +260,14 @@ export function valuationColor(ratio: number): { bg: string; text: string; label
   return { bg: 'bg-red-500/15', text: 'text-red-400', label: 'Expensive' };
 }
 
-/** Format INR currency values compactly */
-export function formatINR(val: number | null): string {
+/** Format currency values compactly (defaults to INR) */
+export function formatINR(val: number | null, currency: string = 'INR'): string {
   if (val == null) return '—';
-  if (val >= 1e7) return `₹${(val / 1e7).toFixed(1)}Cr`;
-  if (val >= 1e5) return `₹${(val / 1e5).toFixed(1)}L`;
-  if (val >= 1e3) return `₹${(val / 1e3).toFixed(0)}`;
-  return `₹${val.toFixed(2)}`;
+  const sym = getCurrencySymbolByCode(currency);
+  if (val >= 1e7) return `${sym}${(val / 1e7).toFixed(1)}Cr`;
+  if (val >= 1e5) return `${sym}${(val / 1e5).toFixed(1)}L`;
+  if (val >= 1e3) return `${sym}${(val / 1e3).toFixed(0)}`;
+  return `${sym}${val.toFixed(2)}`;
 }
 
 /** Format percentage */

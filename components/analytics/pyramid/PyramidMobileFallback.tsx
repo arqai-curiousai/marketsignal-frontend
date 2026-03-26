@@ -5,15 +5,19 @@ import { ChevronDown, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { IPyramidSector } from './constants';
 import { SECTOR_COLORS, formatPct } from './constants';
+import { formatPrice } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 
 interface PyramidMobileFallbackProps {
   sectors: IPyramidSector[];
   onStockClick: (ticker: string, sector: string) => void;
+  exchange?: ExchangeCode;
 }
 
 export function PyramidMobileFallback({
   sectors,
   onStockClick,
+  exchange = 'NSE',
 }: PyramidMobileFallbackProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
 
@@ -81,7 +85,7 @@ export function PyramidMobileFallback({
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="text-[10px] tabular-nums text-muted-foreground">
-                          ₹{stock.last_price.toLocaleString()}
+                          {formatPrice(stock.last_price, exchange)}
                         </span>
                         <span
                           className={cn(

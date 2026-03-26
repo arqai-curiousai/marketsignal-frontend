@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, Clock, TrendingUp, TrendingDown, Zap } from 'lucide-react';
 import {
@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import type { INewsTimeline } from '@/types/analytics';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import { SentimentBadge } from './SentimentBadge';
 import { TickerPill } from './TickerPill';
 import { formatTimeAgo, getSentimentColor, getSourceDisplayName, THEME_COLORS } from './constants';
@@ -33,6 +34,47 @@ export function NewsTimeline({
   onSelectArticle,
   onTickerClick,
 }: NewsTimelineProps) {
+  const gradientId = useId();
+  // All hooks must be called before any early return
+  const effectiveTicker = useMemo(() => {
+    if (!data || data.events.length === 0) return null;
+    if (ticker) return ticker;
+    const tickers = data.events.flatMap((e) => e.tickers);
+    if (tickers.length === 0) return null;
+    const counts: Record<string, number> = {};
+    for (const t of tickers) counts[t] = (counts[t] ?? 0) + 1;
+    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    const top = sorted[0]?.[0];
+    return top && data.price_series[top] ? top : null;
+  }, [ticker, data]);
+
+  const priceSeries = effectiveTicker && data?.price_series[effectiveTicker] ? data.price_series[effectiveTicker] : null;
+
+  const impactMap = useMemo(
+    () => data?.impact_markers ? new Map(data.impact_markers.map((m) => [m.event_id, m])) : new Map(),
+    [data?.impact_markers],
+  );
+
+  const chartData = useMemo(
+    () =>
+      priceSeries
+        ? priceSeries.map((p) => ({
+            timestamp: p.timestamp,
+            dateLabel: formatDateTime(p.timestamp, 'NSE', {
+              month: 'short',
+              day: 'numeric',
+            }),
+            close: p.close,
+          }))
+        : [],
+    [priceSeries],
+  );
+
+  const maxImpact = useMemo(
+    () => data?.events ? Math.max(1, ...data.events.map((e) => Math.abs(e.impact_magnitude ?? 0))) : 1,
+    [data?.events],
+  );
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[500px]">
@@ -54,40 +96,6 @@ export function NewsTimeline({
     );
   }
 
-  // Auto-select most-mentioned ticker if none selected but price data available
-  const effectiveTicker = ticker ?? (() => {
-    const tickers = data.events.flatMap((e) => e.tickers);
-    if (tickers.length === 0) return null;
-    const counts: Record<string, number> = {};
-    for (const t of tickers) counts[t] = (counts[t] ?? 0) + 1;
-    const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    const top = sorted[0]?.[0];
-    return top && data.price_series[top] ? top : null;
-  })();
-
-  const priceSeries = effectiveTicker && data.price_series[effectiveTicker] ? data.price_series[effectiveTicker] : null;
-  const impactMap = new Map(
-    data.impact_markers.map((m) => [m.event_id, m])
-  );
-
-  // Prepare price chart data
-  const chartData = priceSeries
-    ? priceSeries.map((p) => ({
-        timestamp: p.timestamp,
-        dateLabel: new Date(p.timestamp).toLocaleDateString('en-IN', {
-          month: 'short',
-          day: 'numeric',
-        }),
-        close: p.close,
-      }))
-    : [];
-
-  // Find max impact for scaling
-  const maxImpact = Math.max(
-    1,
-    ...data.events.map((e) => Math.abs(e.impact_magnitude ?? 0))
-  );
-
   return (
     <div className="space-y-4">
       {/* Price chart with event markers */}
@@ -102,7 +110,7 @@ export function NewsTimeline({
           <ResponsiveContainer width="100%" height={200}>
             <AreaChart data={chartData}>
               <defs>
-                <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id={`${gradientId}-price`} x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#4ADE80" stopOpacity={0.2} />
                   <stop offset="95%" stopColor="#4ADE80" stopOpacity={0} />
                 </linearGradient>
@@ -136,7 +144,7 @@ export function NewsTimeline({
                 dataKey="close"
                 stroke="#4ADE80"
                 strokeWidth={1.5}
-                fill="url(#priceGradient)"
+                fill={`url(#${gradientId}-price)`}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -194,7 +202,10 @@ export function NewsTimeline({
 
               {/* Event card */}
               <div
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelectArticle(event.id)}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectArticle(event.id); } }}
                 className={cn(
                   'rounded-xl border bg-white/[0.02] p-3.5 cursor-pointer transition-all overflow-hidden relative',
                   isHighImpact

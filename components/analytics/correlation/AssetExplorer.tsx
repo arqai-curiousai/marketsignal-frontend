@@ -121,7 +121,7 @@ export function AssetExplorer({
       </div>
 
       {/* Bar chart */}
-      <div className="max-h-[600px] overflow-y-auto space-y-1 pr-1">
+      <div className="max-h-[600px] overflow-y-auto space-y-1 pr-1" role="img" aria-label="Asset correlation bar chart">
         {sorted.map((peer) => {
           const asset = ASSET_MAP.get(peer.peer);
           const label = asset?.name ?? peer.peer;

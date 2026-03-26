@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useId, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -33,7 +33,6 @@ import {
   AXIS_STYLE,
   fmtPct,
   fmtNum,
-  gradientId,
 } from './tokens';
 import { LAYERS } from './constants';
 
@@ -82,6 +81,8 @@ function KpiCard({
             {periods.map((p) => (
               <button
                 key={p}
+                aria-pressed={period === p}
+                aria-label={p === '1d' ? '1 day' : p === '7d' ? '7 days' : '30 days'}
                 onClick={() => onPeriodChange(p)}
                 className={cn(
                   'px-1.5 py-0.5 rounded text-[8px] font-medium transition-colors',
@@ -267,6 +268,7 @@ export function AccuracyDashboard({
   signals,
   className,
 }: AccuracyDashboardProps) {
+  const pnlGradId = `${useId()}-pnl`;
   const [period, setPeriod] = useState<PeriodFilter>('7d');
 
   const perf = useMemo(() => {
@@ -294,7 +296,19 @@ export function AccuracyDashboard({
     });
   }, [signals]);
 
-  const pnlGradId = useMemo(() => gradientId('accuracy', 'pnl'), []);
+  // Compute the gradient zero-crossing offset from data range so the
+  // green/red crossover aligns with PnL = 0 rather than a fixed 50%
+  const pnlGradientMid = useMemo(() => {
+    if (pnlCurve.length === 0) return 50;
+    const values = pnlCurve.map((d) => d.pnl);
+    const maxVal = Math.max(...values);
+    const minVal = Math.min(...values);
+    const range = maxVal - minVal;
+    if (range === 0) return 50;
+    // SVG linearGradient y1=0 (top=max) to y2=1 (bottom=min)
+    // offset where PnL=0 sits: (maxVal - 0) / range
+    return Math.max(5, Math.min(95, (maxVal / range) * 100));
+  }, [pnlCurve]);
 
   if (!perf) {
     return (
@@ -379,12 +393,12 @@ export function AccuracyDashboard({
                       stopOpacity={0.3}
                     />
                     <stop
-                      offset="50%"
+                      offset={`${pnlGradientMid}%`}
                       stopColor={SIGNAL.buy.hex}
                       stopOpacity={0.05}
                     />
                     <stop
-                      offset="50%"
+                      offset={`${pnlGradientMid}%`}
                       stopColor={SIGNAL.sell.hex}
                       stopOpacity={0.05}
                     />
@@ -421,7 +435,7 @@ export function AccuracyDashboard({
                 <Area
                   type="monotone"
                   dataKey="pnl"
-                  stroke={SIGNAL.buy.hex}
+                  stroke={pnlCurve[pnlCurve.length - 1]?.pnl >= 0 ? SIGNAL.buy.hex : SIGNAL.sell.hex}
                   fill={`url(#${pnlGradId})`}
                   strokeWidth={1.5}
                   dot={false}

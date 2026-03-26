@@ -11,6 +11,7 @@ export function downloadCSV(
   data: Record<string, unknown>[],
   filename: string,
 ): void {
+  if (typeof document === 'undefined') return;
   const csv = Papa.unparse(data);
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -28,6 +29,7 @@ export async function downloadPNG(
   element: HTMLElement,
   filename: string,
 ): Promise<void> {
+  if (typeof document === 'undefined') return;
   const dataUrl = await toPng(element, {
     backgroundColor: '#0B0F19',
     pixelRatio: 2,

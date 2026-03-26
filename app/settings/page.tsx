@@ -75,12 +75,18 @@ export default function SettingsPage() {
                     </div>
                     <Card className="p-6 bg-white/5 border-white/10 space-y-6">
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="high-impact" className="text-white">High Impact Signals</Label>
-                            <Switch id="high-impact" defaultChecked />
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="high-impact" className="text-white/50">High Impact Signals</Label>
+                                <Badge variant="outline" className="text-[10px] border-white/10 text-muted-foreground">Coming soon</Badge>
+                            </div>
+                            <Switch id="high-impact" disabled checked={false} />
                         </div>
                         <div className="flex items-center justify-between">
-                            <Label htmlFor="daily-summary" className="text-white">Daily Research Summary</Label>
-                            <Switch id="daily-summary" />
+                            <div className="flex items-center gap-2">
+                                <Label htmlFor="daily-summary" className="text-white/50">Daily Research Summary</Label>
+                                <Badge variant="outline" className="text-[10px] border-white/10 text-muted-foreground">Coming soon</Badge>
+                            </div>
+                            <Switch id="daily-summary" disabled checked={false} />
                         </div>
                     </Card>
                 </section>

@@ -6,7 +6,7 @@ import { ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SECTOR_COLORS, formatMarketCap, perfTextClass, perfColor } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
-import type { ExchangeCode } from '@/lib/exchange/config';
+import { type ExchangeCode, isValidExchange } from '@/lib/exchange/config';
 
 interface SectorPerformanceTableProps {
   sectors: ISectorAnalytics[];
@@ -270,7 +270,7 @@ export function SectorPerformanceTable({
 
                 {/* Market Cap */}
                 <td className="px-3 py-2.5 text-right text-muted-foreground tabular-nums">
-                  {formatMarketCap(sector.total_market_cap, exchange as ExchangeCode)}
+                  {formatMarketCap(sector.total_market_cap, isValidExchange(exchange ?? '') ? exchange as ExchangeCode : 'NSE')}
                 </td>
               </motion.tr>
               );

@@ -26,17 +26,19 @@ export function CurrencyCorrelationMini() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const controller = new AbortController();
+    const fetchCorrelation = async () => {
       try {
         const res = await getCurrencyCorrelation();
-        if (res.success) setMatrix(res.data);
+        if (!controller.signal.aborted && res.success) setMatrix(res.data);
       } catch {
         // silent
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
-    fetch();
+    fetchCorrelation();
+    return () => controller.abort();
   }, []);
 
   if (loading) {

@@ -3,6 +3,8 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { sanitizeUrl } from '@/lib/security/xss';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import type { IFilingSummary } from './constants';
 import { FILING_CATEGORIES } from './constants';
 
@@ -83,7 +85,7 @@ export function CorporateFilings({ data }: CorporateFilingsProps) {
       <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
         {data.filings.map((filing, i) => {
           const config = FILING_CATEGORIES[filing.category] || FILING_CATEGORIES.other;
-          const dateStr = new Date(filing.filing_date).toLocaleDateString('en-IN', {
+          const dateStr = formatDateTime(filing.filing_date, 'NSE', {
             day: '2-digit',
             month: 'short',
           });
@@ -126,12 +128,14 @@ export function CorporateFilings({ data }: CorporateFilingsProps) {
                       ? 'bg-red-400'
                       : 'bg-white/20',
                 )}
+                role="img"
+                aria-label={`Sentiment: ${filing.sentiment || 'neutral'}`}
               />
 
               {/* PDF link */}
               {filing.pdf_url && (
                 <a
-                  href={filing.pdf_url}
+                  href={sanitizeUrl(filing.pdf_url) ?? '#'}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="shrink-0"

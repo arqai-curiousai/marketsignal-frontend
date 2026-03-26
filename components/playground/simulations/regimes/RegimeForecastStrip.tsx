@@ -11,13 +11,12 @@ import {
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import type { IRegimeForecast, IRegimeState, RegimeLabel } from '@/types/simulation';
+import type { IRegimeForecast, RegimeLabel } from '@/types/simulation';
 import { REGIME_COLORS, getRegimeColor, fmtProb } from './regime-tokens';
 import { T, S } from '@/components/playground/pyramid/tokens';
 
 interface Props {
   forecast: IRegimeForecast[];
-  states: IRegimeState[];
   className?: string;
 }
 

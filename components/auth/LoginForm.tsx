@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,9 +10,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from 'sonner';
 import { Loader2, Mail, KeyRound, ArrowLeft } from 'lucide-react';
+import { apiClient } from '@/lib/api/apiClient';
 
 
 export function LoginForm(): React.ReactElement {
+    const searchParams = useSearchParams();
+    const redirectTo = searchParams.get('from');
+
     const [state, setState] = useState<{
         email: string;
         firstName: string;
@@ -33,7 +38,9 @@ export function LoginForm(): React.ReactElement {
     const handleEmailSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
 
-        if (!state.email || !state.email.includes('@')) {
+        const email = state.email.trim().toLowerCase();
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!email || email.length > 254 || !emailRegex.test(email)) {
             toast.error('Please enter a valid email address');
             return;
         }
@@ -41,20 +48,16 @@ export function LoginForm(): React.ReactElement {
         setState(prev => ({ ...prev, isLoading: true }));
 
         try {
-            // Step 1: Check if user exists
-            const checkResponse = await fetch('/api/auth/check-email', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email: state.email.trim().toLowerCase() }),
+            // Step 1: Check if user exists (uses apiClient for CSRF protection)
+            const result = await apiClient.post<{ userExists: boolean }>('/api/auth/check-email', {
+                email: state.email.trim().toLowerCase(),
             });
 
-            if (!checkResponse.ok) {
+            if (!result.success) {
                 throw new Error('Failed to verify email');
             }
 
-            const checkData = await checkResponse.json();
-
-            if (checkData.userExists) {
+            if (result.data.userExists) {
                 // User exists, request OTP immediately
                 await requestOtp(state.email);
             } else {
@@ -88,17 +91,13 @@ export function LoginForm(): React.ReactElement {
 
     const requestOtp = async (email: string, firstName?: string, lastName?: string) => {
         try {
-            const response = await fetch('/api/auth/request-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: email.trim().toLowerCase(),
-                    first_name: firstName,
-                    last_name: lastName
-                }),
+            const result = await apiClient.post('/api/auth/request-otp', {
+                email: email.trim().toLowerCase(),
+                first_name: firstName,
+                last_name: lastName,
             });
 
-            if (!response.ok) {
+            if (!result.success) {
                 throw new Error('Failed to send OTP');
             }
 
@@ -121,24 +120,21 @@ export function LoginForm(): React.ReactElement {
         setState(prev => ({ ...prev, isLoading: true }));
 
         try {
-            const response = await fetch('/api/auth/verify-otp', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: state.email.trim().toLowerCase(),
-                    otp_code: state.otp
-                }),
+            const result = await apiClient.post('/api/auth/verify-otp', {
+                email: state.email.trim().toLowerCase(),
+                otp_code: state.otp,
             });
 
-            if (!response.ok) {
+            if (!result.success) {
                 throw new Error('Invalid OTP');
             }
 
             // No localStorage storage directly - rely on HttpOnly cookies
 
             toast.success('Login successful!');
-            // Redirect to dashboard
-            window.location.href = '/forex';
+            // Redirect to the page they were trying to access, or default to /signals
+            const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/signals';
+            window.location.href = destination;
         } catch {
             toast.error('Invalid OTP. Please try again.');
             setState(prev => ({ ...prev, isLoading: false }));
@@ -283,9 +279,10 @@ export function LoginForm(): React.ReactElement {
                         className="space-y-4"
                     >
                         <div className="space-y-2">
-                            <Label className="text-slate-200">One-time passcode</Label>
+                            <Label className="text-slate-200" htmlFor="otp-input">One-time passcode</Label>
                             <div className="flex justify-center">
                                 <InputOTP
+                                    id="otp-input"
                                     maxLength={6}
                                     value={state.otp}
                                     onChange={(value) => setState(prev => ({ ...prev, otp: value }))}

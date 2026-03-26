@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { Slider } from '@/components/ui/slider';
@@ -11,7 +11,6 @@ import type { ILayerResult, StrategySignal } from '@/types/strategy';
 
 interface Props {
   layers: Record<string, ILayerResult>;
-  topFeatures: Array<{ feature: string; impact: number }>;
   className?: string;
 }
 
@@ -53,7 +52,7 @@ function resolveSignal(
   return { signal: 'hold', confidence: Math.max(1 - avgBuy - avgSell, 0) };
 }
 
-export function LayerSensitivityPanel({ layers, topFeatures, className }: Props) {
+export function LayerSensitivityPanel({ layers, className }: Props) {
   // Initialize overrides with current layer confidence values
   const [overrides, setOverrides] = useState<Record<string, number>>(() => {
     const init: Record<string, number> = {};
@@ -63,6 +62,15 @@ export function LayerSensitivityPanel({ layers, topFeatures, className }: Props)
     }
     return init;
   });
+
+  useEffect(() => {
+    const init: Record<string, number> = {};
+    for (const layer of LAYERS) {
+      const result = layers[layer.id];
+      init[layer.id] = result?.confidence ?? 0.5;
+    }
+    setOverrides(init);
+  }, [layers]);
 
   const resolved = useMemo(
     () => resolveSignal(layers, overrides),
@@ -153,6 +161,7 @@ export function LayerSensitivityPanel({ layers, topFeatures, className }: Props)
                 min={0}
                 max={1}
                 step={0.01}
+                aria-label={`${layer.name} confidence`}
               />
             </div>
           );

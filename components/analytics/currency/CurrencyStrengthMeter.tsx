@@ -70,7 +70,14 @@ function StrengthBar({
     <div className="flex items-center gap-2 py-1.5 group">
       <span className="text-xs font-semibold w-8 shrink-0">{currency}</span>
       <MomentumArrow values={values} />
-      <div className="flex-1 h-5 relative bg-muted/20 rounded-sm overflow-hidden">
+      <div
+        className="flex-1 h-5 relative bg-muted/20 rounded-sm overflow-hidden"
+        role="meter"
+        aria-valuenow={value}
+        aria-valuemin={-maxAbsValue}
+        aria-valuemax={maxAbsValue}
+        aria-label={`${currency} strength`}
+      >
         {/* Center line */}
         <div className="absolute left-1/2 top-0 bottom-0 w-px bg-border/50 z-10" />
         {/* Bar */}
@@ -115,11 +122,24 @@ function DivergenceBadge({ currency, values }: { currency: string; values: Curre
   );
 }
 
-export function CurrencyStrengthMeter() {
-  const [data, setData] = useState<ICurrencyStrength | null>(null);
-  const [loading, setLoading] = useState(true);
+interface CurrencyStrengthMeterProps {
+  /** Pre-fetched data from parent — skips internal fetch when provided. */
+  initialData?: ICurrencyStrength | null;
+}
+
+export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProps = {}) {
+  const [data, setData] = useState<ICurrencyStrength | null>(initialData ?? null);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [selectedTf, setSelectedTf] = useState<Timeframe>('1d');
+
+  // Sync external data when parent refreshes
+  useEffect(() => {
+    if (initialData) {
+      setData(initialData);
+      setLoading(false);
+    }
+  }, [initialData]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -137,9 +157,12 @@ export function CurrencyStrengthMeter() {
     }
   }, []);
 
+  // Only self-fetch if no data was provided by parent
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (!initialData) {
+      fetchData();
+    }
+  }, [fetchData, initialData]);
 
   if (loading) {
     return (

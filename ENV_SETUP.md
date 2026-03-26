@@ -1,118 +1,48 @@
 # Frontend Environment Setup Guide
 
-## Required Environment Variables
+## Environment Variables
 
-Create a `.env.local` file in the frontend root directory with the following configuration:
+Create a `.env` file in the `marketsignal-frontend/` root directory:
 
 ```env
-# ===========================================
-# MarketSignal AI Frontend Configuration
-# ===========================================
+# Backend API base URL (Next.js rewrites proxy to this)
+NEXT_PUBLIC_API_URL=http://localhost:8000/api
+NEXT_PUBLIC_API_ORIGIN=http://localhost:8000
 
-# API Configuration
-NEXT_PUBLIC_API_URL="https://api.yourdomain.com/api"
-
-# App Configuration
-NEXT_PUBLIC_APP_NAME="MarketSignal AI"
-NEXT_PUBLIC_APP_VERSION="1.0.0"
-
-# Development Configuration (for local development)
-# NEXT_PUBLIC_API_URL="http://localhost:8000/api"
+# Server-side API key for stock proxy routes (optional)
+# API_KEY=your-api-key-here
 ```
 
-## Environment Files
+### Variable Reference
 
-### Production (.env.production)
-```env
-NEXT_PUBLIC_API_URL="https://api.yourdomain.com/api"
-NEXT_PUBLIC_APP_NAME="MarketSignal AI"
-NEXT_PUBLIC_APP_VERSION="1.0.0"
-```
+| Variable | Required | Scope | Description |
+|----------|----------|-------|-------------|
+| `NEXT_PUBLIC_API_URL` | Yes | Client + Server | Backend API URL with `/api` suffix. Used by `next.config.js` rewrites as fallback. |
+| `NEXT_PUBLIC_API_ORIGIN` | Yes | Client + Server | Backend origin without `/api`. Primary rewrite target in `next.config.js`. |
+| `API_KEY` | No | Server only | API key sent as `X-API-Key` header to backend stock routes (`app/api/stocks/`). Not exposed to browser. |
 
-### Development (.env.local)
-```env
-NEXT_PUBLIC_API_URL="http://localhost:8000/api"
-NEXT_PUBLIC_APP_NAME="MarketSignal AI"
-NEXT_PUBLIC_APP_VERSION="1.0.0"
-```
+### How API Proxying Works
 
-### Testing (.env.test)
-```env
-NEXT_PUBLIC_API_URL="http://localhost:8000/api"
-NEXT_PUBLIC_APP_NAME="MarketSignal AI Test"
-NEXT_PUBLIC_APP_VERSION="1.0.0"
-```
-
-## Setup Instructions
-
-### Step 1: Choose Your Configuration
-
-**For Local Development:**
-- Use `http://localhost:8000/api` if running backend locally
-- Use your deployed backend URL if testing against production
-
-**For Production:**
-- Use your actual API domain (e.g., `https://api.yourdomain.com/api`)
-
-### Step 2: Create Environment File
-
-1. Copy the appropriate configuration above
-2. Create `.env.local` in your frontend root directory
-3. Replace `yourdomain.com` with your actual domain
-
-### Step 3: Verify Configuration
-
-Run the development server and check that:
-- API calls are going to the correct URL
-- CORS is properly configured on the backend
-- Authentication flow works correctly
-
-## Important Notes
-
-1. **Next.js Environment Variables:**
-   - Variables must start with `NEXT_PUBLIC_` to be accessible in the browser
-   - Never put sensitive data in public environment variables
-   - Use `.env.local` for local development (not tracked by Git)
-
-2. **CORS Configuration:**
-   - Make sure your backend `ALLOWED_ORIGINS` includes your frontend URL
-   - For development: `http://localhost:3000`
-   - For production: `https://yourdomain.com`
-
-3. **API URL Format:**
-   - Must end with `/api` (not `/api/`)
-   - Include protocol (`http://` or `https://`)
-   - Use HTTPS in production
+`next.config.js` rewrites `/api/:path*` requests to `NEXT_PUBLIC_API_ORIGIN` (or `NEXT_PUBLIC_API_URL` as fallback). The client uses relative URLs only — no API keys or backend URLs reach the browser.
 
 ## Environment File Priority
 
-Next.js loads environment variables in this order:
-1. `.env.local` (always loaded, ignored by Git)
-2. `.env.production` or `.env.development` (based on NODE_ENV)
-3. `.env`
+Next.js loads environment variables in this order (later files override earlier):
+1. `.env` (base defaults)
+2. `.env.development` or `.env.production` (based on `NODE_ENV`)
+3. `.env.local` (local overrides, not tracked by Git)
+
+For local development, `.env` is sufficient. For production, use `.env.production` or platform-level env vars.
+
+## Setup
+
+1. Copy `.env.example` to `.env`
+2. Update `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_API_ORIGIN` to point to your backend
+3. Run `yarn dev` — verify API calls reach the backend
 
 ## Common Issues
 
-1. **CORS Errors:**
-   - Check backend `ALLOWED_ORIGINS` setting
-   - Verify frontend URL matches exactly
-
-2. **API Connection Issues:**
-   - Ensure backend is running and accessible
-   - Check network connectivity and firewall rules
-
-3. **Environment Variables Not Loading:**
-   - Restart development server after changing `.env` files
-   - Verify variable names start with `NEXT_PUBLIC_`
-
-## Development vs Production
-
-### Development
-- Use `http://localhost:3000` for frontend
-- Use `http://localhost:8000/api` for backend API
-- CORS allows localhost origins
-
-### Production
-- Use your actual domain (e.g., `https://yourdomain.com`)
-- Use secure HTTPS endpoints
-- Proper SSL certificates configured 
+- **CORS errors**: Ensure backend `CORS_ORIGINS` includes your frontend URL (e.g., `http://localhost:3000`)
+- **API connection failures**: Verify backend is running at the configured URL
+- **Env changes not taking effect**: Restart `yarn dev` after modifying `.env` files
+- **API URL format**: Must include protocol (`http://` or `https://`), must NOT have trailing slash

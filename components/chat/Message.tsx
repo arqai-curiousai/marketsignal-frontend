@@ -35,7 +35,7 @@ export function Message({ role, content, timestamp }: MessageProps) {
                         {isAssistant ? 'MarketSignal AI' : 'You'}
                     </span>
                     <span className="text-[10px] text-white/30">
-                        {timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                 </div>
 

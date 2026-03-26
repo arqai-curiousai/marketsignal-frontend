@@ -6,8 +6,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Search, ArrowRight, MessageSquare, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { apiClient } from '@/lib/api/client';
+import { apiClient } from '@/lib/api/apiClient';
 
 interface ResearchItem {
     id: string;
@@ -22,16 +21,23 @@ export default function ResearchLibrary() {
     const [search, setSearch] = useState('');
     const [items, setItems] = useState<ResearchItem[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [retryKey, setRetryKey] = useState(0);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
+        let cancelled = false;
+
         async function fetchResearch() {
+            setError(null);
             try {
                 const response = await apiClient.get<{ items?: Record<string, unknown>[] } | Record<string, unknown>[]>(
                     '/api/research/docs',
                     { q: search || undefined, limit: 20 },
                 );
+                if (cancelled) return;
                 if (!response.success) {
+                    setError('Failed to load research documents. Please try again.');
                     setItems([]);
                     return;
                 }
@@ -45,12 +51,14 @@ export default function ResearchLibrary() {
                     insights: (doc.insights as string[]) ?? [],
                     tags: (doc.tags as string[]) ?? [],
                 }));
-                setItems(mapped);
+                if (!cancelled) setItems(mapped);
             } catch {
+                if (cancelled) return;
                 console.warn('Failed to fetch research documents');
+                setError('Unable to reach the server. Please check your connection.');
                 setItems([]);
             } finally {
-                setLoading(false);
+                if (!cancelled) setLoading(false);
             }
         }
 
@@ -59,10 +67,11 @@ export default function ResearchLibrary() {
             fetchResearch();
         }, search ? 300 : 0);
         return () => {
+            cancelled = true;
             if (debounceRef.current) clearTimeout(debounceRef.current);
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [search]);
+    }, [search, retryKey]);
 
     return (
         <div className="container py-12 px-6 max-w-5xl">
@@ -86,6 +95,16 @@ export default function ResearchLibrary() {
             {loading ? (
                 <div className="flex justify-center items-center py-20">
                     <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+            ) : error ? (
+                <div className="text-center py-20">
+                    <p className="text-red-400 text-sm">{error}</p>
+                    <button
+                        onClick={() => { setLoading(true); setRetryKey((k) => k + 1); }}
+                        className="mt-3 text-xs text-muted-foreground hover:text-white underline"
+                    >
+                        Retry
+                    </button>
                 </div>
             ) : items.length === 0 ? (
                 <div className="text-center py-20">
@@ -128,16 +147,20 @@ export default function ResearchLibrary() {
                                     )}
                                 </div>
                                 <div className="flex flex-col gap-3 justify-center">
-                                    <Link href={`/assistant?q=${encodeURIComponent(item.title)}`}>
-                                        <Button className="w-full md:w-48 bg-white/5 border border-white/10 hover:bg-white/10 text-white gap-2">
-                                            <MessageSquare className="h-4 w-4" />
-                                            Ask AI About This
-                                        </Button>
+                                    <Link
+                                        href={`/assistant?q=${encodeURIComponent(item.title)}`}
+                                        className="w-full md:w-48 bg-white/5 border border-white/10 hover:bg-white/10 text-white gap-2 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2"
+                                    >
+                                        <MessageSquare className="h-4 w-4" />
+                                        Ask AI About This
                                     </Link>
-                                    <Button variant="ghost" className="w-full md:w-48 text-muted-foreground hover:text-white gap-2">
+                                    <Link
+                                        href={`/assistant?q=${encodeURIComponent(`Full report on ${item.title}`)}`}
+                                        className="w-full md:w-48 text-muted-foreground hover:text-white gap-2 inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium h-10 px-4 py-2 hover:bg-accent hover:text-accent-foreground"
+                                    >
                                         View Full Report
                                         <ArrowRight className="h-4 w-4" />
-                                    </Button>
+                                    </Link>
                                 </div>
                             </div>
                         </Card>

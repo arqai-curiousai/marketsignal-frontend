@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, Zap, ZapOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -38,8 +38,15 @@ export function SignalToggle({
 }: SignalToggleProps) {
     const [loading, setLoading] = useState(false);
     const [active, setActive] = useState(isActive);
+    const pendingRef = useRef(false);
+
+    useEffect(() => {
+        setActive(isActive);
+    }, [isActive]);
 
     const handleToggle = async () => {
+        if (pendingRef.current) return;
+        pendingRef.current = true;
         setLoading(true);
         try {
             if (active) {
@@ -56,8 +63,10 @@ export function SignalToggle({
                 }
             }
         } catch {
-            // Silently fail — user can retry
+            setActive(isActive);
+            console.warn('Signal toggle failed');
         } finally {
+            pendingRef.current = false;
             setLoading(false);
         }
     };
@@ -96,6 +105,7 @@ export function SignalToggle({
                     handleToggle();
                 }}
                 disabled={loading}
+                aria-label="Toggle signal"
                 className={cn(
                     'rounded-full px-3 transition-all',
                     active

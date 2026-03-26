@@ -130,13 +130,6 @@ export interface IRegimeTimelinePoint {
   probability: number;
 }
 
-export interface IRegimeStreak {
-  start: string;
-  end: string;
-  regime: RegimeLabel;
-  durationDays: number;
-}
-
 export interface IRegimeTransitionCell {
   fromLabel: RegimeLabel;
   toLabel: RegimeLabel;
@@ -577,11 +570,6 @@ export interface IRiskScoreResult {
   computedAt: string;
 }
 
-export interface IRiskQuizAnswer {
-  questionId: number;
-  answer: number;
-}
-
 export interface IRiskQuizResult {
   totalScore: number;
   recommendedZone: IRiskZone;
@@ -593,14 +581,14 @@ export interface IRiskQuizResult {
 // Scenario Stress Lab
 // ---------------------------------------------------------------------------
 
-export interface IScenarioInfo {
+interface IScenarioInfo {
   id: string;
   label: string;
   description: string;
   isCustom: boolean;
 }
 
-export interface IScenarioParams {
+interface IScenarioParams {
   volMultiplier: number;
   driftShock: number;
   correlationShift: number;

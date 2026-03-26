@@ -70,7 +70,7 @@ export default function LoginPage(): React.ReactElement {
 
             {/* Footer */}
             <footer className="p-6 text-center text-sm text-slate-500">
-                © 2024 Market Signal by arQai. All rights reserved.
+                © {new Date().getFullYear()} Market Signal by arQai. All rights reserved.
             </footer>
         </div>
     );

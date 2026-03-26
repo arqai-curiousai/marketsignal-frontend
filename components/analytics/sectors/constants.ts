@@ -60,6 +60,7 @@ export function isColorblindMode(): boolean {
 }
 
 export function toggleColorblindMode(): boolean {
+  if (typeof window === 'undefined') return false;
   const next = !isColorblindMode();
   localStorage.setItem('sector-colorblind', next ? '1' : '0');
   return next;

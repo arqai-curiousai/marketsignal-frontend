@@ -1,7 +1,11 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ChatWindow } from '@/components/chat/ChatWindow';
+import dynamic from 'next/dynamic';
+const ChatWindow = dynamic(
+    () => import('@/components/chat/ChatWindow').then(m => m.ChatWindow),
+    { ssr: false }
+);
 import { SourcePanel } from '@/components/chat/SourcePanel';
 import { IAIResponse } from '@/types';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -23,8 +27,9 @@ export default function AssistantPage() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        className="absolute top-6 right-6 h-10 w-10 bg-white/5 border border-white/10 text-white/50 hover:text-white z-20"
+                        className="absolute top-6 right-6 h-10 w-10 bg-white/5 border border-white/10 text-white/50 hover:text-white z-20 hidden lg:inline-flex"
                         onClick={() => setIsPanelOpen(true)}
+                        aria-label="Open sources panel"
                     >
                         <PanelRightOpen className="h-5 w-5" />
                     </Button>
@@ -47,6 +52,7 @@ export default function AssistantPage() {
                                 size="icon"
                                 className="absolute top-6 right-6 h-8 w-8 text-white/30 hover:text-white z-30"
                                 onClick={() => setIsPanelOpen(false)}
+                                aria-label="Close sources panel"
                             >
                                 <PanelRightClose className="h-4 w-4" />
                             </Button>

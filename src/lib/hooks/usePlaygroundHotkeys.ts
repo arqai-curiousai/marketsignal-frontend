@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useHotkeys } from './useHotkeys';
 
 interface PlaygroundActions {
@@ -40,23 +40,28 @@ export function usePlaygroundHotkeys({
   const toggleHelp = useCallback(() => setShowHelp((prev) => !prev), []);
   const closeHelp = useCallback(() => setShowHelp(false), []);
 
-  useHotkeys([
-    // Tab switching: 1-9
-    ...tabIds.map((id, idx) => ({
-      key: String(idx + 1),
-      handler: () => onSwitchTab(id),
-    })),
-    // Refresh
-    { key: 'r', handler: () => onRefresh?.() },
-    // Export
-    { key: 'e', handler: () => onExportCSV?.() },
-    // Fullscreen
-    { key: 'f', handler: () => onToggleFullscreen?.() },
-    // Help
-    { key: '?', handler: toggleHelp },
-    // Escape closes help
-    { key: 'escape', handler: closeHelp },
-  ]);
+  const hotkeys = useMemo(
+    () => [
+      // Tab switching: 1-9
+      ...tabIds.map((id, idx) => ({
+        key: String(idx + 1),
+        handler: () => onSwitchTab(id),
+      })),
+      // Refresh
+      { key: 'r', handler: () => onRefresh?.() },
+      // Export
+      { key: 'e', handler: () => onExportCSV?.() },
+      // Fullscreen
+      { key: 'f', handler: () => onToggleFullscreen?.() },
+      // Help
+      { key: '?', handler: toggleHelp },
+      // Escape closes help
+      { key: 'escape', handler: closeHelp },
+    ],
+    [tabIds, onSwitchTab, onRefresh, onExportCSV, onToggleFullscreen, toggleHelp, closeHelp],
+  );
+
+  useHotkeys(hotkeys);
 
   return { showHelp, setShowHelp };
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { CentralBankDashboard } from './CentralBankDashboard';
 import { CarryTradeTable } from './CarryTradeTable';
 import { EconomicCalendar } from './EconomicCalendar';
@@ -27,14 +26,15 @@ interface MacroViewProps {
 
 export function MacroView({ selectedPair = 'USD/INR' }: MacroViewProps) {
   const [refreshKey, setRefreshKey] = useState(0);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  const lastRefreshRef = useRef(Date.now());
   const [minutesAgo, setMinutesAgo] = useState(0);
 
   // Auto-refresh every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       setRefreshKey(k => k + 1);
-      setLastRefresh(Date.now());
+      lastRefreshRef.current = Date.now();
+      setMinutesAgo(0);
     }, REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
   }, []);
@@ -42,14 +42,14 @@ export function MacroView({ selectedPair = 'USD/INR' }: MacroViewProps) {
   // Update "minutes ago" display every 30s
   useEffect(() => {
     const timer = setInterval(() => {
-      setMinutesAgo(Math.floor((Date.now() - lastRefresh) / 60_000));
+      setMinutesAgo(Math.floor((Date.now() - lastRefreshRef.current) / 60_000));
     }, 30_000);
     return () => clearInterval(timer);
-  }, [lastRefresh]);
+  }, []);
 
   const handleManualRefresh = useCallback(() => {
     setRefreshKey(k => k + 1);
-    setLastRefresh(Date.now());
+    lastRefreshRef.current = Date.now();
     setMinutesAgo(0);
   }, []);
 
@@ -72,18 +72,18 @@ export function MacroView({ selectedPair = 'USD/INR' }: MacroViewProps) {
       <div className="grid grid-cols-1 lg:grid-cols-[5fr_4fr] gap-5">
         {/* Left column: Central Bank + Carry + FII Flow + RBI Reserves */}
         <motion.div {...ANIM} className="space-y-4">
-          <CentralBankDashboard key={`cb-${refreshKey}`} />
-          <CarryTradeTable key={`ct-${refreshKey}`} />
-          <FIIFlowPanel key={`fii-${refreshKey}`} />
-          <RBIReservesChart key={`rbi-${refreshKey}`} />
+          <CentralBankDashboard refreshTrigger={refreshKey} />
+          <CarryTradeTable refreshTrigger={refreshKey} />
+          <FIIFlowPanel refreshTrigger={refreshKey} />
+          <RBIReservesChart refreshTrigger={refreshKey} />
         </motion.div>
 
         {/* Right column: Calendar + Cross-Asset + COT + News */}
         <motion.div {...ANIM} transition={{ ...ANIM.transition, delay: 0.08 }} className="space-y-4">
-          <EconomicCalendar key={`cal-${refreshKey}`} />
-          <CrossAssetPanel key={`ca-${refreshKey}`} />
-          <CotDashboard key={`cot-${refreshKey}`} />
-          <CurrencyNewsPanel key={`news-${refreshKey}`} pair={selectedPair} />
+          <EconomicCalendar refreshTrigger={refreshKey} />
+          <CrossAssetPanel refreshTrigger={refreshKey} />
+          <CotDashboard refreshTrigger={refreshKey} />
+          <CurrencyNewsPanel refreshTrigger={refreshKey} pair={selectedPair} />
         </motion.div>
       </div>
     </div>

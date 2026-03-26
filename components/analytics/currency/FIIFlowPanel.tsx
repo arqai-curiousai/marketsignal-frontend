@@ -31,7 +31,7 @@ function DualAxisChart({ data }: { data: IINRFIICorrelationPoint[] }) {
 
   // Scale calculations
   const fiiChanges = validData.map(d => d.fii_change);
-  const usdinrCloses = validData.map(d => d.usdinr_close!);
+  const usdinrCloses = validData.map(d => d.usdinr_close ?? 0);
 
   const fiiMax = Math.max(...fiiChanges.map(Math.abs), 0.1);
   const usdinrMin = Math.min(...usdinrCloses);
@@ -50,7 +50,7 @@ function DualAxisChart({ data }: { data: IINRFIICorrelationPoint[] }) {
         {validData.map((d, i) => {
           const fiiBarH = Math.abs(d.fii_change) / fiiMax * 40; // max 40% of height
           const isPositive = d.fii_change >= 0;
-          const usdinrY = ((d.usdinr_close! - usdinrMin) / usdinrRange) * 80 + 10; // 10-90% range
+          const usdinrY = (((d.usdinr_close ?? 0) - usdinrMin) / usdinrRange) * 80 + 10; // 10-90% range
 
           return (
             <div
@@ -68,6 +68,8 @@ function DualAxisChart({ data }: { data: IINRFIICorrelationPoint[] }) {
               {i > 0 && (
                 <svg
                   className="absolute z-0 pointer-events-none"
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
                   style={{
                     left: -(barWidth + 4) / 2,
                     bottom: 0,
@@ -77,11 +79,12 @@ function DualAxisChart({ data }: { data: IINRFIICorrelationPoint[] }) {
                 >
                   <line
                     x1="0"
-                    y1={`${100 - (((validData[i - 1].usdinr_close! - usdinrMin) / usdinrRange) * 80 + 10)}%`}
-                    x2={barWidth + 4}
-                    y2={`${100 - usdinrY}%`}
+                    y1={100 - ((((validData[i - 1].usdinr_close ?? 0) - usdinrMin) / usdinrRange) * 80 + 10)}
+                    x2="100"
+                    y2={100 - usdinrY}
                     stroke="rgba(251, 191, 36, 0.4)"
                     strokeWidth="1.5"
+                    vectorEffect="non-scaling-stroke"
                   />
                 </svg>
               )}
@@ -157,7 +160,7 @@ function CorrelationBadge({ r }: { r: number }) {
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 
-export function FIIFlowPanel() {
+export function FIIFlowPanel({ refreshTrigger }: { refreshTrigger?: number }) {
   const [data, setData] = useState<IINRFIICorrelation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +181,7 @@ export function FIIFlowPanel() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshTrigger]);
 
   if (loading && !data) {
     return <Skeleton className="h-80 w-full rounded-xl" />;

@@ -49,19 +49,32 @@ export function useMarketIntelligence(
   const [selectedStory, setSelectedStory] = useState<IStoryArc | null>(null);
   const [storyOpen, setStoryOpen] = useState(false);
 
+  const storiesControllerRef = useRef<AbortController | null>(null);
+  const closeStoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const fetchStories = useCallback(async () => {
+    storiesControllerRef.current?.abort();
+    const controller = new AbortController();
+    storiesControllerRef.current = controller;
+
     setStoriesLoading(true);
     setStoriesError(false);
     try {
-      const res = await getNewsStories(168, 10, undefined, exchange);
-      if (res.success && res.data?.stories) {
-        setStories(res.data.stories);
+      const res = await getNewsStories(168, 10, undefined, exchange, controller.signal);
+      if (!controller.signal.aborted) {
+        if (res.success && res.data?.stories) {
+          setStories(res.data.stories);
+        }
       }
     } catch {
-      console.warn('Failed to load story arcs');
-      setStoriesError(true);
+      if (!controller.signal.aborted) {
+        console.warn('Failed to load story arcs');
+        setStoriesError(true);
+      }
     } finally {
-      setStoriesLoading(false);
+      if (!controller.signal.aborted) {
+        setStoriesLoading(false);
+      }
     }
   }, [exchange]);
 
@@ -73,23 +86,31 @@ export function useMarketIntelligence(
   const closeStory = useCallback(() => {
     setStoryOpen(false);
     // Delay clearing to allow exit animation
-    setTimeout(() => setSelectedStory(null), 300);
+    if (closeStoryTimerRef.current) clearTimeout(closeStoryTimerRef.current);
+    closeStoryTimerRef.current = setTimeout(() => {
+      setSelectedStory(null);
+      closeStoryTimerRef.current = null;
+    }, 300);
   }, []);
 
   // ── Divergences ──────────────────────────────────────────────
   const [divergences, setDivergences] = useState<Map<string, ISentimentDivergence>>(new Map());
   const [divergenceLoading, setDivergenceLoading] = useState(false);
 
+  const divergenceControllerRef = useRef<AbortController | null>(null);
+
   const fetchDivergence = useCallback(
     async (ticker: string) => {
       try {
-        const res = await getSentimentDivergence(ticker, exchange);
-        if (res.success && res.data) {
-          setDivergences((prev) => {
-            const next = new Map(prev);
-            next.set(ticker, res.data);
-            return next;
-          });
+        const res = await getSentimentDivergence(ticker, exchange, divergenceControllerRef.current?.signal);
+        if (!divergenceControllerRef.current?.signal.aborted) {
+          if (res.success && res.data) {
+            setDivergences((prev) => {
+              const next = new Map(prev);
+              next.set(ticker, res.data);
+              return next;
+            });
+          }
         }
       } catch {
         // silent
@@ -120,22 +141,35 @@ export function useMarketIntelligence(
   const [briefDismissed, setBriefDismissed] = useState(false);
   const briefFetchedAt = useRef<number>(0);
 
+  const briefControllerRef = useRef<AbortController | null>(null);
+
   const fetchBrief = useCallback(async () => {
     // Respect cache
     if (Date.now() - briefFetchedAt.current < BRIEF_CACHE_MS) return;
+
+    briefControllerRef.current?.abort();
+    const controller = new AbortController();
+    briefControllerRef.current = controller;
+
     setBriefLoading(true);
     setBriefError(false);
     try {
-      const res = await getMorningBrief(exchange);
-      if (res.success && res.data) {
-        setBrief(res.data);
-        briefFetchedAt.current = Date.now();
+      const res = await getMorningBrief(exchange, controller.signal);
+      if (!controller.signal.aborted) {
+        if (res.success && res.data) {
+          setBrief(res.data);
+          briefFetchedAt.current = Date.now();
+        }
       }
     } catch {
-      console.warn('Failed to load morning brief');
-      setBriefError(true);
+      if (!controller.signal.aborted) {
+        console.warn('Failed to load morning brief');
+        setBriefError(true);
+      }
     } finally {
-      setBriefLoading(false);
+      if (!controller.signal.aborted) {
+        setBriefLoading(false);
+      }
     }
   }, [exchange]);
 
@@ -147,6 +181,11 @@ export function useMarketIntelligence(
   useEffect(() => {
     fetchStories();
     fetchBrief();
+    return () => {
+      storiesControllerRef.current?.abort();
+      briefControllerRef.current?.abort();
+      if (closeStoryTimerRef.current) clearTimeout(closeStoryTimerRef.current);
+    };
   }, [fetchStories, fetchBrief]);
 
   // Auto-refresh stories
@@ -158,9 +197,15 @@ export function useMarketIntelligence(
   // Fetch divergences for top tickers when they change
   const tickersKey = topTickers.slice(0, 5).join(',');
   useEffect(() => {
+    const controller = new AbortController();
+    divergenceControllerRef.current = controller;
     if (tickersKey) {
       fetchDivergencesForTickers(tickersKey.split(','));
     }
+    return () => {
+      controller.abort();
+      divergenceControllerRef.current?.abort();
+    };
   }, [tickersKey, fetchDivergencesForTickers]);
 
   return {

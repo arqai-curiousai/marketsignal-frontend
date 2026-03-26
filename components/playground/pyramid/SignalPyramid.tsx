@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import type { ILayerResult, StrategySignal } from '@/types/strategy';
 import { LAYERS, PYRAMID_LAYER_WIDTHS, PYRAMID_LAYER_HEIGHTS } from './constants';
 import { signalColor, layerColor } from './tokens';
@@ -9,7 +9,6 @@ import { signalColor, layerColor } from './tokens';
 interface SignalPyramidProps {
   layers: Record<string, ILayerResult>;
   finalSignal: StrategySignal;
-  finalConfidence: number;
   selectedLayer: string | null;
   onLayerClick: (layerId: string) => void;
   className?: string;
@@ -123,11 +122,11 @@ function biasOpacity(confidence: number): number {
 export function SignalPyramid({
   layers,
   finalSignal,
-  finalConfidence: _finalConfidence,
   selectedLayer,
   onLayerClick,
   className,
 }: SignalPyramidProps) {
+  const prefersReduced = useReducedMotion();
   const [hoveredLayer, setHoveredLayer] = useState<string | null>(null);
 
   const geometries = useMemo(() => computeLayerGeometries(), []);
@@ -153,6 +152,8 @@ export function SignalPyramid({
         viewBox={`0 0 ${VB_W} ${VB_H}`}
         className="h-full w-full"
         xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="AI signal confidence pyramid"
       >
         <defs>
           {/* Glow filter for selected layer */}
@@ -190,7 +191,7 @@ export function SignalPyramid({
               strokeWidth={1}
               strokeDasharray="4 4"
               initial={{ strokeDashoffset: 0 }}
-              animate={{ strokeDashoffset: -16 }}
+              animate={prefersReduced ? {} : { strokeDashoffset: -16 }}
               transition={{ duration: 2, repeat: Infinity, ease: 'linear' }}
             />
           );
@@ -297,7 +298,7 @@ export function SignalPyramid({
           stroke={signalStyle.hex}
           strokeWidth={2}
           filter="url(#apex-glow)"
-          animate={{
+          animate={prefersReduced ? {} : {
             fillOpacity: [0.25, 0.45, 0.25],
             r: [20, 22, 20],
           }}
@@ -330,7 +331,7 @@ export function SignalPyramid({
               left: `${(p.x / VB_W) * 100}%`,
               top: `${(p.startY / VB_H) * 100}%`,
             }}
-            animate={{
+            animate={prefersReduced ? {} : {
               y: [0, p.yEnd],
               opacity: [0, 0.5, 0],
             }}

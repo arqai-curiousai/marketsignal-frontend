@@ -5,6 +5,8 @@
  * Extends the Pyramid design token pattern.
  */
 
+import { formatPrice } from '@/src/lib/exchange/formatting';
+
 // ─── Fan Chart Colors ────────────────────────────────────────────
 
 export const MC_COLORS = {
@@ -40,12 +42,7 @@ export type HorizonDays = (typeof HORIZON_OPTIONS)[number];
 
 export function fmtPrice(value: number | null | undefined): string {
   if (value == null) return 'N/A';
-  return value.toLocaleString('en-IN', {
-    style: 'currency',
-    currency: 'INR',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+  return formatPrice(value);
 }
 
 export function fmtPct(value: number | null | undefined): string {
@@ -144,7 +141,7 @@ export const MC_VERDICT = {
 
 export type MCVerdictLevel = keyof typeof MC_VERDICT;
 
-export function getVerdictConfig(verdict: string) {
+export function getVerdictConfig(verdict: string): (typeof MC_VERDICT)[MCVerdictLevel] {
   return MC_VERDICT[verdict as MCVerdictLevel] ?? MC_VERDICT.neutral;
 }
 
@@ -167,13 +164,6 @@ export const DIST_COLORS = {
   histogram: 'rgba(99,102,241,0.30)',
   kde: '#818CF8',
   normal: 'rgba(255,255,255,0.20)',
-} as const;
-
-export const HEATMAP_COLORS = {
-  zero: 'transparent',
-  low: 'rgba(99,102,241,0.1)',
-  mid: 'rgba(99,102,241,0.4)',
-  high: 'rgba(99,102,241,0.8)',
 } as const;
 
 // ─── Quality Formatters ─────────────────────────────────────────

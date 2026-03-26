@@ -8,18 +8,18 @@ interface GlobalErrorProps {
 export default function GlobalError({ error, reset }: GlobalErrorProps) {
   return (
     <html lang="en">
-      <body className="bg-background text-foreground">
-        <div className="flex min-h-screen flex-col items-center justify-center gap-4 text-center px-4">
-          <h2 className="text-2xl font-semibold">Something went wrong</h2>
-          <p className="text-muted-foreground max-w-md">
+      <body style={{ backgroundColor: '#0a0a0b', color: '#fafafa', margin: 0, fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+        <div style={{ display: 'flex', minHeight: '100vh', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem', textAlign: 'center', padding: '0 1rem' }}>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600 }}>Something went wrong</h2>
+          <p style={{ color: '#a1a1aa', maxWidth: '28rem' }}>
             A critical error occurred. Please refresh the page or try again later.
           </p>
           {error.digest && (
-            <p className="text-xs text-muted-foreground">Error ID: {error.digest}</p>
+            <p style={{ fontSize: '0.75rem', color: '#a1a1aa' }}>Error ID: {error.digest}</p>
           )}
           <button
             onClick={reset}
-            className="rounded-md bg-primary px-4 py-2 text-primary-foreground hover:bg-primary/90"
+            style={{ borderRadius: '0.375rem', backgroundColor: '#3b82f6', padding: '0.5rem 1rem', color: '#ffffff', border: 'none', cursor: 'pointer', fontSize: '0.875rem' }}
           >
             Try again
           </button>

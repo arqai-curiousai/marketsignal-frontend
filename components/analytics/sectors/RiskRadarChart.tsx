@@ -69,7 +69,7 @@ export function RiskRadarChart({ data, sectorColor }: RiskRadarChartProps) {
 
     AXES.forEach((axis, i) => {
       const angle = i * angleStep;
-      const val = data[axis.key] as number ?? 0;
+      const val = Number(data[axis.key]) || 0;
       const norm = normalizeValue(val, axis.key, axis.invert);
       const pt = polarToCartesian(angle, norm * RADIUS);
       sectorPts.push(`${pt.x},${pt.y}`);
@@ -77,7 +77,7 @@ export function RiskRadarChart({ data, sectorColor }: RiskRadarChartProps) {
       // Benchmark polygon (only for axes that have benchmark values)
       let benchVal: number;
       if (axis.benchKey) {
-        benchVal = data[axis.benchKey!] as number ?? 0;
+        benchVal = Number(data[axis.benchKey]) || 0;
       } else {
         // For non-benchmark axes, use a moderate default
         benchVal = axis.key === 'max_drawdown' ? -10 : axis.key === 'ulcer_index' ? 3 : 1;

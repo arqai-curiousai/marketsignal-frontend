@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 import {
   AreaChart,
   Area,
@@ -84,6 +84,7 @@ function HalfLifeSparkline({ halfLife, persistence }: { halfLife: number | null;
 // ─── Main Component ───────────────────────────────────────────────
 
 export function GARCHForecastChart({ garch, className }: Props) {
+  const gId = useId();
   const { forecastSeries, persistence, halfLifeDays, currentVol, longRunVol } = garch;
 
   // Prepend current vol as day 0
@@ -135,11 +136,11 @@ export function GARCHForecastChart({ garch, className }: Props) {
       <ResponsiveContainer width="100%" height={200}>
         <AreaChart data={chartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
           <defs>
-            <linearGradient id="garchBand95" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${gId}-garchBand95`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366F1" stopOpacity={0.07} />
               <stop offset="100%" stopColor="#6366F1" stopOpacity={0.02} />
             </linearGradient>
-            <linearGradient id="garchBand68" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${gId}-garchBand68`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366F1" stopOpacity={0.18} />
               <stop offset="100%" stopColor="#6366F1" stopOpacity={0.06} />
             </linearGradient>
@@ -167,7 +168,7 @@ export function GARCHForecastChart({ garch, className }: Props) {
             type="monotone"
             dataKey="upper95"
             stroke="none"
-            fill="url(#garchBand95)"
+            fill={`url(#${gId}-garchBand95)`}
             animationDuration={1000}
             animationEasing="ease-out"
           />
@@ -184,7 +185,7 @@ export function GARCHForecastChart({ garch, className }: Props) {
             type="monotone"
             dataKey="upper68"
             stroke="none"
-            fill="url(#garchBand68)"
+            fill={`url(#${gId}-garchBand68)`}
             animationDuration={800}
             animationEasing="ease-out"
           />

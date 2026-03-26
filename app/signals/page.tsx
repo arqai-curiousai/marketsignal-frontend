@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useCallback, Suspense, useMemo } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState, useCallback, useEffect, Suspense, useMemo } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
   Grid3X3,
@@ -43,6 +43,7 @@ const NewsRiver = dynamic(
   () => import('@/components/analytics/news/NewsRiver').then(m => ({ default: m.NewsRiver })),
   { ssr: false, loading: TabLoadingFallback },
 );
+
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Module Configuration
@@ -119,23 +120,33 @@ export default function PulsePage() {
 function PulseInner() {
   const { selectedExchange } = useExchange();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const rawTab = searchParams.get('tab') || 'sectors';
-  const initialTab = rawTab === 'pyramid' || rawTab === 'my-portfolio' ? 'sectors' : rawTab;
+  const initialTab = rawTab === 'pyramid' || rawTab === 'my-portfolio' || rawTab === 'patterns' || rawTab === 'fno' ? 'sectors' : rawTab;
   const [activeId, setActiveId] = useState(
     VALID_IDS.has(initialTab) ? initialTab : 'sectors'
   );
 
+  // Sync tab state when URL changes (e.g. browser back/forward)
+  useEffect(() => {
+    const urlTab = searchParams.get('tab') || 'sectors';
+    const resolved = urlTab === 'pyramid' || urlTab === 'my-portfolio' || urlTab === 'patterns' || urlTab === 'fno' ? 'sectors' : urlTab;
+    const validTab = VALID_IDS.has(resolved) ? resolved : 'sectors';
+    setActiveId((prev) => (prev !== validTab ? validTab : prev));
+  }, [searchParams]);
+
   const activeModule = useMemo(
-    () => MODULES.find(m => m.id === activeId)!,
+    () => MODULES.find(m => m.id === activeId) ?? MODULES[0],
     [activeId]
   );
 
   const handleModuleChange = useCallback((id: string) => {
     setActiveId(id);
-    const url = new URL(window.location.href);
-    url.searchParams.set('tab', id);
-    window.history.replaceState({}, '', url.toString());
-  }, []);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', id);
+    router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+  }, [searchParams, router, pathname]);
 
   return (
     <div className="container py-6 md:py-10 px-4 md:px-6 max-w-[1440px] mx-auto">
@@ -179,7 +190,7 @@ function PulseInner() {
         transition={{ duration: 0.6, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
         className="mb-10"
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3" role="tablist" aria-label="Pulse modules">
           {MODULES.map((mod, index) => {
             const Icon = mod.icon;
             const isActive = activeId === mod.id;
@@ -187,6 +198,8 @@ function PulseInner() {
             return (
               <motion.button
                 key={mod.id}
+                role="tab"
+                aria-selected={isActive}
                 onClick={() => handleModuleChange(mod.id)}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -360,6 +373,7 @@ function PulseInner() {
               <NewsRiver exchange={selectedExchange} />
             </TabErrorBoundary>
           </div>
+
         </div>
       </div>
     </div>

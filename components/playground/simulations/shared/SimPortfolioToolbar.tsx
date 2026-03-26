@@ -74,6 +74,7 @@ export function SimPortfolioToolbar({
             onClick={onRefresh}
             disabled={refreshing}
             className="h-8 w-8 p-0 text-white/40 hover:text-white/70"
+            aria-label="Refresh data"
           >
             <RefreshCw className={cn('h-3.5 w-3.5', refreshing && 'animate-spin')} />
           </Button>
@@ -87,6 +88,7 @@ export function SimPortfolioToolbar({
                 size="sm"
                 onClick={onExportCSV}
                 className="h-8 px-2 text-[10px] text-white/40 hover:text-white/70"
+                aria-label="Export as CSV"
               >
                 <Download className="h-3 w-3 mr-1" />
                 CSV
@@ -98,6 +100,7 @@ export function SimPortfolioToolbar({
                 size="sm"
                 onClick={onExportPNG}
                 className="h-8 px-2 text-[10px] text-white/40 hover:text-white/70"
+                aria-label="Export as PNG"
               >
                 <Download className="h-3 w-3 mr-1" />
                 PNG

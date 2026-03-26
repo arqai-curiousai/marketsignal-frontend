@@ -5,6 +5,8 @@
  * Extends the Pyramid design token pattern (T, S, L).
  */
 
+import { formatNumber, getCurrencySymbol } from '@/src/lib/exchange/formatting';
+
 // ─── Tab Accent Colors ──────────────────────────────────────────
 
 export const TAB_ACCENT = {
@@ -58,78 +60,6 @@ export const TAB_ACCENT = {
   },
 } as const;
 
-// ─── Density Tokens ────────────────────────────────────────────
-
-export const DENSITY = {
-  chartPadCompact: 'p-2',
-  chartMinH: 'min-h-[28vh]',
-  chartMaxH: 'max-h-[400px]',
-  sectionGap: 'gap-3',
-  toolbarPad: 'py-1.5',
-  kpiBadgeH: 'h-7',
-} as const;
-
-// ─── Skeleton Layouts ──────────────────────────────────────────
-
-export interface SkeletonRow {
-  type: 'bar' | 'circle' | 'text';
-  width: string;
-  height: string;
-  count?: number;
-  gap?: string;
-}
-
-export const VOL_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '2rem', count: 6, gap: 'gap-2' },
-  { type: 'bar', width: '100%', height: '12rem' },
-  { type: 'bar', width: '100%', height: '8rem' },
-];
-
-export const REGIME_SKELETON: SkeletonRow[] = [
-  { type: 'circle', width: '12rem', height: '12rem' },
-  { type: 'bar', width: '100%', height: '10rem' },
-  { type: 'bar', width: '100%', height: '6rem' },
-];
-
-export const MC_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '2rem', count: 5, gap: 'gap-2' },
-  { type: 'bar', width: '100%', height: '14rem' },
-  { type: 'bar', width: '100%', height: '8rem' },
-];
-
-export const PORTFOLIO_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '3rem', count: 5, gap: 'gap-2' },
-  { type: 'bar', width: '100%', height: '12rem' },
-];
-
-export const BACKTEST_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '4rem', count: 4, gap: 'gap-3' },
-  { type: 'bar', width: '100%', height: '10rem' },
-];
-
-export const RISK_SKELETON: SkeletonRow[] = [
-  { type: 'circle', width: '10rem', height: '10rem' },
-  { type: 'bar', width: '100%', height: '2rem', count: 6, gap: 'gap-2' },
-  { type: 'bar', width: '100%', height: '6rem' },
-];
-
-export const SIGNAL_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '14rem' },
-  { type: 'bar', width: '100%', height: '3rem', count: 3, gap: 'gap-2' },
-];
-
-export const SCENARIO_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '3rem', count: 4, gap: 'gap-3' },
-  { type: 'bar', width: '100%', height: '10rem' },
-  { type: 'bar', width: '100%', height: '8rem' },
-];
-
-export const FACTOR_SKELETON: SkeletonRow[] = [
-  { type: 'bar', width: '100%', height: '14rem' },
-  { type: 'bar', width: '100%', height: '10rem' },
-  { type: 'bar', width: '100%', height: '6rem' },
-];
-
 // ─── Animation Constants ────────────────────────────────────────
 
 export const ANIM = {
@@ -168,16 +98,6 @@ export const ANIM = {
 
 // ─── Shared Formatters ──────────────────────────────────────────
 
-export function fmtScore(score: number): string {
-  return `${Math.round(score)}/99`;
-}
-
-export function fmtPercent(value: number | null | undefined): string {
-  if (value == null) return 'N/A';
-  const sign = value >= 0 ? '+' : '';
-  return `${sign}${(value * 100).toFixed(1)}%`;
-}
-
 export function fmtPercentAbs(value: number | null | undefined): string {
   if (value == null) return 'N/A';
   return `${(value * 100).toFixed(1)}%`;
@@ -190,10 +110,6 @@ export function fmtDecimal(value: number | null | undefined, digits: number = 2)
 
 export function fmtCurrency(value: number | null | undefined): string {
   if (value == null) return 'N/A';
-  return `₹${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  return `${getCurrencySymbol()}${formatNumber(value, 'NSE', { maximumFractionDigits: 0 })}`;
 }
 
-export function fmtDays(days: number | null | undefined): string {
-  if (days == null) return 'N/A';
-  return `${Math.round(days)}d`;
-}

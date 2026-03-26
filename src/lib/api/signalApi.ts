@@ -4,14 +4,20 @@
  */
 
 import apiClient, { ApiResult } from './apiClient';
-import type { IMarketStatus, IInstrument, IActiveSignalItem } from '@/types/stock';
+import type { IMarketStatus, IInstrument, IActiveSignalItem, IAISignal } from '@/types/stock';
+
+/** Response from the activate-signal endpoint. */
+export interface IActivateSignalResponse {
+    success: boolean;
+    signal: IAISignal | null;
+}
 
 // =============================================================================
 // Market Status
 // =============================================================================
 
-export async function getMarketStatus(): Promise<ApiResult<IMarketStatus>> {
-    return apiClient.get<IMarketStatus>('/api/signals/market-status');
+export async function getMarketStatus(signal?: AbortSignal): Promise<ApiResult<IMarketStatus>> {
+    return apiClient.get<IMarketStatus>('/api/signals/market-status', undefined, { signal });
 }
 
 // =============================================================================
@@ -22,7 +28,7 @@ export async function activateSignal(
     ticker: string,
     exchange: string,
     instrumentType: string = 'equity'
-): Promise<ApiResult<{ success: boolean; signal: unknown }>> {
+): Promise<ApiResult<IActivateSignalResponse>> {
     return apiClient.post('/api/signals/activate', {
         ticker,
         exchange,
@@ -44,7 +50,7 @@ export async function deactivateSignal(
 // Active Signals
 // =============================================================================
 
-export async function getActiveSignals(): Promise<ApiResult<{ items: IActiveSignalItem[]; total: number }>> {
+export async function getActiveSignals(signal?: AbortSignal): Promise<ApiResult<{ items: IActiveSignalItem[]; total: number }>> {
     const result = await apiClient.get<{
         items: Array<{
             ticker: string;
@@ -65,22 +71,36 @@ export async function getActiveSignals(): Promise<ApiResult<{ items: IActiveSign
             is_eod: boolean;
         }>;
         total: number;
-    }>('/api/signals/active');
+    }>('/api/signals/active', undefined, { signal });
 
     if (!result.success) return result;
+
+    const items = Array.isArray(result.data?.items) ? result.data.items : [];
+    const validActions = new Set(['BUY', 'SELL', 'HOLD']);
+    const validConflicts = new Set(['divergence', 'alignment', 'uncertain']);
 
     return {
         success: true,
         data: {
-            items: result.data.items.map(item => ({
+            items: items.map(item => ({
                 ticker: item.ticker,
                 exchange: item.exchange,
                 instrumentType: item.instrument_type,
                 stockName: item.stock_name,
                 signal: item.signal ? {
-                    action: item.signal.action as 'BUY' | 'SELL' | 'HOLD',
+                    action: (() => {
+                        if (!validActions.has(item.signal!.action)) {
+                            console.warn(`[signalApi] Unknown action "${item.signal!.action}" for ${item.ticker}, falling back to HOLD`);
+                        }
+                        return (validActions.has(item.signal!.action) ? item.signal!.action : 'HOLD') as 'BUY' | 'SELL' | 'HOLD';
+                    })(),
                     confidence: item.signal.confidence,
-                    conflictType: item.signal.conflict_type as 'divergence' | 'alignment' | 'uncertain',
+                    conflictType: (() => {
+                        if (!validConflicts.has(item.signal!.conflict_type)) {
+                            console.warn(`[signalApi] Unknown conflict_type "${item.signal!.conflict_type}" for ${item.ticker}, falling back to uncertain`);
+                        }
+                        return (validConflicts.has(item.signal!.conflict_type) ? item.signal!.conflict_type : 'uncertain') as 'divergence' | 'alignment' | 'uncertain';
+                    })(),
                     marketMakerBias: item.signal.market_maker_bias,
                     retailBias: item.signal.retail_bias,
                     reasoning: item.signal.reasoning,
@@ -90,7 +110,7 @@ export async function getActiveSignals(): Promise<ApiResult<{ items: IActiveSign
                 } : null,
                 isEod: item.is_eod,
             })),
-            total: result.data.total,
+            total: result.data?.total ?? 0,
         },
     };
 }
@@ -100,7 +120,8 @@ export async function getActiveSignals(): Promise<ApiResult<{ items: IActiveSign
 // =============================================================================
 
 export async function getInstruments(
-    type: 'nse' | 'nasdaq' | 'nyse' | 'lse' | 'sgx' | 'hkse' | 'currency' | 'commodity'
+    type: 'nse' | 'nasdaq' | 'nyse' | 'lse' | 'sgx' | 'hkse' | 'currency' | 'commodity',
+    signal?: AbortSignal
 ): Promise<ApiResult<IInstrument[]>> {
     const result = await apiClient.get<Array<{
         ticker: string;
@@ -112,7 +133,7 @@ export async function getInstruments(
         change?: number;
         change_percent?: number;
         currency: string;
-    }>>('/api/stocks/instruments', { type });
+    }>>('/api/stocks/instruments', { type }, { signal });
 
     if (!result.success) return result;
 

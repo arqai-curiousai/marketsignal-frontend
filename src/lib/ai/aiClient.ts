@@ -40,8 +40,6 @@ interface BackendResearchRequest {
  * Connects to backend RAG-powered Q&A API with strict compliance filtering.
  */
 export class AIClient {
-  private readonly DISCLAIMER = '⚠️ Information only — not investment advice.';
-
   /**
    * Ask a question and get a response from backend RAG system
    */
@@ -130,20 +128,6 @@ export class AIClient {
     return 'LOW';
   }
 
-  /**
-   * Stream response for real-time updates (uses SSE endpoint)
-   * Note: For MVP, we use the non-streaming endpoint
-   */
-  async *askStream(question: string, context?: Record<string, unknown>): AsyncGenerator<string> {
-    // For MVP, just yield the full response at once
-    const response = await this.ask(question, context);
-    const words = response.answer.split(' ');
-
-    for (const word of words) {
-      await new Promise(resolve => setTimeout(resolve, 30));
-      yield word + ' ';
-    }
-  }
 }
 
 export const aiClient = new AIClient();

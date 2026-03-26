@@ -13,36 +13,36 @@ import { useSimulationContextSafe } from '@/context/SimulationContext';
  */
 export function CrossSimulationInsights() {
   const ctx = useSimulationContextSafe();
+  const { regime, volatility, riskScore, portfolio, montecarlo, backtest, scenario } = ctx ?? {};
 
   const insights = useMemo(() => {
-    if (!ctx) return [];
     const items: string[] = [];
 
     // Regime + Volatility
-    if (ctx.regime && ctx.volatility) {
-      const regimeLabel = ctx.regime.currentState.label;
-      const regimeProb = (ctx.regime.currentState.probability * 100).toFixed(0);
-      const volPercentile = ctx.volatility.regime.percentile;
+    if (regime && volatility) {
+      const regimeLabel = regime.currentState.label;
+      const regimeProb = (regime.currentState.probability * 100).toFixed(0);
+      const volPercentile = volatility.regime.percentile;
       const volLevel = volPercentile < 25 ? 'below-average' : volPercentile < 75 ? 'average' : 'elevated';
       items.push(
-        `${ctx.volatility.ticker} is in a ${regimeLabel} regime (${regimeProb}%) with ${volLevel} volatility (P${volPercentile.toFixed(0)}).`
+        `${volatility.ticker} is in a ${regimeLabel} regime (${regimeProb}%) with ${volLevel} volatility (P${volPercentile.toFixed(0)}).`
       );
     }
 
     // Risk Score + Portfolio
-    if (ctx.riskScore && ctx.portfolio) {
-      const score = ctx.riskScore.compositeScore;
-      const zone = ctx.riskScore.zone.label;
-      const bestStrategy = ctx.portfolio.bestStrategy;
+    if (riskScore && portfolio) {
+      const score = riskScore.compositeScore;
+      const zone = riskScore.zone.label;
+      const bestStrategy = portfolio.bestStrategy;
       items.push(
         `Portfolio risk score is ${score} (${zone}). Best optimization: ${bestStrategy}.`
       );
     }
 
     // Monte Carlo + Backtest
-    if (ctx.montecarlo && ctx.backtest) {
-      const probProfit = (ctx.montecarlo.regimeAware.riskMetrics.probProfit * 100).toFixed(0);
-      const bestStrat = ctx.backtest.strategies[0];
+    if (montecarlo && backtest) {
+      const probProfit = (montecarlo.regimeAware.riskMetrics.probProfit * 100).toFixed(0);
+      const bestStrat = backtest.strategies[0];
       if (bestStrat) {
         const pbo = bestStrat.overfitting.pbo;
         const pboWarning = pbo > 0.4 ? ` but PBO of ${pbo.toFixed(2)} suggests caution` : '';
@@ -53,17 +53,17 @@ export function CrossSimulationInsights() {
     }
 
     // Scenario insight
-    if (ctx.scenario) {
-      const worstStock = ctx.scenario.perStockImpact[0];
+    if (scenario) {
+      const worstStock = scenario.perStockImpact[0];
       if (worstStock) {
         items.push(
-          `Under ${ctx.scenario.scenario.label}: ${worstStock.ticker} is hardest hit (${(worstStock.deltaReturn * 100).toFixed(1)}pp return drop).`
+          `Under ${scenario.scenario.label}: ${worstStock.ticker} is hardest hit (${(worstStock.deltaReturn * 100).toFixed(1)}pp return drop).`
         );
       }
     }
 
     return items.slice(0, 3); // Max 3 insights
-  }, [ctx]);
+  }, [regime, volatility, riskScore, portfolio, montecarlo, backtest, scenario]);
 
   if (insights.length === 0) return null;
 

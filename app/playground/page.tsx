@@ -21,91 +21,67 @@ import { cn } from '@/lib/utils';
 import { SimulationProvider } from '@/context/SimulationContext';
 import { usePlaygroundHotkeys } from '@/lib/hooks/usePlaygroundHotkeys';
 import { SimShortcutHelp } from '@/components/playground/simulations/shared/SimShortcutHelp';
-import { SimContentSkeleton } from '@/components/playground/simulations/shared/SimContentSkeleton';
 import { CrossSimulationInsights } from '@/components/playground/CrossSimulationInsights';
-import {
-  VOL_SKELETON,
-  REGIME_SKELETON,
-  MC_SKELETON,
-  PORTFOLIO_SKELETON,
-  BACKTEST_SKELETON,
-  RISK_SKELETON,
-  SIGNAL_SKELETON,
-  SCENARIO_SKELETON,
-  FACTOR_SKELETON,
-} from '@/components/playground/simulations/shared/sim-tokens';
+
+// Simple loading skeleton for lazy-loaded tabs
+function TabSkeleton() {
+  return (
+    <div className="space-y-3 p-4 animate-pulse">
+      <div className="flex gap-2">
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} className="h-8 flex-1 rounded bg-white/[0.04]" />
+        ))}
+      </div>
+      <div className="h-48 rounded bg-white/[0.04]" />
+      <div className="h-32 rounded bg-white/[0.04]" />
+    </div>
+  );
+}
 
 // Lazy-load heavy tab content
 const SignalLabContent = dynamic(
   () => import('@/components/playground/SignalLabContent').then((m) => ({ default: m.SignalLabContent })),
-  {
-    loading: () => <SimContentSkeleton layout={SIGNAL_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const VolatilityDashboard = dynamic(
   () => import('@/components/playground/simulations/volatility/VolatilityDashboard').then((m) => ({ default: m.VolatilityDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={VOL_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const RegimeDashboard = dynamic(
   () => import('@/components/playground/simulations/regimes/RegimeDashboard').then((m) => ({ default: m.RegimeDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={REGIME_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const MonteCarloDashboard = dynamic(
   () => import('@/components/playground/simulations/montecarlo/MonteCarloDashboard').then((m) => ({ default: m.MonteCarloDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={MC_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const PortfolioDashboard = dynamic(
   () => import('@/components/playground/simulations/portfolio/PortfolioDashboard').then((m) => ({ default: m.PortfolioDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={PORTFOLIO_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const BacktestDashboard = dynamic(
   () => import('@/components/playground/simulations/backtesting/BacktestDashboard').then((m) => ({ default: m.BacktestDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={BACKTEST_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const RiskScoreDashboard = dynamic(
   () => import('@/components/playground/simulations/risk/RiskScoreDashboard').then((m) => ({ default: m.RiskScoreDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={RISK_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const ScenarioDashboard = dynamic(
   () => import('@/components/playground/simulations/scenarios/ScenarioDashboard').then((m) => ({ default: m.ScenarioDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={SCENARIO_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 const FactorDashboard = dynamic(
   () => import('@/components/playground/simulations/factors/FactorDashboard').then((m) => ({ default: m.FactorDashboard })),
-  {
-    loading: () => <SimContentSkeleton layout={FACTOR_SKELETON} />,
-    ssr: false,
-  },
+  { loading: () => <TabSkeleton />, ssr: false },
 );
 
 // ─── Tab definitions ──────────────────────────────────────────────

@@ -12,8 +12,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL } from '@/lib/api/backendUrl';
 
-// API key stored securely on server (not in NEXT_PUBLIC_*)
-const API_KEY = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY || '';
+// API key stored securely on server (never use NEXT_PUBLIC_ prefix)
+const API_KEY = process.env.API_KEY || '';
 
 export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
@@ -28,15 +28,16 @@ export async function GET(request: NextRequest) {
         const response = await fetch(backendUrl.toString(), {
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY,
+                ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
             },
             cache: 'no-store',
+            signal: AbortSignal.timeout(15_000),
         });
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             return NextResponse.json(
-                { error: error.detail || 'Backend error' },
+                { detail: error.detail || 'Backend error' },
                 { status: response.status }
             );
         }
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
     } catch (error) {
         console.error('Proxy error:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch from backend' },
+            { detail: 'Failed to fetch from backend' },
             { status: 502 }
         );
     }

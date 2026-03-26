@@ -5,6 +5,8 @@
  * Extends the Pyramid design token pattern.
  */
 
+import { formatNumber, getCurrencySymbol } from '@/src/lib/exchange/formatting';
+
 // ─── Strategy Colors ─────────────────────────────────────────────
 
 export const STRATEGY_COLORS: Record<string, { hex: string; dashed?: boolean }> = {
@@ -51,7 +53,7 @@ export const TRAFFIC_LIGHT = {
 
 export type TrafficLightLevel = keyof typeof TRAFFIC_LIGHT;
 
-export function getTrafficConfig(level: TrafficLightLevel | string) {
+export function getTrafficConfig(level: TrafficLightLevel | string): (typeof TRAFFIC_LIGHT)[TrafficLightLevel] {
   return TRAFFIC_LIGHT[level as TrafficLightLevel] ?? TRAFFIC_LIGHT.yellow;
 }
 
@@ -76,5 +78,5 @@ export function fmtPct(value: number | null | undefined): string {
 
 export function fmtCurrency(value: number | null | undefined): string {
   if (value == null) return '\u2014';
-  return `\u20B9${value.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+  return `${getCurrencySymbol()}${formatNumber(value, 'NSE', { maximumFractionDigits: 0 })}`;
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useCallback } from 'react';
+import { sanitizeHtml } from '@/lib/security/xss';
 import { select } from 'd3-selection';
 import 'd3-transition';
 import { scaleLinear, scaleSqrt } from 'd3-scale';
@@ -204,24 +205,30 @@ export function SectorFlowView({ sectors, timeframe, selectedSector, onSectorCli
 
         const perf = d.performance[timeframe] ?? 0;
         const flow = d.volume_flow_score ?? 0;
+        const safeSector = sanitizeHtml(d.sector);
+        const safeMomentum = sanitizeHtml(d.momentum_score.toFixed(0));
+        const safeFlow = sanitizeHtml(`${flow > 0 ? '+' : ''}${flow.toFixed(0)}`);
+        const safePerf = sanitizeHtml(`${perf >= 0 ? '+' : ''}${perf.toFixed(2)}%`);
+        const safeMktCap = sanitizeHtml(formatMarketCap(d.total_market_cap));
+        const safeTimeframe = sanitizeHtml(timeframe);
         tooltip.innerHTML = `
-          <div class="font-semibold text-white text-xs mb-1">${d.sector}</div>
+          <div class="font-semibold text-white text-xs mb-1">${safeSector}</div>
           <div class="text-[10px] space-y-0.5">
             <div class="flex justify-between gap-4">
               <span class="text-muted-foreground">Momentum</span>
-              <span class="text-white font-medium">${d.momentum_score.toFixed(0)}/100</span>
+              <span class="text-white font-medium">${safeMomentum}/100</span>
             </div>
             <div class="flex justify-between gap-4">
               <span class="text-muted-foreground">Flow</span>
-              <span class="font-medium" style="color:${flowColor(flow)}">${flow > 0 ? '+' : ''}${flow.toFixed(0)}</span>
+              <span class="font-medium" style="color:${flowColor(flow)}">${safeFlow}</span>
             </div>
             <div class="flex justify-between gap-4">
-              <span class="text-muted-foreground">Perf (${timeframe})</span>
-              <span class="font-medium ${perfTextClass(perf)}">${perf >= 0 ? '+' : ''}${perf.toFixed(2)}%</span>
+              <span class="text-muted-foreground">Perf (${safeTimeframe})</span>
+              <span class="font-medium ${perfTextClass(perf)}">${safePerf}</span>
             </div>
             <div class="flex justify-between gap-4">
               <span class="text-muted-foreground">Mkt Cap</span>
-              <span class="text-white">${formatMarketCap(d.total_market_cap)}</span>
+              <span class="text-white">${safeMktCap}</span>
             </div>
           </div>
         `;

@@ -193,7 +193,7 @@ export function MonteCarloDashboard() {
   }, [exchangeConfig.code, exchangeConfig.defaultTicker]);
 
   const fetchData = useCallback(
-    async (ticker: string, horizonDays: number, isRefresh = false) => {
+    async (ticker: string, horizonDays: number, isRefresh = false, signal?: AbortSignal) => {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
@@ -203,13 +203,18 @@ export function MonteCarloDashboard() {
           ticker,
           exchangeConfig.code,
           horizonDays,
+          undefined,
+          undefined,
+          { signal },
         );
+        if (signal?.aborted) return;
         if (result.success) {
           setData(result.data);
         } else {
           setError(result.error.message);
         }
-      } catch {
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         setError('Failed to fetch Monte Carlo simulation data');
         toast.error('Failed to load Monte Carlo data');
       } finally {
@@ -221,7 +226,9 @@ export function MonteCarloDashboard() {
   );
 
   useEffect(() => {
-    fetchData(selectedTicker, horizon);
+    const controller = new AbortController();
+    fetchData(selectedTicker, horizon, false, controller.signal);
+    return () => controller.abort();
   }, [selectedTicker, horizon, fetchData]);
 
   const handleTickerChange = (ticker: string) => {
@@ -260,6 +267,7 @@ export function MonteCarloDashboard() {
             <button
               key={days}
               type="button"
+              aria-pressed={horizon === days}
               onClick={() => handleHorizonChange(days)}
               className={cn(
                 'px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
@@ -355,6 +363,7 @@ export function MonteCarloDashboard() {
             <div className="flex items-center gap-1 mb-2">
               <button
                 type="button"
+                aria-pressed={coneView === 'cone'}
                 onClick={() => setConeView('cone')}
                 className={cn(
                   'px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
@@ -368,6 +377,7 @@ export function MonteCarloDashboard() {
               {data.pathDensity && (
                 <button
                   type="button"
+                  aria-pressed={coneView === 'density'}
                   onClick={() => setConeView('density')}
                   className={cn(
                     'px-2.5 py-1 rounded-full text-[10px] font-semibold transition-all',
@@ -385,7 +395,6 @@ export function MonteCarloDashboard() {
               <ProbabilityCone
                 data={data.regimeAware}
                 currentPrice={data.currentPrice}
-                target={data.target ? undefined : undefined}
                 samplePaths={data.regimeAware.samplePaths}
               />
             ) : data.pathDensity ? (

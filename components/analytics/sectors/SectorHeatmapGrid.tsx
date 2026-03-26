@@ -6,6 +6,8 @@ import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SECTOR_COLORS, formatMarketCap } from './constants';
+import { formatPrice } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorHeatmapGridProps {
@@ -13,6 +15,7 @@ interface SectorHeatmapGridProps {
   timeframe: SectorTimeframe;
   selectedSector?: string | null;
   onSectorClick: (sector: ISectorAnalytics) => void;
+  exchange?: ExchangeCode;
 }
 
 export function SectorHeatmapGrid({
@@ -20,6 +23,7 @@ export function SectorHeatmapGrid({
   timeframe,
   selectedSector,
   onSectorClick,
+  exchange = 'NSE',
 }: SectorHeatmapGridProps) {
   const router = useRouter();
   const gridRef = useRef<HTMLDivElement>(null);
@@ -43,7 +47,11 @@ export function SectorHeatmapGrid({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.15 }}
+            role="button"
+            tabIndex={0}
+            aria-label={`Sector: ${sector.sector}, performance ${perf >= 0 ? '+' : ''}${perf.toFixed(2)}%`}
             onClick={() => onSectorClick(sector)}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSectorClick(sector); } }}
             className={cn(
               'rounded-xl border p-4 backdrop-blur-sm cursor-pointer',
               'bg-gradient-to-br from-white/[0.03] to-white/[0.01]',
@@ -52,9 +60,8 @@ export function SectorHeatmapGrid({
             )}
             style={isSelected ? {
               borderColor: sectorColor,
-              // @ts-expect-error -- CSS custom property for ring color
-              '--tw-ring-color': `${sectorColor}40`,
-            } : undefined}
+              ['--tw-ring-color' as string]: `${sectorColor}40`,
+            } as React.CSSProperties : undefined}
           >
             {/* Header */}
             <div className="flex items-center justify-between mb-1">
@@ -110,6 +117,9 @@ export function SectorHeatmapGrid({
                 return (
                   <div
                     key={stock.ticker}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`${stock.ticker} — ${stock.name}, ${isPositive ? '+' : ''}${changePct.toFixed(1)}%`}
                     onMouseEnter={(e) => {
                       setHoveredStock({
                         ticker: stock.ticker,
@@ -125,9 +135,18 @@ export function SectorHeatmapGrid({
                       if (rect) setTooltipPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
                     }}
                     onMouseLeave={() => setHoveredStock(null)}
+                    onFocus={() => {
+                      setHoveredStock({
+                        ticker: stock.ticker,
+                        name: stock.name,
+                        price: stock.last_price ?? null,
+                        pos52w: stock.pos_52w ?? null,
+                      });
+                    }}
+                    onBlur={() => setHoveredStock(null)}
                     className={cn(
                       'rounded-lg p-2 text-center transition-all duration-200 cursor-pointer',
-                      'border border-transparent hover:border-white/20',
+                      'border border-transparent hover:border-white/20 focus-visible:border-white/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-brand-blue/50',
                     )}
                     style={{
                       backgroundColor: isPositive
@@ -137,6 +156,13 @@ export function SectorHeatmapGrid({
                     onClick={(e) => {
                       e.stopPropagation();
                       router.push(`/stocks/${stock.ticker}`);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        router.push(`/stocks/${stock.ticker}`);
+                      }
                     }}
                   >
                     <div className="text-[10px] font-bold text-white truncate">
@@ -199,7 +225,7 @@ export function SectorHeatmapGrid({
             {hoveredStock.name}
           </div>
           <div className="text-[10px] text-muted-foreground">
-            {hoveredStock.price != null ? `₹${hoveredStock.price.toLocaleString()}` : '—'}
+            {hoveredStock.price != null ? formatPrice(hoveredStock.price, exchange) : '—'}
           </div>
           {hoveredStock.pos52w != null && (
             <div className="mt-1 h-1 w-16 bg-white/10 rounded-full overflow-hidden">

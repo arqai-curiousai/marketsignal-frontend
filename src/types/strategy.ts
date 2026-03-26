@@ -89,30 +89,3 @@ export interface ILayerDefinition {
   featureCount: number;
 }
 
-// ─── Helpers ────────────────────────────────────────────────────────
-
-export function getStrategySignalColor(signal: StrategySignal): string {
-  switch (signal) {
-    case 'buy': return 'text-emerald-400';
-    case 'sell': return 'text-red-400';
-    case 'hold': return 'text-slate-400';
-  }
-}
-
-export function getStrategySignalBg(signal: StrategySignal): string {
-  switch (signal) {
-    case 'buy': return 'bg-emerald-500/10';
-    case 'sell': return 'bg-red-500/10';
-    case 'hold': return 'bg-slate-500/10';
-  }
-}
-
-export function getStrategySignalLabel(signal: StrategySignal): string {
-  return signal.toUpperCase();
-}
-
-export function getConfidenceColor(confidence: number): string {
-  if (confidence >= 0.7) return 'text-emerald-400';
-  if (confidence >= 0.5) return 'text-amber-400';
-  return 'text-red-400';
-}

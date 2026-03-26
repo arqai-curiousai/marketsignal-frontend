@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarketAwarePolling } from '@/lib/hooks/useMarketAwarePolling';
 import { ForexOverviewKPIs } from './ForexOverviewKPIs';
 import { ForexSessionMap } from './ForexSessionMap';
 import { ForexHeatMap } from './ForexHeatMap';
@@ -45,11 +46,16 @@ export function MarketsView({ onSelectPair, overview }: MarketsViewProps) {
   const fetchAll = useCallback(async () => {
     if (!hasLoaded.current) setLoading(true);
     try {
-      const [strRes, tmRes, mcRes] = await Promise.all([
+      const settled = await Promise.allSettled([
         getCurrencyStrength(),
         getCurrencyTopMovers(),
         getCurrencyMarketClock(),
       ]);
+      const unwrap = <T,>(r: PromiseSettledResult<T>): T | { success: false; data: null } =>
+        r.status === 'fulfilled' ? r.value : { success: false, data: null };
+      const strRes = unwrap(settled[0]);
+      const tmRes = unwrap(settled[1]);
+      const mcRes = unwrap(settled[2]);
       if (strRes.success) setStrength(strRes.data);
       if (tmRes.success) setTopMovers(tmRes.data);
       if (mcRes.success) setMarketClock(mcRes.data);
@@ -65,9 +71,14 @@ export function MarketsView({ onSelectPair, overview }: MarketsViewProps) {
 
   useEffect(() => {
     fetchAll();
-    const interval = setInterval(fetchAll, 60_000);
-    return () => clearInterval(interval);
   }, [fetchAll]);
+
+  useMarketAwarePolling({
+    fetchFn: fetchAll,
+    marketType: 'forex',
+    activeIntervalMs: 60_000,
+    inactiveIntervalMs: 300_000,
+  });
 
   // Update "minutes ago" display every 30s
   useEffect(() => {
@@ -135,8 +146,8 @@ export function MarketsView({ onSelectPair, overview }: MarketsViewProps) {
           transition={{ ...ANIM_STAGGER.transition, delay: 0.15 }}
           className="space-y-4"
         >
-          <CurrencyStrengthMeter />
-          <ForexTopMovers onSelectPair={onSelectPair} />
+          <CurrencyStrengthMeter initialData={strength} />
+          <ForexTopMovers onSelectPair={onSelectPair} initialData={topMovers} />
           <CurrencyCorrelationMini />
         </motion.div>
       </div>

@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { sanitizeUrl } from '@/lib/security/xss';
 import { ISource } from '@/types';
 import { Card } from '@/components/ui/card';
 import { ExternalLink, FileText, CheckCircle2 } from 'lucide-react';
@@ -51,10 +52,11 @@ export function SourcePanel({ sources, confidence }: SourcePanelProps) {
                                 {new Date(source.publishedAt).toLocaleDateString()}
                             </span>
                             <a
-                                href={source.url}
+                                href={sanitizeUrl(source.url) ?? '#'}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-muted-foreground hover:text-white transition-colors"
+                                aria-label="Open source"
                             >
                                 <ExternalLink className="h-3 w-3" />
                             </a>

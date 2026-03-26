@@ -20,7 +20,7 @@ type HotkeyDef = {
  *  - "escape" → Escape key
  *  - "?"      → Question mark (for help modal)
  */
-export function useHotkeys(hotkeys: HotkeyDef[]) {
+export function useHotkeys(hotkeys: HotkeyDef[]): void {
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       // Don't trigger in inputs, textareas, or contenteditable
@@ -58,8 +58,11 @@ function matchesHotkey(e: KeyboardEvent, combo: string): boolean {
   const requiresMod = parts.includes("mod");
   const requiresShift = parts.includes("shift");
 
-  const modPressed =
-    navigator.platform.includes("Mac") ? e.metaKey : e.ctrlKey;
+  const platform =
+    (navigator as Navigator & { userAgentData?: { platform?: string } }).userAgentData?.platform ??
+    navigator.platform ??
+    "";
+  const modPressed = platform.includes("Mac") ? e.metaKey : e.ctrlKey;
 
   if (requiresMod && !modPressed) return false;
   if (!requiresMod && modPressed) return false;

@@ -184,7 +184,7 @@ function CorrelationVisual() {
 
   return (
     <div className="space-y-2">
-      <div className="grid gap-1" style={{ gridTemplateColumns: `40px repeat(${tickers.length}, 1fr)` }}>
+      <div className="grid gap-1" style={{ gridTemplateColumns: `40px repeat(${tickers.length}, 1fr)` }} role="img" aria-label="Correlation matrix preview">
         <div />
         {tickers.map((t) => (
           <div key={t} className="text-[9px] text-muted-foreground text-center font-medium">{t}</div>

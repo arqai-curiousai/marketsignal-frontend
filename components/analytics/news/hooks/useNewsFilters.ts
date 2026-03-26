@@ -38,11 +38,13 @@ export interface UseNewsFiltersReturn {
 const VALID_TIME_RANGES = new Set([6, 24, 72, 168]);
 const VALID_SENTIMENTS = new Set<SentimentFilterValue>(['all', 'bullish', 'bearish']);
 
-function syncFilterParams(timeRange: number, sentimentFilter: SentimentFilterValue, sourceFilter: string) {
+function syncFilterParams(timeRange: number, sentimentFilter: SentimentFilterValue, sourceFilter: string, searchQuery: string) {
+  if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   if (timeRange !== 24) url.searchParams.set('hours', String(timeRange)); else url.searchParams.delete('hours');
   if (sentimentFilter !== 'all') url.searchParams.set('sentiment', sentimentFilter); else url.searchParams.delete('sentiment');
   if (sourceFilter) url.searchParams.set('source', sourceFilter); else url.searchParams.delete('source');
+  if (searchQuery) url.searchParams.set('q', searchQuery); else url.searchParams.delete('q');
   window.history.replaceState({}, '', url.toString());
 }
 
@@ -59,13 +61,13 @@ export function useNewsFilters(): UseNewsFiltersReturn {
     return VALID_SENTIMENTS.has(v) ? v : 'all';
   });
   const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
 
   // Sync filter state → URL (skip first render to avoid overwriting on mount)
   useEffect(() => {
     if (isInitRef.current) { isInitRef.current = false; return; }
-    syncFilterParams(timeRange, sentimentFilter, sourceFilter);
-  }, [timeRange, sentimentFilter, sourceFilter]);
+    syncFilterParams(timeRange, sentimentFilter, sourceFilter, searchQuery);
+  }, [timeRange, sentimentFilter, sourceFilter, searchQuery]);
 
   const matchesSource = useCallback(
     (source: string) => {

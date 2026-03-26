@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import {
   motion,
   useReducedMotion,
@@ -307,6 +307,7 @@ export function ShockwaveGauge({
   scenarioLabel,
   className,
 }: ShockwaveGaugeProps) {
+  const gId = useId();
   const prefersReduced = useReducedMotion();
 
   const baselineFraction = sharpeToFraction(baselineSharpe);
@@ -392,19 +393,19 @@ export function ShockwaveGauge({
       >
         <defs>
           {/* Baseline gradient (calm blue) */}
-          <linearGradient id="sw-grad-baseline" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id={`${gId}-sw-grad-baseline`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#60A5FA" />
             <stop offset="100%" stopColor="#3B82F6" />
           </linearGradient>
 
           {/* Stressed gradient (orange to red) */}
-          <linearGradient id="sw-grad-stressed" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id={`${gId}-sw-grad-stressed`} x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="#FB923C" />
             <stop offset="100%" stopColor="#EF4444" />
           </linearGradient>
 
           {/* Lightning glow filter */}
-          <filter id="shockwave-glow" x="-50%" y="-50%" width="200%" height="200%">
+          <filter id={`${gId}-shockwave-glow`} x="-50%" y="-50%" width="200%" height="200%">
             <feGaussianBlur stdDeviation="3" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -413,7 +414,7 @@ export function ShockwaveGauge({
           </filter>
 
           {/* Flash pulse filter (brighter glow) */}
-          <filter id="shockwave-flash" x="-100%" y="-100%" width="300%" height="300%">
+          <filter id={`${gId}-shockwave-flash`} x="-100%" y="-100%" width="300%" height="300%">
             <feGaussianBlur stdDeviation="8" result="blur" />
             <feMerge>
               <feMergeNode in="blur" />
@@ -423,19 +424,19 @@ export function ShockwaveGauge({
           </filter>
 
           {/* Subtle vignette for each gauge half */}
-          <radialGradient id="sw-vignette-left" cx="0.25" cy="0.7" r="0.4">
+          <radialGradient id={`${gId}-sw-vignette-left`} cx="0.25" cy="0.7" r="0.4">
             <stop offset="0%" stopColor="rgba(96,165,250,0.06)" />
             <stop offset="100%" stopColor="rgba(96,165,250,0)" />
           </radialGradient>
-          <radialGradient id="sw-vignette-right" cx="0.75" cy="0.7" r="0.4">
+          <radialGradient id={`${gId}-sw-vignette-right`} cx="0.75" cy="0.7" r="0.4">
             <stop offset="0%" stopColor="rgba(251,146,60,0.06)" />
             <stop offset="100%" stopColor="rgba(251,146,60,0)" />
           </radialGradient>
         </defs>
 
         {/* Ambient vignettes */}
-        <rect x="0" y="0" width={VB_W / 2} height={VB_H} fill="url(#sw-vignette-left)" />
-        <rect x={VB_W / 2} y="0" width={VB_W / 2} height={VB_H} fill="url(#sw-vignette-right)" />
+        <rect x="0" y="0" width={VB_W / 2} height={VB_H} fill={`url(#${gId}-sw-vignette-left)`} />
+        <rect x={VB_W / 2} y="0" width={VB_W / 2} height={VB_H} fill={`url(#${gId}-sw-vignette-right)`} />
 
         {/* ─── Left Half: Baseline ─── */}
         <ArcGauge
@@ -443,7 +444,7 @@ export function ShockwaveGauge({
           cy={L_CY}
           fraction={baselineFraction}
           trackColor="#60A5FA"
-          fillGradientId="sw-grad-baseline"
+          fillGradientId={`${gId}-sw-grad-baseline`}
           glowColor="rgba(96,165,250,0.35)"
           delay={0}
         />
@@ -511,7 +512,7 @@ export function ShockwaveGauge({
           cy={R_CY}
           fraction={stressedFraction}
           trackColor="#FB923C"
-          fillGradientId="sw-grad-stressed"
+          fillGradientId={`${gId}-sw-grad-stressed`}
           glowColor="rgba(251,146,60,0.35)"
           delay={0.3}
         />
@@ -574,7 +575,7 @@ export function ShockwaveGauge({
         </g>
 
         {/* ─── Center Lightning Bolt Divider ─── */}
-        <g filter="url(#shockwave-glow)">
+        <g filter={`url(#${gId}-shockwave-glow)`}>
           {/* Bolt shadow/underlay */}
           <motion.path
             d={BOLT_PATH}

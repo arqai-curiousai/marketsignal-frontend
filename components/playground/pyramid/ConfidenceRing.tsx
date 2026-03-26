@@ -31,6 +31,8 @@ export function ConfidenceRing({
         height={size}
         viewBox={`0 0 ${size} ${size}`}
         className="transform -rotate-90"
+        role="img"
+        aria-label={`Confidence ring: ${pct}%${label ? ` - ${label}` : ''}`}
       >
         {/* Background circle */}
         <circle

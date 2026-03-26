@@ -82,6 +82,9 @@ export function NewsFilterBar({
   const filterRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Clean up debounce timer on unmount
+  useEffect(() => () => clearTimeout(debounceRef.current ?? undefined), []);
+
   // Focus search input when opened
   useEffect(() => {
     if (searchOpen && searchInputRef.current) {
@@ -167,6 +170,7 @@ export function NewsFilterBar({
                 value={searchQuery}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 placeholder="Search news..."
+                aria-label="Search news"
                 className="flex-1 bg-transparent text-xs text-white/80 placeholder:text-white/25 outline-none"
               />
               {searchLoading && (
@@ -179,6 +183,7 @@ export function NewsFilterBar({
                   onSearch('');
                 }}
                 className="text-white/30 hover:text-white/60"
+                aria-label="Close search"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -212,6 +217,7 @@ export function NewsFilterBar({
             onClick={() => setSearchOpen(true)}
             className="flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
             title="Search (Press /)"
+            aria-label="Search"
           >
             <Search className="w-3.5 h-3.5 text-white/40" />
           </motion.button>
@@ -222,6 +228,8 @@ export function NewsFilterBar({
       <div ref={filterRef} className="relative">
         <button
           onClick={() => setFilterOpen(!filterOpen)}
+          aria-label="Toggle filters"
+          aria-expanded={filterOpen}
           className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
             filterOpen || activeFilterCount > 0
               ? 'border-white/[0.15] bg-white/[0.04] text-white/70'
@@ -298,6 +306,7 @@ export function NewsFilterBar({
                 <select
                   value={sourceFilter}
                   onChange={(e) => onSourceChange(e.target.value)}
+                  aria-label="Filter by source"
                   className="w-full bg-white/[0.03] border border-white/[0.08] rounded px-2 py-1 text-[11px] text-white/60 outline-none"
                 >
                   {SOURCE_FILTER_OPTIONS.map((o) => (
@@ -336,6 +345,7 @@ export function NewsFilterBar({
             disabled={refreshing}
             className="flex items-center justify-center w-7 h-7 rounded-md border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors disabled:opacity-40"
             title="Refresh news"
+            aria-label="Refresh news"
           >
             <RefreshCw className={`w-3 h-3 text-white/40 ${refreshing ? 'animate-spin' : ''}`} />
           </button>
@@ -345,6 +355,7 @@ export function NewsFilterBar({
           onClick={onScrollToTop}
           className="relative flex items-center justify-center w-8 h-8 rounded-lg border border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04] transition-colors"
           title="Scroll to top"
+          aria-label="Scroll to top"
         >
           {hasNewArticles ? (
             <span className="relative flex h-2.5 w-2.5">

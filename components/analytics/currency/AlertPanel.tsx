@@ -2,9 +2,13 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bell, Plus, Trash2, Check, X, RefreshCw, AlertCircle } from 'lucide-react';
+import { Bell, Plus, Trash2, Check, RefreshCw, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useMarketAwarePolling } from '@/lib/hooks/useMarketAwarePolling';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- false positive: toast is used in handleCreate/handleDelete
+import { toast } from 'sonner';
 import { getPriceAlerts, createPriceAlert, deletePriceAlert } from '@/src/lib/api/analyticsApi';
 import type { IPriceAlert } from '@/src/types/analytics';
 import { NSE_FOREX_PAIRS } from './constants';
@@ -60,8 +64,9 @@ function NewAlertForm({
       <div className="rounded-lg border border-sky-500/20 bg-sky-500/5 p-3 space-y-3">
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[10px] text-muted-foreground mb-1">Pair</label>
+            <label className="block text-[10px] text-muted-foreground mb-1" htmlFor="alert-pair">Pair</label>
             <select
+              id="alert-pair"
               value={pair}
               onChange={e => setPair(e.target.value)}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-500/40"
@@ -72,8 +77,9 @@ function NewAlertForm({
             </select>
           </div>
           <div>
-            <label className="block text-[10px] text-muted-foreground mb-1">Condition</label>
+            <label className="block text-[10px] text-muted-foreground mb-1" htmlFor="alert-condition">Condition</label>
             <select
+              id="alert-condition"
               value={condition}
               onChange={e => setCondition(e.target.value)}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-sky-500/40"
@@ -87,8 +93,9 @@ function NewAlertForm({
 
         <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="block text-[10px] text-muted-foreground mb-1">Target Price</label>
+            <label className="block text-[10px] text-muted-foreground mb-1" htmlFor="alert-price">Target Price</label>
             <input
+              id="alert-price"
               type="number"
               value={price}
               onChange={e => setPrice(e.target.value)}
@@ -99,8 +106,9 @@ function NewAlertForm({
             />
           </div>
           <div>
-            <label className="block text-[10px] text-muted-foreground mb-1">Note (optional)</label>
+            <label className="block text-[10px] text-muted-foreground mb-1" htmlFor="alert-note">Note (optional)</label>
             <input
+              id="alert-note"
               type="text"
               value={note}
               onChange={e => setNote(e.target.value)}
@@ -183,14 +191,14 @@ function AlertRow({
         )}
         {isTriggered && alert.triggered_price && (
           <p className="text-[10px] text-emerald-400/70">
-            Triggered at {alert.triggered_price} on {new Date(alert.triggered_at!).toLocaleDateString()}
+            Triggered at {alert.triggered_price} on {new Date(alert.triggered_at ?? '').toLocaleDateString()}
           </p>
         )}
       </div>
 
       {/* Created time */}
       <span className="text-[9px] text-muted-foreground/40 whitespace-nowrap">
-        {new Date(alert.created_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+        {formatDateTime(alert.created_at, 'NSE', { month: 'short', day: 'numeric' })}
       </span>
 
       {/* Delete */}
@@ -235,24 +243,38 @@ export function AlertPanel({ selectedPair }: { selectedPair: string }) {
     fetchAlerts();
   }, [fetchAlerts]);
 
-  // Poll for triggered alerts every 60s
-  useEffect(() => {
-    const interval = setInterval(fetchAlerts, 60_000);
-    return () => clearInterval(interval);
-  }, [fetchAlerts]);
+  // Market-hours-aware polling: 60s when open, 5min when closed
+  useMarketAwarePolling({
+    fetchFn: fetchAlerts,
+    marketType: 'forex',
+    activeIntervalMs: 60_000,
+    inactiveIntervalMs: 300_000,
+  });
 
   const handleCreate = async (pair: string, condition: string, price: number, note: string) => {
-    const res = await createPriceAlert(pair, condition, price, note);
-    if (res.success && res.data?.alert) {
-      setAlerts(prev => [res.data!.alert, ...prev]);
-      setShowForm(false);
+    try {
+      const res = await createPriceAlert(pair, condition, price, note);
+      if (res.success && res.data?.alert) {
+        setAlerts(prev => [res.data?.alert, ...prev].filter((a): a is IPriceAlert => Boolean(a)));
+        setShowForm(false);
+      } else {
+        toast.error('Failed to create alert');
+      }
+    } catch {
+      toast.error('Failed to create alert');
     }
   };
 
   const handleDelete = async (id: string) => {
-    const res = await deletePriceAlert(id);
-    if (res.success) {
-      setAlerts(prev => prev.filter(a => a.id !== id));
+    try {
+      const res = await deletePriceAlert(id);
+      if (res.success) {
+        setAlerts(prev => prev.filter(a => a.id !== id));
+      } else {
+        toast.error('Failed to delete alert');
+      }
+    } catch {
+      toast.error('Failed to delete alert');
     }
   };
 
@@ -269,7 +291,6 @@ export function AlertPanel({ selectedPair }: { selectedPair: string }) {
   }
 
   const activeAlerts = alerts.filter(a => a.is_active);
-  const triggeredAlerts = alerts.filter(a => !a.is_active && a.triggered_at);
 
   return (
     <motion.div {...ANIM}>

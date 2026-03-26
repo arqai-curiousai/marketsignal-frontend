@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { cn } from '@/lib/utils';
 
 interface DataFreshnessProps {
@@ -28,6 +28,12 @@ function timeAgo(iso: string): string {
  * Zen: small, muted, informative without shouting.
  */
 export function DataFreshness({ computedAt, staleTTLMinutes = 10, className }: DataFreshnessProps) {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
   const { label, isStale } = useMemo(() => {
     if (!computedAt) return { label: null, isStale: false };
     const diffMs = Date.now() - new Date(computedAt).getTime();
@@ -35,7 +41,8 @@ export function DataFreshness({ computedAt, staleTTLMinutes = 10, className }: D
       label: timeAgo(computedAt),
       isStale: diffMs > staleTTLMinutes * 60_000,
     };
-  }, [computedAt, staleTTLMinutes]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [computedAt, staleTTLMinutes, tick]);
 
   if (!label) return null;
 

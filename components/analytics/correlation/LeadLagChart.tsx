@@ -107,6 +107,7 @@ export function LeadLagChart({
         )}
       </div>
 
+      <div role="img" aria-label={`Lead-lag analysis for ${tickerA} vs ${tickerB}`}>
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={chartData} margin={{ top: 5, right: 5, bottom: 20, left: -10 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -167,6 +168,7 @@ export function LeadLagChart({
           </Bar>
         </BarChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Interpretation */}
       <div className={cn(

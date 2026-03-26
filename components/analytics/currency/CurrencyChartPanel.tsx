@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import type { IChartApi } from 'lightweight-charts';
+import type { IChartApi, ISeriesApi, SeriesType } from 'lightweight-charts';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyCandles, getCurrencyPatterns } from '@/src/lib/api/analyticsApi';
@@ -40,7 +40,10 @@ function getCandleLimit(tf: string): number {
 let lwcModulePromise: Promise<typeof import('lightweight-charts')> | null = null;
 function getLightweightCharts() {
   if (!lwcModulePromise) {
-    lwcModulePromise = import('lightweight-charts');
+    lwcModulePromise = import('lightweight-charts').catch((err) => {
+      lwcModulePromise = null;
+      throw err;
+    });
   }
   return lwcModulePromise;
 }
@@ -115,6 +118,10 @@ export function CurrencyChartPanel({ pair, timeframe, technicals, onTimeframeCha
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<IChartApi | null>(null);
   const observerRef = useRef<ResizeObserver | null>(null);
+  // Track overlay series so we can add/remove without rebuilding the chart
+  const overlaySeriesRef = useRef<ISeriesApi<SeriesType>[]>([]);
+  // Cache the lightweight-charts module ref for the overlay effect
+  const lwcRef = useRef<typeof import('lightweight-charts') | null>(null);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -150,18 +157,21 @@ export function CurrencyChartPanel({ pair, timeframe, technicals, onTimeframeCha
     fetchData();
   }, [fetchData]);
 
-  // Render chart with lightweight-charts
+  // Create base chart (candlestick only) — only re-runs when candles or timeframe change
   useEffect(() => {
     if (!chartRef.current || !candles.length) return;
 
     let isMounted = true;
 
     const renderChart = async () => {
-      const { createChart, CandlestickSeries, LineSeries, HistogramSeries } = await getLightweightCharts();
+      const lwc = await getLightweightCharts();
+      lwcRef.current = lwc;
+      const { createChart, CandlestickSeries } = lwc;
 
       if (!isMounted || !chartRef.current) return;
 
-      // Clean up previous chart + observer
+      // Clean up previous chart + observer + overlay refs
+      overlaySeriesRef.current = [];
       if (chartInstance.current) {
         chartInstance.current.remove();
         chartInstance.current = null;
@@ -216,135 +226,6 @@ export function CurrencyChartPanel({ pair, timeframe, technicals, onTimeframeCha
       }));
 
       candleSeries.setData(bars);
-
-      // Volume histogram
-      if (showVol) {
-        const volSeries = chart.addSeries(HistogramSeries, {
-          priceFormat: { type: 'volume' },
-          priceScaleId: 'vol',
-        });
-        chart.priceScale('vol').applyOptions({
-          scaleMargins: { top: 0.85, bottom: 0 },
-        });
-        const volData = candles
-          .filter(b => b.volume != null && b.volume > 0)
-          .map(b => ({
-            time: b.time as string,
-            value: b.volume ?? 0,
-            color: b.close >= b.open ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)',
-          }));
-        if (volData.length > 0) volSeries.setData(volData);
-      }
-
-      // Pivot levels (classic pivots from technicals)
-      if (showPivots && technicals?.pivots?.classic) {
-        const pivots = technicals.pivots.classic;
-        const pivotLevels: Array<{ price: number; label: string; color: string }> = [
-          { price: pivots.pp, label: 'PP', color: 'rgba(255,255,255,0.35)' },
-          { price: pivots.r1, label: 'R1', color: 'rgba(239,68,68,0.4)' },
-          { price: pivots.r2, label: 'R2', color: 'rgba(239,68,68,0.25)' },
-          { price: pivots.s1, label: 'S1', color: 'rgba(16,185,129,0.4)' },
-          { price: pivots.s2, label: 'S2', color: 'rgba(16,185,129,0.25)' },
-        ];
-        for (const lv of pivotLevels) {
-          if (lv.price) {
-            const pivotLine = chart.addSeries(LineSeries, {
-              color: lv.color,
-              lineWidth: 1,
-              lineStyle: 1,
-              priceLineVisible: false,
-              lastValueVisible: true,
-              title: lv.label,
-            });
-            if (bars.length > 0) {
-              pivotLine.setData([
-                { time: bars[0].time, value: lv.price },
-                { time: bars[bars.length - 1].time, value: lv.price },
-              ]);
-            }
-          }
-        }
-      }
-
-      // SMA overlays — computed from candle data
-      if (showSMA && bars.length > 0) {
-        const closeBars = bars.map(b => ({ time: b.time, close: b.close }));
-
-        const sma20Data = computeSMA(closeBars, 20);
-        if (sma20Data.length > 0) {
-          const sma20Series = chart.addSeries(LineSeries, {
-            color: '#3b82f6',
-            lineWidth: 1,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: 'SMA 20',
-          });
-          sma20Series.setData(sma20Data);
-        }
-
-        const sma50Data = computeSMA(closeBars, 50);
-        if (sma50Data.length > 0) {
-          const sma50Series = chart.addSeries(LineSeries, {
-            color: '#f59e0b',
-            lineWidth: 1,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: 'SMA 50',
-          });
-          sma50Series.setData(sma50Data);
-        }
-
-        const sma200Data = computeSMA(closeBars, 200);
-        if (sma200Data.length > 0) {
-          const sma200Series = chart.addSeries(LineSeries, {
-            color: '#ef4444',
-            lineWidth: 1,
-            lineStyle: 2,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: 'SMA 200',
-          });
-          sma200Series.setData(sma200Data);
-        }
-      }
-
-      // Bollinger Band overlays — computed from candle data
-      if (showBB && bars.length > 0) {
-        const closeBars = bars.map(b => ({ time: b.time, close: b.close }));
-        const bb = computeBollingerBands(closeBars, 20, 2);
-
-        if (bb.upper.length > 0) {
-          const bbUpperSeries = chart.addSeries(LineSeries, {
-            color: 'rgba(139, 92, 246, 0.5)',
-            lineWidth: 1,
-            lineStyle: 2,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: 'BB Upper',
-          });
-          bbUpperSeries.setData(bb.upper);
-
-          const bbMiddleSeries = chart.addSeries(LineSeries, {
-            color: 'rgba(139, 92, 246, 0.3)',
-            lineWidth: 1,
-            lineStyle: 1,
-            priceLineVisible: false,
-            lastValueVisible: false,
-          });
-          bbMiddleSeries.setData(bb.middle);
-
-          const bbLowerSeries = chart.addSeries(LineSeries, {
-            color: 'rgba(139, 92, 246, 0.5)',
-            lineWidth: 1,
-            lineStyle: 2,
-            priceLineVisible: false,
-            lastValueVisible: false,
-            title: 'BB Lower',
-          });
-          bbLowerSeries.setData(bb.lower);
-        }
-      }
-
       chart.timeScale().fitContent();
       chartInstance.current = chart;
 
@@ -362,6 +243,7 @@ export function CurrencyChartPanel({ pair, timeframe, technicals, onTimeframeCha
 
     return () => {
       isMounted = false;
+      overlaySeriesRef.current = [];
       if (observerRef.current) {
         observerRef.current.disconnect();
         observerRef.current = null;
@@ -371,7 +253,166 @@ export function CurrencyChartPanel({ pair, timeframe, technicals, onTimeframeCha
         chartInstance.current = null;
       }
     };
-  }, [candles, showBB, showSMA, showVol, showPivots, technicals, timeframe]);
+  }, [candles, timeframe]);
+
+  // Manage overlay series (VOL, SMA, BB, Pivots) — adds/removes from existing chart
+  useEffect(() => {
+    const chart = chartInstance.current;
+    const lwc = lwcRef.current;
+    if (!chart || !lwc || !candles.length) return;
+
+    const { LineSeries, HistogramSeries } = lwc;
+
+    // Remove previous overlay series
+    for (const s of overlaySeriesRef.current) {
+      try { chart.removeSeries(s); } catch { /* series may already be removed */ }
+    }
+    overlaySeriesRef.current = [];
+
+    const bars = candles.map((b) => ({
+      time: b.time as string,
+      open: b.open,
+      high: b.high,
+      low: b.low,
+      close: b.close,
+    }));
+
+    // Volume histogram
+    if (showVol) {
+      const volSeries = chart.addSeries(HistogramSeries, {
+        priceFormat: { type: 'volume' },
+        priceScaleId: 'vol',
+      });
+      chart.priceScale('vol').applyOptions({
+        scaleMargins: { top: 0.85, bottom: 0 },
+      });
+      const volData = candles
+        .filter(b => b.volume != null && b.volume > 0)
+        .map(b => ({
+          time: b.time as string,
+          value: b.volume ?? 0,
+          color: b.close >= b.open ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)',
+        }));
+      if (volData.length > 0) volSeries.setData(volData);
+      overlaySeriesRef.current.push(volSeries);
+    }
+
+    // Pivot levels (classic pivots from technicals)
+    if (showPivots && technicals?.pivots?.classic) {
+      const pivots = technicals.pivots.classic;
+      const pivotLevels: Array<{ price: number; label: string; color: string }> = [
+        { price: pivots.pp, label: 'PP', color: 'rgba(255,255,255,0.35)' },
+        { price: pivots.r1, label: 'R1', color: 'rgba(239,68,68,0.4)' },
+        { price: pivots.r2, label: 'R2', color: 'rgba(239,68,68,0.25)' },
+        { price: pivots.s1, label: 'S1', color: 'rgba(16,185,129,0.4)' },
+        { price: pivots.s2, label: 'S2', color: 'rgba(16,185,129,0.25)' },
+      ];
+      for (const lv of pivotLevels) {
+        if (lv.price) {
+          const pivotLine = chart.addSeries(LineSeries, {
+            color: lv.color,
+            lineWidth: 1,
+            lineStyle: 1,
+            priceLineVisible: false,
+            lastValueVisible: true,
+            title: lv.label,
+          });
+          if (bars.length > 0) {
+            pivotLine.setData([
+              { time: bars[0].time, value: lv.price },
+              { time: bars[bars.length - 1].time, value: lv.price },
+            ]);
+          }
+          overlaySeriesRef.current.push(pivotLine);
+        }
+      }
+    }
+
+    // SMA overlays — computed from candle data
+    if (showSMA && bars.length > 0) {
+      const closeBars = bars.map(b => ({ time: b.time, close: b.close }));
+
+      const sma20Data = computeSMA(closeBars, 20);
+      if (sma20Data.length > 0) {
+        const sma20Series = chart.addSeries(LineSeries, {
+          color: '#3b82f6',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: 'SMA 20',
+        });
+        sma20Series.setData(sma20Data);
+        overlaySeriesRef.current.push(sma20Series);
+      }
+
+      const sma50Data = computeSMA(closeBars, 50);
+      if (sma50Data.length > 0) {
+        const sma50Series = chart.addSeries(LineSeries, {
+          color: '#f59e0b',
+          lineWidth: 1,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: 'SMA 50',
+        });
+        sma50Series.setData(sma50Data);
+        overlaySeriesRef.current.push(sma50Series);
+      }
+
+      const sma200Data = computeSMA(closeBars, 200);
+      if (sma200Data.length > 0) {
+        const sma200Series = chart.addSeries(LineSeries, {
+          color: '#ef4444',
+          lineWidth: 1,
+          lineStyle: 2,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: 'SMA 200',
+        });
+        sma200Series.setData(sma200Data);
+        overlaySeriesRef.current.push(sma200Series);
+      }
+    }
+
+    // Bollinger Band overlays — computed from candle data
+    if (showBB && bars.length > 0) {
+      const closeBars = bars.map(b => ({ time: b.time, close: b.close }));
+      const bb = computeBollingerBands(closeBars, 20, 2);
+
+      if (bb.upper.length > 0) {
+        const bbUpperSeries = chart.addSeries(LineSeries, {
+          color: 'rgba(139, 92, 246, 0.5)',
+          lineWidth: 1,
+          lineStyle: 2,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: 'BB Upper',
+        });
+        bbUpperSeries.setData(bb.upper);
+        overlaySeriesRef.current.push(bbUpperSeries);
+
+        const bbMiddleSeries = chart.addSeries(LineSeries, {
+          color: 'rgba(139, 92, 246, 0.3)',
+          lineWidth: 1,
+          lineStyle: 1,
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        bbMiddleSeries.setData(bb.middle);
+        overlaySeriesRef.current.push(bbMiddleSeries);
+
+        const bbLowerSeries = chart.addSeries(LineSeries, {
+          color: 'rgba(139, 92, 246, 0.5)',
+          lineWidth: 1,
+          lineStyle: 2,
+          priceLineVisible: false,
+          lastValueVisible: false,
+          title: 'BB Lower',
+        });
+        bbLowerSeries.setData(bb.lower);
+        overlaySeriesRef.current.push(bbLowerSeries);
+      }
+    }
+  }, [candles, showBB, showSMA, showVol, showPivots, technicals]);
 
   if (loading && !candles.length) {
     return <Skeleton className="h-[480px] w-full rounded-lg" />;
@@ -417,8 +458,8 @@ export function CurrencyChartPanel({ pair, timeframe, technicals, onTimeframeCha
           )}
         </h3>
         <div className="flex items-center gap-1.5">
-          {/* Overlay toggles */}
-          {[
+          {/* Overlay toggles — only render when parent provides handlers */}
+          {overlays && onOverlaysChange && [
             { key: 'vol' as const, label: 'VOL', active: showVol, activeClass: 'bg-emerald-500/20 text-emerald-400' },
             { key: 'sma' as const, label: 'SMA', active: showSMA, activeClass: 'bg-blue-500/20 text-blue-400' },
             { key: 'bb' as const, label: 'BB', active: showBB, activeClass: 'bg-violet-500/20 text-violet-400' },

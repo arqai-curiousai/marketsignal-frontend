@@ -12,13 +12,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { BACKEND_URL } from '@/lib/api/backendUrl';
 
-const API_KEY = process.env.API_KEY || process.env.NEXT_PUBLIC_API_KEY || '';
+const API_KEY = process.env.API_KEY || '';
 
 export async function GET(
     request: NextRequest,
-    { params }: { params: { path: string[] } }
+    { params }: { params: Promise<{ path: string[] }> }
 ) {
-    const subPath = params.path.join('/');
+    const { path } = await params;
+    const subPath = path.join('/');
     const { searchParams } = new URL(request.url);
 
     // Build backend URL
@@ -31,15 +32,16 @@ export async function GET(
         const response = await fetch(backendUrl.toString(), {
             headers: {
                 'Content-Type': 'application/json',
-                'X-API-Key': API_KEY,
+                ...(API_KEY ? { 'X-API-Key': API_KEY } : {}),
             },
             cache: 'no-store',
+            signal: AbortSignal.timeout(15_000),
         });
 
         if (!response.ok) {
             const error = await response.json().catch(() => ({}));
             return NextResponse.json(
-                { error: error.detail || 'Backend error' },
+                { detail: error.detail || 'Backend error' },
                 { status: response.status }
             );
         }
@@ -50,7 +52,7 @@ export async function GET(
     } catch (error) {
         console.error('Proxy error:', error);
         return NextResponse.json(
-            { error: 'Failed to fetch from backend' },
+            { detail: 'Failed to fetch from backend' },
             { status: 502 }
         );
     }

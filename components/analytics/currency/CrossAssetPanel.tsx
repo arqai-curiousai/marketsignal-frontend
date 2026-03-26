@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Flame, Gem, TrendingUp, TrendingDown, RefreshCw, Info, AlertCircle } from 'lucide-react';
+import { Flame, Gem, RefreshCw, Info, AlertCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCommodityForexCorrelation } from '@/src/lib/api/analyticsApi';
@@ -175,7 +175,7 @@ function PairCard({ pair }: { pair: ICommodityForexPair }) {
 
 /* ─── Main Component ─────────────────────────────────────────────────────── */
 
-export function CrossAssetPanel() {
+export function CrossAssetPanel({ refreshTrigger }: { refreshTrigger?: number }) {
   const [data, setData] = useState<ICommodityForexCorrelation | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -196,7 +196,7 @@ export function CrossAssetPanel() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshTrigger]);
 
   if (loading && !data) {
     return <Skeleton className="h-64 w-full rounded-xl" />;
@@ -224,10 +224,6 @@ export function CrossAssetPanel() {
       </div>
     );
   }
-
-  // Separate Gold and Crude pairs
-  const goldPairs = data.pairs.filter(p => p.commodity === 'Gold');
-  const crudePairs = data.pairs.filter(p => p.commodity === 'Crude Oil');
 
   return (
     <motion.div {...ANIM}>

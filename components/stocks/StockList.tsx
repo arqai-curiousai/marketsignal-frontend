@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { IStock } from '@/types/stock';
-import { getStocks } from '@/lib/api/stockApi';
+import { getStocks } from '@/src/lib/api/stockApi';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +13,6 @@ import { StockSignalCard } from '@/components/signals/StockSignalCard';
 import { StockListItem } from '@/components/signals/StockListItem';
 import { StockChatSheet } from '@/components/stocks/StockChatSheet';
 import { ViewToggle, ViewMode } from '@/components/ui/ViewToggle';
-import { SignalType } from '@/components/signals/SignalOrb';
 import { useExchange } from '@/context/ExchangeContext';
 
 interface StockListProps {
@@ -38,7 +37,7 @@ export function StockList({
 }: StockListProps) {
     const { selectedExchange, exchangeConfig } = useExchange();
     const [stocks, setStocks] = useState<IStock[]>([]);
-    const currentExchange = initialExchange || selectedExchange;
+    const currentExchange = selectedExchange || initialExchange;
     const [page, setPage] = useState(1);
     const [total, setTotal] = useState(0);
     const [search, setSearch] = useState('');
@@ -47,10 +46,25 @@ export function StockList({
     const [error, setError] = useState<string | null>(null);
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedStock, setSelectedStock] = useState<IStock | null>(null);
-    const [, setLastUpdated] = useState<Date | null>(null);
+    const stocksControllerRef = useRef<AbortController | null>(null);
+
+    // Clear search and sector filter when exchange changes
+    const prevExchangeRef = useRef(currentExchange);
+    useEffect(() => {
+        if (prevExchangeRef.current !== currentExchange) {
+            setSearch('');
+            setActiveSector(null);
+            setPage(1);
+            prevExchangeRef.current = currentExchange;
+        }
+    }, [currentExchange]);
 
     // Fetch stocks
     const loadStocks = useCallback(async () => {
+        stocksControllerRef.current?.abort();
+        const controller = new AbortController();
+        stocksControllerRef.current = controller;
+
         setIsLoading(true);
         setError(null);
 
@@ -60,14 +74,15 @@ export function StockList({
             pageSize,
             sector: activeSector || undefined,
             search: search || undefined,
-        });
+        }, controller.signal);
+
+        if (controller.signal.aborted) return;
 
         if (result.success) {
             setStocks(result.data.items);
             setTotal(result.data.total);
-            setLastUpdated(new Date());
         } else {
-            setError(result.error.detail || result.error.message);
+            setError(result.error?.detail ?? result.error?.message ?? 'Failed to load stocks');
             setStocks([]);
         }
 
@@ -76,22 +91,30 @@ export function StockList({
 
     useEffect(() => {
         loadStocks();
+        return () => {
+            stocksControllerRef.current?.abort();
+        };
     }, [loadStocks]);
 
-    // Sector list extracted from stocks
+    // Cache the full sector list so filtering doesn't remove sector chips
+    const allSectorsRef = useRef<string[]>([]);
     const sectors = React.useMemo(() => {
         const sectorSet = new Set<string>();
         stocks.forEach((s) => {
             if (s.sector) sectorSet.add(s.sector);
         });
-        return Array.from(sectorSet).sort();
-    }, [stocks]);
+        const currentSectors = Array.from(sectorSet).sort();
+        // Only update the cached list when we have an unfiltered result (no sector filter active)
+        if (!activeSector && currentSectors.length > 0) {
+            allSectorsRef.current = currentSectors;
+        }
+        return allSectorsRef.current.length > 0 ? allSectorsRef.current : currentSectors;
+    }, [stocks, activeSector]);
 
-    // Handle search
+    // Handle search — just reset page; the useEffect on [loadStocks] handles the fetch
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         setPage(1);
-        loadStocks();
     };
 
     const handleSectorFilter = (sector: string | null) => {
@@ -103,9 +126,6 @@ export function StockList({
     const totalPages = Math.ceil(total / pageSize);
     const hasNextPage = page < totalPages;
     const hasPrevPage = page > 1;
-
-    const getSignalForStock = (_stock: IStock): SignalType | null => null;
-    const getConfidenceForStock = (_stock: IStock): number => 0;
 
     const hasAnyPrice = stocks.some((s) => s.lastPrice != null);
 
@@ -161,6 +181,7 @@ export function StockList({
                                 onClick={loadStocks}
                                 disabled={isLoading}
                                 className="h-9 w-9 border-white/10 hover:bg-white/5"
+                                aria-label="Refresh stocks"
                             >
                                 <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
                             </Button>
@@ -173,6 +194,7 @@ export function StockList({
                     <div className="flex flex-wrap gap-1.5">
                         <button
                             onClick={() => handleSectorFilter(null)}
+                            aria-pressed={activeSector === null}
                             className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
                                 activeSector === null
                                     ? 'bg-white/15 text-white'
@@ -185,6 +207,7 @@ export function StockList({
                             <button
                                 key={sector}
                                 onClick={() => handleSectorFilter(sector)}
+                                aria-pressed={activeSector === sector}
                                 className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
                                     activeSector === sector
                                         ? 'bg-white/15 text-white'
@@ -261,11 +284,12 @@ export function StockList({
                                                     ticker={stock.ticker}
                                                     name={stock.name}
                                                     exchange={stock.exchange}
-                                                    signal={getSignalForStock(stock)}
+                                                    signal={null}
                                                     price={stock.lastPrice}
                                                     change={stock.change}
                                                     changePercent={stock.changePercent}
-                                                    confidence={getConfidenceForStock(stock)}
+                                                    confidence={0}
+                                                    currency={stock.currency || 'INR'}
                                                     onSelect={() => setSelectedStock(stock)}
                                                 />
                                             </motion.div>
@@ -289,12 +313,11 @@ export function StockList({
                                                 <StockListItem
                                                     ticker={stock.ticker}
                                                     name={stock.name}
-                                                    exchange={stock.exchange}
-                                                    signal={getSignalForStock(stock)}
+                                                    signal={null}
                                                     price={stock.lastPrice}
                                                     change={stock.change}
                                                     changePercent={stock.changePercent}
-                                                    confidence={getConfidenceForStock(stock)}
+                                                    confidence={0}
                                                     sector={stock.sector}
                                                     currency={stock.currency || 'INR'}
                                                     onSelect={() => setSelectedStock(stock)}

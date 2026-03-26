@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, notFound } from 'next/navigation';
 import { apiClient } from '@/lib/api/apiClient';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
@@ -17,6 +17,9 @@ import {
   Info,
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatPrice as formatExchangePrice, formatDateTime } from '@/lib/exchange/formatting';
+import { isValidExchange } from '@/lib/exchange/config';
+import type { ExchangeCode } from '@/lib/exchange/config';
 
 interface AgentDetail {
   bias: string;
@@ -57,19 +60,25 @@ export default function SignalDetailPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
     const loadSignal = async () => {
       if (!ticker) return;
       const result = await apiClient.get<SignalDetail>(
-        `/api/signals/${ticker}/detail`
+        `/api/signals/${ticker}/detail`,
+        undefined,
+        { signal: controller.signal }
       );
-      if (result.success) {
-        setSignal(result.data);
-      } else {
-        setError(result.error.detail || 'Failed to load signal');
+      if (!controller.signal.aborted) {
+        if (result.success) {
+          setSignal(result.data);
+        } else {
+          setError(result.error.detail || 'Failed to load signal');
+        }
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     loadSignal();
+    return () => controller.abort();
   }, [ticker]);
 
   if (isLoading) {
@@ -80,11 +89,15 @@ export default function SignalDetailPage() {
     );
   }
 
-  if (error || !signal) {
+  if (!signal && !error) {
+    notFound();
+  }
+
+  if (error) {
     return (
       <div className="container py-24 text-center">
         <p className="text-muted-foreground mb-4">
-          {error || 'No signal found for this ticker.'}
+          {error}
         </p>
         <Link href="/signals">
           <Button variant="outline" size="sm">
@@ -94,6 +107,10 @@ export default function SignalDetailPage() {
         </Link>
       </div>
     );
+  }
+
+  if (!signal) {
+    notFound();
   }
 
   const action = actionConfig[signal.action] || actionConfig.HOLD;
@@ -146,7 +163,10 @@ export default function SignalDetailPage() {
           </div>
           <div className="text-2xl font-bold text-white">
             {signal.price_at_signal != null
-              ? `\u20B9${signal.price_at_signal.toLocaleString('en-IN')}`
+              ? formatExchangePrice(
+                  signal.price_at_signal,
+                  isValidExchange(signal.exchange) ? signal.exchange as ExchangeCode : 'NSE',
+                )
               : 'N/A'}
           </div>
         </Card>
@@ -156,10 +176,11 @@ export default function SignalDetailPage() {
           </div>
           <div className="text-sm font-medium text-white flex items-center gap-1.5">
             <Clock className="h-3.5 w-3.5 text-muted-foreground" />
-            {new Date(signal.generated_at).toLocaleString('en-IN', {
-              dateStyle: 'medium',
-              timeStyle: 'short',
-            })}
+            {formatDateTime(
+              signal.generated_at,
+              isValidExchange(signal.exchange) ? signal.exchange as ExchangeCode : 'NSE',
+              { dateStyle: 'medium', timeStyle: 'short' },
+            )}
           </div>
         </Card>
       </div>
@@ -219,7 +240,7 @@ export default function SignalDetailPage() {
       {/* Actions + Disclaimer */}
       <div className="flex flex-col sm:flex-row gap-4 mb-10">
         <Link
-          href={`/assistant?q=Explain the ${signal.action} signal for ${signal.ticker} with ${signal.conflict_type} conflict type`}
+          href={`/assistant?q=${encodeURIComponent(`Explain the ${signal.action} signal for ${signal.ticker} with ${signal.conflict_type} conflict type`)}`}
         >
           <Button className="bg-brand-blue hover:bg-brand-blue/90 text-white gap-2">
             <MessageSquare className="h-4 w-4" />

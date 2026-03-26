@@ -77,11 +77,3 @@ export const FOREX_MODULES: ForexModule[] = [
 ];
 
 export const FOREX_VALID_MODULE_IDS = new Set(FOREX_MODULES.map(m => m.id));
-
-/* ─── Colorblind-safe palette ────────────────────────────────────────────── */
-
-export const FOREX_COLORS = {
-  bullish: 'hsl(210, 80%, 60%)',
-  bearish: 'hsl(30, 80%, 55%)',
-  neutral: 'hsl(220, 10%, 50%)',
-} as const;

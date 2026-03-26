@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { ISimulationVerdict, IQualityScore } from '@/types/simulation';
@@ -64,7 +64,7 @@ function Particle({ index, color }: { index: number; color: string }) {
       opacity={opacity}
       animate={{ opacity: [0.1, 0.4, 0.1] }}
       transition={{
-        duration: 2 + Math.random(),
+        duration: 2 + (index % 5) * 0.2,
         repeat: Infinity,
         ease: 'easeInOut',
         delay: index * 0.2,
@@ -76,6 +76,7 @@ function Particle({ index, color }: { index: number; color: string }) {
 // ─── SimulationGauge ────────────────────────────────────────────────
 
 export function SimulationGauge({ verdict, qualityScore, className }: Props) {
+  const gId = useId();
   const prefersReducedMotion = useReducedMotion();
   const config = getVerdictConfig(verdict.verdict);
 
@@ -116,9 +117,11 @@ export function SimulationGauge({ verdict, qualityScore, className }: Props) {
         <svg
           viewBox="0 0 260 260"
           className="w-[200px] h-[200px] md:w-[260px] md:h-[260px]"
+          role="img"
+          aria-label="Monte Carlo simulation gauge"
         >
           <defs>
-            <linearGradient id="mc-gauge-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <linearGradient id={`${gId}-mc-gauge-gradient`} x1="0%" y1="0%" x2="100%" y2="0%">
               <stop offset="0%" stopColor="#FB7185" />
               <stop offset="50%" stopColor="#FBBF24" />
               <stop offset="100%" stopColor="#4ADE80" />
@@ -157,7 +160,7 @@ export function SimulationGauge({ verdict, qualityScore, className }: Props) {
             <motion.path
               d={FULL_ARC}
               fill="none"
-              stroke="url(#mc-gauge-gradient)"
+              stroke={`url(#${gId}-mc-gauge-gradient)`}
               strokeWidth={12}
               strokeLinecap="round"
               strokeDasharray={`${ARC_LENGTH} ${ARC_LENGTH}`}

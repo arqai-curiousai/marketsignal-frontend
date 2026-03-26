@@ -109,6 +109,7 @@ export function MorningBriefCard({ brief, loading, dismissed, onDismiss }: Morni
           <button
             onClick={onDismiss}
             className="text-white/20 hover:text-white/50 transition-colors opacity-0 group-hover:opacity-100"
+            aria-label="Dismiss brief"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -117,7 +118,7 @@ export function MorningBriefCard({ brief, loading, dismissed, onDismiss }: Morni
         {/* ── Key Numbers Bar ────────────────────────────────── */}
         {hasKeyNumbers && (
           <div className="flex gap-1 px-4 pt-2.5 pb-0 overflow-x-auto scrollbar-none">
-            {brief.key_numbers!.map((kn, i) => {
+            {brief.key_numbers?.map((kn, i) => {
               const dir = kn.direction || 'flat';
               return (
                 <div
@@ -162,6 +163,8 @@ export function MorningBriefCard({ brief, loading, dismissed, onDismiss }: Morni
           <>
             <button
               onClick={() => setExpanded(!expanded)}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse details' : 'Expand details'}
               className="w-full flex items-center justify-center gap-1 py-1.5 text-[10px] text-white/25 hover:text-white/40 transition-colors border-t border-white/[0.04]"
             >
               {expanded ? (
@@ -188,7 +191,7 @@ export function MorningBriefCard({ brief, loading, dismissed, onDismiss }: Morni
                           Sector Outlook
                         </div>
                         <div className="flex flex-wrap gap-1.5">
-                          {Object.entries(brief.sector_outlook!).map(([sector, outlook]) => {
+                          {brief.sector_outlook && Object.entries(brief.sector_outlook).map(([sector, outlook]) => {
                             const style = OUTLOOK_COLORS[outlook] || OUTLOOK_COLORS.neutral;
                             return (
                               <div
@@ -216,7 +219,7 @@ export function MorningBriefCard({ brief, loading, dismissed, onDismiss }: Morni
                           </span>
                         </div>
                         <div className="space-y-1">
-                          {brief.watch_list!.slice(0, 5).map((item, i) => {
+                          {brief.watch_list?.slice(0, 5).map((item, i) => {
                             const sentColor = getSentimentColor(item.sentiment);
                             return (
                               <div

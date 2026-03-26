@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { simulationApi } from '@/lib/api/simulationApi';
 import { useExchange } from '@/context/ExchangeContext';
 import { downloadCSV, downloadPNG } from '@/lib/utils/export';
-import { T, S } from '@/components/playground/pyramid/tokens';
+import { S } from '@/components/playground/pyramid/tokens';
 import { SimPortfolioToolbar } from '@/components/playground/simulations/shared/SimPortfolioToolbar';
 import type { IFactorDecomposition, IPresetBasket } from '@/types/simulation';
 
@@ -91,9 +91,13 @@ export function FactorDashboard() {
 
   // Fetch presets once
   useEffect(() => {
+    const controller = new AbortController();
     simulationApi.getPresets().then((res) => {
-      if (res.success) setPresets(res.data);
-    }).catch((err) => { console.warn('Failed to load presets:', err); });
+      if (!controller.signal.aborted && res.success) setPresets(res.data);
+    }).catch((err) => {
+      if (!controller.signal.aborted) console.warn('Failed to load presets:', err);
+    });
+    return () => controller.abort();
   }, []);
 
   const fetchData = useCallback(

@@ -8,6 +8,8 @@ import type {
   PyramidTimeframe,
 } from './constants';
 import { PYRAMID, SECTOR_COLORS, perfColor, momentumColor } from './constants';
+import { formatPrice } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 
 interface PyramidViewProps {
   sectors: IPyramidSector[];
@@ -17,6 +19,7 @@ interface PyramidViewProps {
   selectedStock: string | null;
   onSectorClick: (sector: string) => void;
   onStockClick: (ticker: string, sector: string) => void;
+  exchange?: ExchangeCode;
 }
 
 interface TooltipState {
@@ -38,6 +41,7 @@ export function PyramidView({
   selectedStock,
   onSectorClick,
   onStockClick,
+  exchange = 'NSE',
 }: PyramidViewProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -189,6 +193,8 @@ export function PyramidView({
         width={width}
         height={Math.min(dimensions.height, layers.length > 0 ? layers[layers.length - 1].y + layers[layers.length - 1].height + 10 : 600)}
         className="select-none"
+        role="img"
+        aria-label="Market signal pyramid"
       >
         <defs>
           {/* Gradient overlay for depth */}
@@ -311,7 +317,7 @@ export function PyramidView({
           <p className="text-[10px] text-muted-foreground">{tooltip.name}</p>
           <div className="mt-1 flex items-center gap-3">
             <span className="text-xs tabular-nums text-foreground">
-              ₹{tooltip.last_price.toLocaleString()}
+              {formatPrice(tooltip.last_price, exchange)}
             </span>
             <span
               className={`text-xs font-medium tabular-nums ${

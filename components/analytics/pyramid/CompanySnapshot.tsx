@@ -4,6 +4,8 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { IStockFundamentals } from './constants';
 import { formatMarketCap, formatPct, SECTOR_COLORS } from './constants';
+import { formatPrice } from '@/lib/exchange/formatting';
+import { isValidExchange } from '@/lib/exchange/config';
 
 interface CompanySnapshotProps {
   data: IStockFundamentals;
@@ -32,7 +34,9 @@ export function CompanySnapshot({ data }: CompanySnapshotProps) {
       {/* Price + change */}
       <div className="flex items-baseline gap-3">
         <span className="text-xl font-bold tabular-nums text-foreground">
-          ₹{data.last_price?.toLocaleString() ?? '—'}
+          {data.last_price != null
+            ? formatPrice(data.last_price, isValidExchange(data.exchange) ? data.exchange : 'NSE')
+            : '—'}
         </span>
         {data.change_percent != null && (
           <span

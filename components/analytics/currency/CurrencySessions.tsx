@@ -170,45 +170,47 @@ export function CurrencySessions({ pair }: Props) {
       )}
 
       {/* Hourly Return Heatmap */}
-      {data.hourly_returns && data.hourly_returns.length > 0 && (
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
-        <h3 className="text-sm font-semibold mb-3">Hourly Return Pattern (IST)</h3>
-        <div className="overflow-x-auto">
-          <div className="flex gap-px min-w-[600px]">
-            {data.hourly_returns.map(h => {
-              const maxAbs = Math.max(
-                ...data.hourly_returns.map(hr => Math.abs(hr.avg_return)),
-                0.001
-              );
-              const intensity = Math.min(Math.abs(h.avg_return) / maxAbs, 1);
-              const bg = h.avg_return > 0
-                ? `rgba(16, 185, 129, ${intensity * 0.6})`
-                : h.avg_return < 0
-                  ? `rgba(239, 68, 68, ${intensity * 0.6})`
-                  : 'transparent';
-              return (
-                <div
-                  key={h.hour}
-                  className="flex-1 text-center rounded-sm py-2"
-                  style={{ backgroundColor: bg }}
-                  title={`${h.hour}:00 IST — Avg return: ${h.avg_return.toFixed(4)}% (${h.bar_count} bars)`}
-                >
-                  <span className="text-[8px] text-muted-foreground block">{h.hour}</span>
-                  {h.bar_count > 0 && (
-                    <span className="text-[8px] font-mono block mt-0.5">
-                      {h.avg_return > 0 ? '+' : ''}{h.avg_return.toFixed(3)}
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+      {data.hourly_returns && data.hourly_returns.length > 0 && (() => {
+        const maxAbs = Math.max(
+          ...data.hourly_returns.map(hr => Math.abs(hr.avg_return)),
+          0.001
+        );
+        return (
+          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-4">
+            <h3 className="text-sm font-semibold mb-3">Hourly Return Pattern (IST)</h3>
+            <div className="overflow-x-auto">
+              <div className="flex gap-px min-w-[600px]">
+                {data.hourly_returns.map(h => {
+                  const intensity = Math.min(Math.abs(h.avg_return) / maxAbs, 1);
+                  const bg = h.avg_return > 0
+                    ? `rgba(16, 185, 129, ${intensity * 0.6})`
+                    : h.avg_return < 0
+                      ? `rgba(239, 68, 68, ${intensity * 0.6})`
+                      : 'transparent';
+                  return (
+                    <div
+                      key={h.hour}
+                      className="flex-1 text-center rounded-sm py-2"
+                      style={{ backgroundColor: bg }}
+                      title={`${h.hour}:00 IST — Avg return: ${h.avg_return.toFixed(4)}% (${h.bar_count} bars)`}
+                    >
+                      <span className="text-[8px] text-muted-foreground block">{h.hour}</span>
+                      {h.bar_count > 0 && (
+                        <span className="text-[8px] font-mono block mt-0.5">
+                          {h.avg_return > 0 ? '+' : ''}{h.avg_return.toFixed(3)}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1 min-w-[600px]">
+                <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span>
+              </div>
+            </div>
           </div>
-          <div className="flex justify-between text-[9px] text-muted-foreground/40 mt-1 min-w-[600px]">
-            <span>12 AM</span><span>6 AM</span><span>12 PM</span><span>6 PM</span><span>12 AM</span>
-          </div>
-        </div>
-      </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

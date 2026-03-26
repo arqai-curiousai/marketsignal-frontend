@@ -25,10 +25,3 @@ export interface IWSServerMessage {
   data: IRealtimePrice | IRealtimePrice[] | string | null;
   ts: string | null;
 }
-
-export type WSAction = 'subscribe' | 'unsubscribe' | 'ping';
-
-export interface IWSClientMessage {
-  action: WSAction;
-  types?: InstrumentCategory[];
-}

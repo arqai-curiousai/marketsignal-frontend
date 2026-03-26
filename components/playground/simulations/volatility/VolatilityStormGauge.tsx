@@ -1,11 +1,10 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { motion, useReducedMotion, useSpring, useTransform } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import type { IVolRegime } from '@/types/simulation';
-import { VOL_REGIME, fmtVol, getRegimeConfig } from './vol-tokens';
-import type { VolRegimeLevel } from './vol-tokens';
+import { fmtVol, getRegimeConfig } from './vol-tokens';
 
 interface Props {
   regime: IVolRegime;
@@ -77,18 +76,7 @@ export function VolatilityStormGauge({ regime, className }: Props) {
   const config = getRegimeConfig(regime.regime);
 
   const percentile = regime.percentile ?? 0.5;
-  const fillFraction = Math.max(0, Math.min(1, percentile));
-
-  // Spring-animated percentile value
-  const springValue = useSpring(fillFraction * 100, {
-    stiffness: 80,
-    damping: 20,
-  });
-  const displayPctl = useTransform(springValue, (v) => Math.round(v));
-
-  // Arc dash offset for the fill
-  const fillLength = ARC_LENGTH * fillFraction;
-  const dashOffset = ARC_LENGTH - fillLength;
+  const fillLength = ARC_LENGTH * percentile;
 
   // Particles
   const particleCount = prefersReduced ? 0 : config.particles;
@@ -107,6 +95,8 @@ export function VolatilityStormGauge({ regime, className }: Props) {
         <svg
           viewBox="0 0 280 280"
           className="w-[200px] h-[200px] md:w-[280px] md:h-[280px]"
+          role="img"
+          aria-label="Volatility storm gauge"
         >
           {/* Background track */}
           <circle

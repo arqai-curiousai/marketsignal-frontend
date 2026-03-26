@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { ExportButton } from '@/components/ui/ExportButton';
 import { downloadCSV, downloadPNG } from '@/src/lib/utils/export';
+import { useMarketAwarePolling } from '@/lib/hooks/useMarketAwarePolling';
 
 import { ForexTickerStrip } from './ForexTickerStrip';
 import { MarketsView } from './MarketsView';
@@ -304,6 +305,7 @@ function CommandBar({
 /* ─── URL Param Helpers ──────────────────────────────────────────────────── */
 
 function writeUrlParams(params: Record<string, string | null>) {
+  if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   for (const [key, value] of Object.entries(params)) {
     if (value) url.searchParams.set(key, value);
@@ -343,9 +345,14 @@ export function ForexDashboard() {
 
   useEffect(() => {
     fetchOverview();
-    const interval = setInterval(fetchOverview, 60_000);
-    return () => clearInterval(interval);
   }, [fetchOverview]);
+
+  useMarketAwarePolling({
+    fetchFn: fetchOverview,
+    marketType: 'forex',
+    activeIntervalMs: 60_000,
+    inactiveIntervalMs: 300_000,
+  });
 
   const handleExportCSV = useCallback(() => {
     const pairs = overview?.pairs ?? [];

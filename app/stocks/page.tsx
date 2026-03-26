@@ -1,9 +1,13 @@
 'use client';
 
 import React, { useState, useCallback, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { StockList } from '@/components/stocks/StockList';
-import { BubbleCluster } from '@/components/stocks/BubbleCluster';
+const BubbleCluster = dynamic(
+    () => import('@/components/stocks/BubbleCluster').then(m => m.BubbleCluster),
+    { ssr: false }
+);
 import { MyPicksList } from '@/components/signals/MyPicksList';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Badge } from '@/components/ui/badge';
@@ -24,6 +28,7 @@ import {
     ResizablePanel,
     ResizableHandle,
 } from '@/components/ui/resizable';
+import { TabErrorBoundary } from '@/components/ui/TabErrorBoundary';
 
 /**
  * Stocks Dashboard — NIFTY 50
@@ -100,9 +105,10 @@ export default function StocksDashboard() {
                     </Badge>
 
                     {/* View Toggle */}
-                    <div className="ml-auto flex items-center gap-1 bg-white/5 rounded-lg p-0.5">
+                    <div className="ml-auto flex items-center gap-1 bg-white/5 rounded-lg p-0.5" role="tablist">
                         <button
                             onClick={() => setView('bubble')}
+                            aria-pressed={view === 'bubble'}
                             className={cn(
                                 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                                 view === 'bubble'
@@ -115,6 +121,7 @@ export default function StocksDashboard() {
                         </button>
                         <button
                             onClick={() => setView('list')}
+                            aria-pressed={view === 'list'}
                             className={cn(
                                 'flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all',
                                 view === 'list'
@@ -167,6 +174,8 @@ export default function StocksDashboard() {
                 {/* Collapsible Portfolio Header */}
                 <button
                     onClick={() => setMobilePortfolioOpen(!mobilePortfolioOpen)}
+                    aria-expanded={mobilePortfolioOpen}
+                    aria-controls="mobile-portfolio-panel"
                     className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-colors"
                 >
                     <div className="flex items-center gap-2.5">
@@ -187,6 +196,7 @@ export default function StocksDashboard() {
                 <AnimatePresence>
                     {mobilePortfolioOpen && (
                         <motion.div
+                            id="mobile-portfolio-panel"
                             initial={{ height: 0, opacity: 0 }}
                             animate={{ height: 'auto', opacity: 1 }}
                             exit={{ height: 0, opacity: 0 }}
@@ -213,9 +223,13 @@ export default function StocksDashboard() {
                     transition={{ delay: 0.1 }}
                 >
                     {view === 'bubble' ? (
-                        <BubbleCluster exchange={selectedExchange} />
+                        <TabErrorBoundary tabName="Bubble Cluster">
+                            <BubbleCluster exchange={selectedExchange} />
+                        </TabErrorBoundary>
                     ) : (
-                        <StockList initialExchange={selectedExchange} pageSize={exchangeConfig.stockCount} />
+                        <TabErrorBoundary tabName="Stock List">
+                            <StockList initialExchange={selectedExchange} pageSize={exchangeConfig.stockCount} />
+                        </TabErrorBoundary>
                     )}
                 </motion.div>
             </div>
@@ -246,6 +260,7 @@ export default function StocksDashboard() {
                                         size="icon"
                                         onClick={refreshWatchlist}
                                         className="h-7 w-7 text-muted-foreground hover:text-white"
+                                        aria-label="Refresh stocks"
                                     >
                                         <RefreshCw className="h-3.5 w-3.5" />
                                     </Button>
@@ -279,9 +294,13 @@ export default function StocksDashboard() {
                                 transition={{ duration: 0.2 }}
                             >
                                 {view === 'bubble' ? (
-                                    <BubbleCluster />
+                                    <TabErrorBoundary tabName="Bubble Cluster">
+                                        <BubbleCluster exchange={selectedExchange} />
+                                    </TabErrorBoundary>
                                 ) : (
-                                    <StockList initialExchange="NSE" pageSize={50} />
+                                    <TabErrorBoundary tabName="Stock List">
+                                        <StockList initialExchange={selectedExchange} pageSize={exchangeConfig.stockCount} />
+                                    </TabErrorBoundary>
                                 )}
                             </motion.div>
                         </div>

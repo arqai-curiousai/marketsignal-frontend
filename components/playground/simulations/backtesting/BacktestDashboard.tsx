@@ -125,17 +125,21 @@ export function BacktestDashboard() {
 
   // Fetch strategy catalog on mount
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
     async function fetchCatalog() {
-      const result = await simulationApi.getBacktestStrategies();
-      if (!cancelled && result.success) {
-        setCatalog(result.data);
-        // Select all by default
-        setSelectedStrategies(new Set(result.data.map((s) => s.name)));
+      try {
+        const result = await simulationApi.getBacktestStrategies();
+        if (!controller.signal.aborted && result.success) {
+          setCatalog(result.data);
+          // Select all by default
+          setSelectedStrategies(new Set(result.data.map((s) => s.name)));
+        }
+      } catch {
+        // ignore abort errors
       }
     }
     fetchCatalog();
-    return () => { cancelled = true; };
+    return () => controller.abort();
   }, []);
 
   // Clean up timer on unmount
@@ -146,8 +150,15 @@ export function BacktestDashboard() {
   }, []);
 
   // ── Run backtest ──
+  const backtestControllerRef = useRef<AbortController | null>(null);
+
   const runBacktest = useCallback(async () => {
     if (!selectedTickers.length) return;
+
+    // Abort any in-flight backtest
+    backtestControllerRef.current?.abort();
+    const controller = new AbortController();
+    backtestControllerRef.current = controller;
 
     setLoading(true);
     setError(null);
@@ -172,17 +183,23 @@ export function BacktestDashboard() {
         lookback,
       );
 
-      if (result.success) {
-        setData(result.data);
-        setActiveStrategy(result.data.bestStrategy || result.data.strategies[0]?.name || '');
-      } else {
-        setError(result.error.message);
+      if (!controller.signal.aborted) {
+        if (result.success) {
+          setData(result.data);
+          setActiveStrategy(result.data.bestStrategy || result.data.strategies[0]?.name || '');
+        } else {
+          setError(result.error.message);
+        }
       }
     } catch {
-      setError('Failed to run backtest');
-      toast.error('Failed to run backtest');
+      if (!controller.signal.aborted) {
+        setError('Failed to run backtest');
+        toast.error('Failed to run backtest');
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
@@ -235,6 +252,7 @@ export function BacktestDashboard() {
           <select
             value=""
             onChange={handleTickerChange}
+            aria-label="Select ticker"
             className={cn(
               'bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5',
               'text-xs font-mono text-white/80 focus:outline-none focus:border-indigo-500/30',
@@ -264,6 +282,7 @@ export function BacktestDashboard() {
                 type="button"
                 className="text-indigo-400/50 hover:text-indigo-400 ml-0.5"
                 onClick={() => removeTicker(ticker)}
+                aria-label="Remove ticker"
               >
                 x
               </button>
@@ -283,6 +302,7 @@ export function BacktestDashboard() {
             step={1}
             value={lookback}
             onChange={(e) => setLookback(Number(e.target.value))}
+            aria-label="Lookback period"
             className="w-20 h-1 accent-indigo-500 cursor-pointer"
           />
           <span className="text-[10px] font-mono text-white/60">{lookback}Y</span>

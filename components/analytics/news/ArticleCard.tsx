@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ExternalLink, Clock } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
 import { cn } from '@/lib/utils';
+import { sanitizeUrl } from '@/lib/security/xss';
 import { SentimentBadge } from './SentimentBadge';
 import { TickerPill } from './TickerPill';
 import { formatTimeAgo, getSentimentColor, getSourceDisplayName, PRIMARY_SOURCES, getTimeGroup } from './constants';
@@ -53,10 +54,13 @@ export function ArticleCard({
 
   return (
     <motion.div
+      role={onSelect ? 'button' : undefined}
+      tabIndex={onSelect ? 0 : undefined}
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.03 }}
       onClick={() => onSelect?.(article)}
+      onKeyDown={onSelect ? (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(article); } } : undefined}
       className={cn(
         'group relative rounded-xl border transition-all flex flex-col overflow-hidden',
         selected
@@ -85,6 +89,7 @@ export function ArticleCard({
             src={article.image_url}
             alt=""
             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+            loading="lazy"
             onError={() => setImgError(true)}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-[#0d1117] via-transparent to-transparent" />
@@ -156,11 +161,12 @@ export function ArticleCard({
           <div className="flex items-center gap-1.5 shrink-0">
             <SentimentBadge sentiment={article.sentiment} score={article.sentiment_score} />
             <a
-              href={article.url}
+              href={sanitizeUrl(article.url) ?? '#'}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="text-white/25 hover:text-white/60 transition-colors"
+              aria-label="Open article"
             >
               <ExternalLink className="h-3 w-3" />
             </a>

@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyCrossRates } from '@/src/lib/api/analyticsApi';
 import type { ICrossRatesMatrix } from '@/src/types/analytics';
 import { Grid3X3, AlertCircle, RefreshCw } from 'lucide-react';
+import { DataFreshness } from '@/components/analytics/DataFreshness';
 import { NSE_FOREX_PAIRS } from './constants';
 
 /** Set of valid pairs + their inverses for click navigation */
@@ -69,14 +70,19 @@ export function ForexHeatMap({ onSelectPair }: Props) {
   const [data, setData] = useState<ICrossRatesMatrix | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [lastFetchedAt, setLastFetchedAt] = useState<string | null>(null);
+
+  const hasLoaded = useRef(false);
 
   const fetchData = useCallback(async (tf: Timeframe) => {
-    setLoading(prev => !data ? true : prev);
+    if (!hasLoaded.current) setLoading(true);
     setError(null);
     try {
       const res = await getCurrencyCrossRates(tf);
       if (res.success) {
         setData(res.data);
+        setLastFetchedAt(new Date().toISOString());
+        hasLoaded.current = true;
       } else {
         setError(res.error?.message || 'Failed to load cross-rates');
       }
@@ -85,7 +91,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [data]);
+  }, []);
 
   useEffect(() => {
     fetchData(timeframe);
@@ -128,6 +134,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
         <div className="flex items-center gap-2">
           <Grid3X3 className="h-4 w-4 text-muted-foreground" />
           <h3 className="text-sm font-semibold">Cross-Rates Heatmap</h3>
+          <DataFreshness computedAt={lastFetchedAt} staleTTLMinutes={2} />
         </div>
 
         <div className="flex items-center gap-1">
@@ -150,7 +157,7 @@ export function ForexHeatMap({ onSelectPair }: Props) {
 
       {/* Grid */}
       <div className="overflow-x-auto">
-        <table className="w-full border-collapse min-w-[540px]">
+        <table className="w-full border-collapse min-w-[540px]" role="grid" aria-label="Currency pair heatmap">
           <thead>
             <tr>
               <th className="w-12 p-1" />
@@ -199,33 +206,51 @@ export function ForexHeatMap({ onSelectPair }: Props) {
                   // Highlight INR pairs with amber border
                   const isINRPair = rowCcy === 'INR' || colCcy === 'INR';
 
+                  const cellTitle = hasDeepAnalytics
+                    ? `${rawPair}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%) — Click for deep analytics`
+                    : `${rawPair}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`;
+
+                  const cellClassName = cn(
+                    'w-full h-10 rounded flex flex-col items-center justify-center',
+                    'transition-all duration-300',
+                    hasDeepAnalytics && 'hover:scale-105 hover:ring-1 hover:ring-primary/40 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] cursor-pointer',
+                    !hasDeepAnalytics && 'cursor-default opacity-80',
+                    isINRPair && 'ring-1 ring-amber-500/30',
+                    textCls
+                  );
+
+                  const cellContent = (
+                    <>
+                      <span className="text-[9px] font-mono leading-tight tabular-nums">
+                        {rate != null ? rate.toFixed(rate >= 100 ? 2 : 4) : '—'}
+                      </span>
+                      <span className="text-[8px] font-mono opacity-80 leading-tight tabular-nums">
+                        {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+                      </span>
+                    </>
+                  );
+
                   return (
                     <td key={colCcy} className="p-0.5">
-                      <button
-                        onClick={() => {
-                          if (hasDeepAnalytics) onSelectPair(canonicalPair);
-                        }}
-                        className={cn(
-                          'w-full h-10 rounded flex flex-col items-center justify-center',
-                          'transition-all duration-300',
-                          hasDeepAnalytics && 'hover:scale-105 hover:ring-1 hover:ring-primary/40 hover:shadow-[0_0_12px_rgba(56,189,248,0.15)] cursor-pointer',
-                          !hasDeepAnalytics && 'cursor-default opacity-80',
-                          isINRPair && 'ring-1 ring-amber-500/30',
-                          textCls
-                        )}
-                        style={{ backgroundColor: bgColor }}
-                        title={hasDeepAnalytics
-                          ? `${rawPair}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%) — Click for deep analytics`
-                          : `${rawPair}: ${rate?.toFixed(4) ?? '—'} (${changePct >= 0 ? '+' : ''}${changePct.toFixed(2)}%)`
-                        }
-                      >
-                        <span className="text-[9px] font-mono leading-tight tabular-nums">
-                          {rate != null ? rate.toFixed(rate >= 100 ? 2 : 4) : '—'}
-                        </span>
-                        <span className="text-[8px] font-mono opacity-80 leading-tight tabular-nums">
-                          {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
-                        </span>
-                      </button>
+                      {hasDeepAnalytics ? (
+                        <button
+                          onClick={() => onSelectPair(canonicalPair)}
+                          className={cellClassName}
+                          style={{ backgroundColor: bgColor }}
+                          title={cellTitle}
+                        >
+                          {cellContent}
+                        </button>
+                      ) : (
+                        <div
+                          role="cell"
+                          className={cellClassName}
+                          style={{ backgroundColor: bgColor }}
+                          title={cellTitle}
+                        >
+                          {cellContent}
+                        </div>
+                      )}
                     </td>
                   );
                 })}

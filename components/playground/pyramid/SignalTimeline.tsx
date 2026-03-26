@@ -12,6 +12,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import type { IStrategySignal, StrategySignal } from '@/types/strategy';
 import { S, T, SIGNAL, signalColor, fmtNum, fmtPct } from './tokens';
 
@@ -38,8 +39,7 @@ function formatTime(iso: string): string {
 }
 
 function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+  return formatDateTime(iso, 'NSE', { day: '2-digit', month: 'short' });
 }
 
 function SignalDotIcon({
@@ -147,6 +147,7 @@ export function SignalTimeline({
         {FILTERS.map((f) => (
           <button
             key={f.value}
+            aria-pressed={filter === f.value}
             onClick={() => setFilter(f.value)}
             className={cn(
               'px-2.5 py-0.5 rounded-full transition-colors',
@@ -170,6 +171,7 @@ export function SignalTimeline({
           placeholder="Ticker..."
           value={tickerSearch}
           onChange={(e) => setTickerSearch(e.target.value)}
+          aria-label="Search tickers"
           className={cn(
             'ml-auto w-20 rounded-md border border-white/[0.06] bg-white/[0.02] px-2 py-0.5',
             T.monoSm,

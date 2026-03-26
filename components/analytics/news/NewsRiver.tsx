@@ -85,6 +85,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
   });
   const setMode = useCallback((m: IntelligenceMode) => {
     setModeState(m);
+    if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
     if (m !== 'pulse') url.searchParams.set('mode', m); else url.searchParams.delete('mode');
     window.history.replaceState({}, '', url.toString());
@@ -156,7 +157,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
       setSelectedArticle(article);
       data.fetchEntityData(article.id);
     },
-    [data]
+    [data.fetchEntityData]
   );
 
   const handleCloseArticle = useCallback(() => {
@@ -169,13 +170,13 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
       setOverlayView('mindmap');
       data.fetchMindMap(ticker);
     },
-    [data]
+    [data.fetchMindMap]
   );
 
   const handleScrollToTop = useCallback(() => {
     riverRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     data.clearNewArticlesFlag();
-  }, [data]);
+  }, [data.clearNewArticlesFlag]);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────
   useEffect(() => {
@@ -225,21 +226,24 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [overlayView, data, mode, intel, selectedArticle, handleCloseArticle]);
+  }, [overlayView, data.fetchGraph, data.fetchTimeline, mode, intel, selectedArticle, handleCloseArticle]);
 
   // ── Impact data for selected article ───────────────────────────
   const selectedImpact = selectedArticle
     ? data.impactMap.get(selectedArticle.id)?.impact_scores ?? null
     : null;
 
+  // ── Stable ref for fetchGraph (avoid re-triggering mode effect) ──
+  const fetchGraphRef = useRef(data.fetchGraph);
+  useEffect(() => { fetchGraphRef.current = data.fetchGraph; }, [data.fetchGraph]);
+
   // ── Map mode: auto-fetch on enter ──────────────────────────────
   useEffect(() => {
     if (mode === 'map' && !overlayView) {
       setOverlayView('constellation');
-      data.fetchGraph();
+      fetchGraphRef.current();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
+  }, [mode, overlayView]);
 
   // ── Export handlers ─────────────────────────────────────────────
   const handleExportCSV = useCallback(() => {

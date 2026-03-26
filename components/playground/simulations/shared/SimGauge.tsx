@@ -146,7 +146,7 @@ export function SimGauge({
       whileHover={prefersReduced ? undefined : { scale: 1.02 }}
       transition={{ type: 'spring', stiffness: 300, damping: 25 }}
     >
-      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full">
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full h-full" role="img" aria-label="Simulation gauge">
         {/* Glow ring */}
         <motion.circle
           cx={center}

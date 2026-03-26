@@ -140,7 +140,7 @@ export const EXCHANGES: Record<ExchangeCode, ExchangeConfig> = {
 export const EXCHANGE_CODES: ExchangeCode[] = ['NSE', 'NASDAQ', 'NYSE', 'LSE', 'SGX', 'HKSE'];
 
 /** Exchanges currently active for data. Others show "Coming Soon". */
-export const ACTIVE_EXCHANGES: Set<ExchangeCode> = new Set(['NSE']);
+export const ACTIVE_EXCHANGES: Set<ExchangeCode> = new Set<ExchangeCode>(['NSE']);
 
 export function getExchangeConfig(code: string): ExchangeConfig {
   return EXCHANGES[code as ExchangeCode] ?? EXCHANGES.NSE;

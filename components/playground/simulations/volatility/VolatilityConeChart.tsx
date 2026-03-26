@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useId } from 'react';
 import {
   AreaChart,
   Area,
@@ -9,7 +9,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  ReferenceLine,
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -56,6 +55,8 @@ function ConeTooltip({
 // ─── Main Component ───────────────────────────────────────────────
 
 export function VolatilityConeChart({ cone, className }: Props) {
+  const gId = useId();
+
   if (!cone.length) {
     return (
       <div className={cn(S.card, 'p-4', className)}>
@@ -99,11 +100,11 @@ export function VolatilityConeChart({ cone, className }: Props) {
       <ResponsiveContainer width="100%" height={240}>
         <AreaChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
           <defs>
-            <linearGradient id="volConeOuter" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${gId}-volConeOuter`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366F1" stopOpacity={0.08} />
               <stop offset="100%" stopColor="#6366F1" stopOpacity={0.02} />
             </linearGradient>
-            <linearGradient id="volConeInner" x1="0" y1="0" x2="0" y2="1">
+            <linearGradient id={`${gId}-volConeInner`} x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#6366F1" stopOpacity={0.18} />
               <stop offset="100%" stopColor="#6366F1" stopOpacity={0.06} />
             </linearGradient>
@@ -131,7 +132,7 @@ export function VolatilityConeChart({ cone, className }: Props) {
             type="monotone"
             dataKey="p90"
             stroke="none"
-            fill="url(#volConeOuter)"
+            fill={`url(#${gId}-volConeOuter)`}
             fillOpacity={1}
             animationDuration={800}
             animationEasing="ease-out"
@@ -150,7 +151,7 @@ export function VolatilityConeChart({ cone, className }: Props) {
             type="monotone"
             dataKey="p75"
             stroke="none"
-            fill="url(#volConeInner)"
+            fill={`url(#${gId}-volConeInner)`}
             fillOpacity={1}
             animationDuration={900}
             animationEasing="ease-out"

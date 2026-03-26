@@ -1,3 +1,5 @@
+import { formatNumber as fmtNumberExchange } from '@/src/lib/exchange/formatting';
+
 /**
  * Playground Pyramid Design Tokens
  *
@@ -151,29 +153,19 @@ export const AXIS_STYLE = {
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
 } as const;
 
-// ─── Gradient ID Helper ─────────────────────────────────────────────
-// Prevents SVG gradient ID collisions when multiple chart instances
-// render simultaneously. Pass a component-level prefix + metric name.
-
-let _gradCounter = 0;
-export function gradientId(prefix: string, metric: string): string {
-  _gradCounter += 1;
-  return `pyramid-${prefix}-${metric}-${_gradCounter}`;
-}
-
 // ─── Color Helpers ──────────────────────────────────────────────────
 
 type SignalKey = keyof typeof SIGNAL;
 type LayerKey = keyof typeof LAYER;
 
 export function signalColor(signal: string): (typeof SIGNAL)[SignalKey] {
-  const key = signal.toLowerCase() as SignalKey;
-  return SIGNAL[key] ?? SIGNAL.hold;
+  const key = signal.toLowerCase();
+  return (key in SIGNAL ? SIGNAL[key as SignalKey] : SIGNAL.hold);
 }
 
 export function layerColor(layerName: string): (typeof LAYER)[LayerKey] {
-  const key = layerName.toLowerCase() as LayerKey;
-  return LAYER[key] ?? LAYER.ensemble;
+  const key = layerName.toLowerCase();
+  return (key in LAYER ? LAYER[key as LayerKey] : LAYER.ensemble);
 }
 
 // ─── Formatting ─────────────────────────────────────────────────────
@@ -185,10 +177,6 @@ export function fmtPct(val: number | null, decimals = 1): string {
 
 export function fmtNum(val: number | null, decimals = 2): string {
   if (val == null) return '\u2014'; // em dash
-  return val.toLocaleString('en-IN', { maximumFractionDigits: decimals });
+  return fmtNumberExchange(val, 'NSE', { maximumFractionDigits: decimals });
 }
 
-export function fmtConfidence(val: number | null): string {
-  if (val == null) return '\u2014';
-  return `${(val * 100).toFixed(0)}%`;
-}

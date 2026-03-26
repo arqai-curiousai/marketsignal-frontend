@@ -56,6 +56,7 @@ function RateSparkline({ history }: { history: Array<{ date: string; rate: numbe
   const range = max - min || 0.01;
   const w = 120;
   const h = 24;
+  const dotR = 2.5;
   const step = w / (rates.length - 1);
 
   const points = rates
@@ -80,9 +81,9 @@ function RateSparkline({ history }: { history: Array<{ date: string; rate: numbe
         {/* Current rate dot */}
         {rates.length > 0 && (
           <circle
-            cx={w}
+            cx={w - dotR}
             cy={h - 2 - ((rates[rates.length - 1] - min) / range) * (h - 4)}
-            r={2.5}
+            r={dotR}
             fill={strokeColor}
           />
         )}
@@ -244,7 +245,7 @@ function MeetingTimeline({ meetings }: { meetings: IUpcomingMeeting[] }) {
   );
 }
 
-export function CentralBankDashboard() {
+export function CentralBankDashboard({ refreshTrigger }: { refreshTrigger?: number }) {
   const [rates, setRates] = useState<ICentralBankRates | null>(null);
   const [meetings, setMeetings] = useState<IUpcomingMeetings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -253,10 +254,12 @@ export function CentralBankDashboard() {
   const fetchData = useCallback(async () => {
     setError(null);
     try {
-      const [ratesRes, meetingsRes] = await Promise.all([
+      const settled = await Promise.allSettled([
         getCentralBankRates(),
         getUpcomingMeetings(90),
       ]);
+      const ratesRes = settled[0].status === 'fulfilled' ? settled[0].value : { success: false as const, data: null };
+      const meetingsRes = settled[1].status === 'fulfilled' ? settled[1].value : { success: false as const, data: null };
       if (ratesRes.success) setRates(ratesRes.data);
       if (meetingsRes.success) setMeetings(meetingsRes.data);
       if (!ratesRes.success && !meetingsRes.success) {
@@ -271,7 +274,7 @@ export function CentralBankDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, refreshTrigger]);
 
   if (loading) {
     return (

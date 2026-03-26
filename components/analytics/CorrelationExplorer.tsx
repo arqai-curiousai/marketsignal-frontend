@@ -46,16 +46,20 @@ const VALID_SCOPES = new Set<AssetScope>(['equity', 'cross_asset']);
 function readUrlParams() {
   if (typeof window === 'undefined') return {};
   const sp = new URLSearchParams(window.location.search);
+  const rawView = sp.get('cv');
+  const rawMethod = sp.get('cm');
+  const rawScope = sp.get('cs');
   return {
-    view: sp.get('cv') as ViewMode | 'asset' | null,
+    view: rawView && VALID_VIEWS.has(rawView as ViewMode | 'asset') ? rawView as ViewMode | 'asset' : null,
     window: sp.get('cw'),
-    method: sp.get('cm') as CorrelationMethod | null,
+    method: rawMethod && VALID_METHODS.has(rawMethod as CorrelationMethod) ? rawMethod as CorrelationMethod : null,
     assets: sp.get('ca'),
-    scope: sp.get('cs') as AssetScope | null,
+    scope: rawScope && VALID_SCOPES.has(rawScope as AssetScope) ? rawScope as AssetScope : null,
   };
 }
 
 function writeUrlParams(params: Record<string, string | null>) {
+  if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
   for (const [key, value] of Object.entries(params)) {
     if (value) {
@@ -65,17 +69,6 @@ function writeUrlParams(params: Record<string, string | null>) {
     }
   }
   window.history.replaceState({}, '', url.toString());
-}
-
-// ─── Time-ago helper ──────────────────────────────────────────────────
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return 'just now';
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  return `${Math.floor(hrs / 24)}d ago`;
 }
 
 interface CorrelationExplorerProps {
@@ -182,7 +175,7 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         const isForceRefresh = forceRefreshRef.current;
         forceRefreshRef.current = false;
 
-        const [corrResult, enhancedResult, crossResult, globalResult] = await Promise.all([
+        const settled = await Promise.allSettled([
           getCorrelations(windowValue, assetScope, exchange, isForceRefresh),
           getEnhancedMatrix(windowValue, assetScope, method, exchange),
           assetScope === 'cross_asset'
@@ -190,6 +183,11 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
             : Promise.resolve({ success: false as const, data: null }),
           getGlobalIndices(),
         ]);
+
+        const corrResult = settled[0].status === 'fulfilled' ? settled[0].value : { success: false as const, data: null, error: { status: 0, detail: 'Network error' } };
+        const enhancedResult = settled[1].status === 'fulfilled' ? settled[1].value : { success: false as const, data: null, error: { status: 0, detail: 'Network error' } };
+        const crossResult = settled[2].status === 'fulfilled' ? settled[2].value : { success: false as const, data: null };
+        const globalResult = settled[3].status === 'fulfilled' ? settled[3].value : { success: false as const, data: null };
 
         if (cancelled) return;
 
@@ -212,6 +210,8 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
           if (changesResult.success && changesResult.data?.movers) {
             setCorrelationMovers(changesResult.data.movers);
           }
+        }).catch(() => {
+          // Non-critical — silently ignore correlation changes failure
         });
 
         // Differentiated error & partial-data handling
@@ -349,7 +349,6 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
 
   // ── Last updated (I4 / E5) ──
   const computedAt = equityMatrix?.computed_at ?? enhancedMatrix?.computed_at ?? null;
-  const lastUpdatedLabel = computedAt ? timeAgo(computedAt) : null;
 
   // ── Insights Engine ──
   const insights = useMemo(
@@ -384,7 +383,6 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         exchange={exchange}
         equityMatrix={equityMatrix}
         enhancedMatrix={enhancedMatrix}
-        lastUpdatedLabel={lastUpdatedLabel}
         computedAt={computedAt}
         onAddAsset={addAsset}
         onAddGroup={addGroup}

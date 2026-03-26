@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { IFinalDistribution, IReturnDistribution } from '@/types/simulation';
 import { DIST_COLORS, fmtPrice } from './mc-tokens';
 import { T, S, TOOLTIP_STYLE, AXIS_STYLE } from '@/components/playground/pyramid/tokens';
+import { formatNumber } from '@/src/lib/exchange/formatting';
 
 interface Props {
   distribution: IFinalDistribution;
@@ -27,7 +28,6 @@ interface Props {
 interface ChartRow {
   price: number;
   density: number;
-  kde?: number;
 }
 
 function DistTooltip({
@@ -97,17 +97,13 @@ export function DistributionChart({
               axisLine={false}
               tickLine={false}
               tickFormatter={(v: number) =>
-                v.toLocaleString('en-IN', { maximumFractionDigits: 0 })
+                formatNumber(v, 'NSE', { maximumFractionDigits: 0 })
               }
               interval="preserveStartEnd"
             />
             <YAxis
-              tick={AXIS_STYLE}
-              axisLine={false}
-              tickLine={false}
-              width={40}
+              hide
               domain={[0, yMax]}
-              tickFormatter={() => ''}
             />
             <Tooltip content={<DistTooltip />} />
 

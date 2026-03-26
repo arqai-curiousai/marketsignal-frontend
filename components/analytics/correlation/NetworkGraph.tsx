@@ -82,6 +82,21 @@ export function NetworkGraph({
     return () => globalThis.removeEventListener('resize', updateSize);
   }, []);
 
+  // Wheel zoom — attach as non-passive so preventDefault() works in Chrome
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+    const handler = (e: WheelEvent) => {
+      e.preventDefault();
+      setZoom((z) => {
+        const delta = e.deltaY > 0 ? -0.2 : 0.2;
+        return Math.min(2.0, Math.max(0.4, z + delta));
+      });
+    };
+    svgEl.addEventListener('wheel', handler, { passive: false });
+    return () => svgEl.removeEventListener('wheel', handler);
+  }, []);
+
   // Build graph nodes (only when assets or size change — NOT on getCorr changes)
   // Node radius scales with connectivity — hub nodes naturally stand out
   const graphNodes = useMemo(() => {
@@ -152,8 +167,8 @@ export function NetworkGraph({
         const corr = currentLinks(nodes[i].id, nodes[j].id);
         if (corr !== null && Math.abs(corr) >= minEdgeCorr) {
           simLinks.push({
-            source: nodes[i].id as unknown as GraphNode,
-            target: nodes[j].id as unknown as GraphNode,
+            source: nodes[i].id,
+            target: nodes[j].id,
             sourceId: nodes[i].id,
             targetId: nodes[j].id,
             correlation: corr,
@@ -423,13 +438,6 @@ export function NetworkGraph({
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseUp}
-        onWheel={(e) => {
-          e.preventDefault();
-          setZoom((z) => {
-            const delta = e.deltaY > 0 ? -0.2 : 0.2;
-            return Math.min(2.0, Math.max(0.4, z + delta));
-          });
-        }}
         className="cursor-grab active:cursor-grabbing"
         style={{ touchAction: 'none' }}
         role="img"

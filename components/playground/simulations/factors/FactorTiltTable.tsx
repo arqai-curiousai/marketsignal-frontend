@@ -4,7 +4,7 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { T, S } from '@/components/playground/pyramid/tokens';
 import type { IStockFactorScores, IFactorDefinition } from '@/types/simulation';
-import { FACTOR_TEXT_COLORS, tiltDelta } from './factor-tokens';
+import { FACTOR_TEXT_COLORS } from './factor-tokens';
 
 interface Props {
   factors: IFactorDefinition[];

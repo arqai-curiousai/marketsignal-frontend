@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Briefcase, RefreshCw, Download, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -128,20 +128,30 @@ export function PortfolioDashboard() {
   const [optimizing, setOptimizing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeStrategyIdx, setActiveStrategyIdx] = useState(0);
+  const optimizeControllerRef = useRef<AbortController | null>(null);
 
   // Fetch presets on mount
   useEffect(() => {
+    const controller = new AbortController();
     async function loadPresets() {
       try {
-        const result = await simulationApi.getPresets();
+        const result = await simulationApi.getPresets({ signal: controller.signal });
+        if (controller.signal.aborted) return;
         if (result.success) {
           setPresets(result.data);
         }
       } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         console.warn('Failed to load presets:', err);
       }
     }
     loadPresets();
+    return () => controller.abort();
+  }, []);
+
+  // Abort optimize on unmount
+  useEffect(() => {
+    return () => optimizeControllerRef.current?.abort();
   }, []);
 
   // Optimize handler
@@ -150,6 +160,10 @@ export function PortfolioDashboard() {
       setError('Select at least 2 tickers to optimize.');
       return;
     }
+
+    optimizeControllerRef.current?.abort();
+    optimizeControllerRef.current = new AbortController();
+    const signal = optimizeControllerRef.current.signal;
 
     setOptimizing(true);
     setLoading(true);
@@ -161,8 +175,12 @@ export function PortfolioDashboard() {
         exchangeConfig.code,
         lookbackDays,
         maxWeightPct / 100,
+        undefined,
+        undefined,
+        { signal },
       );
 
+      if (signal.aborted) return;
       if (result.success) {
         setData(result.data);
         // Find best strategy index
@@ -173,7 +191,8 @@ export function PortfolioDashboard() {
       } else {
         setError(result.error.message);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError('Failed to optimize portfolio. Please try again.');
       toast.error('Failed to optimize portfolio');
     } finally {

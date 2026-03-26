@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowUpRight,
@@ -176,9 +176,9 @@ function MoodGauge({
         />
 
         {/* Zone segments */}
-        {GAUGE_ZONES.map((zone, i) => (
+        {GAUGE_ZONES.map((zone) => (
           <path
-            key={i}
+            key={`${zone.from}-${zone.to}`}
             d={describeArc(zone.from, zone.to, G_R)}
             fill="none"
             stroke={zone.color}
@@ -281,43 +281,47 @@ function SentimentSparkline({
   buckets: SparkBucket[];
   reduced: boolean;
 }) {
-  if (buckets.length < 3) return null;
-
+  const gId = useId();
   const W = 240;
   const H = 48;
   const PAD = 4;
-
-  const points = buckets.map((b, i) => {
-    const x = PAD + (i / (buckets.length - 1)) * (W - PAD * 2);
-    const clamped = Math.max(-1, Math.min(1, b.avgScore));
-    const y = PAD + ((1 - clamped) / 2) * (H - PAD * 2);
-    return { x, y };
-  });
-
   const midY = H / 2;
 
-  // Line path
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+  const { points, linePath, areaPath } = useMemo(() => {
+    if (buckets.length < 3) return { points: [], linePath: '', areaPath: '' };
 
-  // Area path (closed to baseline at zero)
-  const areaPath = `${linePath} L ${points[points.length - 1].x.toFixed(1)} ${midY.toFixed(1)} L ${points[0].x.toFixed(1)} ${midY.toFixed(1)} Z`;
+    const mid = H / 2;
+    const pts = buckets.map((b, i) => {
+      const x = PAD + (i / (buckets.length - 1)) * (W - PAD * 2);
+      const clamped = Math.max(-1, Math.min(1, b.avgScore));
+      const y = PAD + ((1 - clamped) / 2) * (H - PAD * 2);
+      return { x, y };
+    });
+
+    const line = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    const area = `${line} L ${pts[pts.length - 1].x.toFixed(1)} ${mid.toFixed(1)} L ${pts[0].x.toFixed(1)} ${mid.toFixed(1)} Z`;
+
+    return { points: pts, linePath: line, areaPath: area };
+  }, [buckets]);
+
+  if (buckets.length < 3) return null;
 
   return (
     <div className="w-full">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-[48px]" preserveAspectRatio="none">
         <defs>
-          <linearGradient id="sparkBull" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={`${gId}-sparkBull`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#10B981" stopOpacity={0.3} />
             <stop offset="100%" stopColor="#10B981" stopOpacity={0} />
           </linearGradient>
-          <linearGradient id="sparkBear" x1="0" y1="1" x2="0" y2="0">
+          <linearGradient id={`${gId}-sparkBear`} x1="0" y1="1" x2="0" y2="0">
             <stop offset="0%" stopColor="#EF4444" stopOpacity={0.3} />
             <stop offset="100%" stopColor="#EF4444" stopOpacity={0} />
           </linearGradient>
-          <clipPath id="clipAbove">
+          <clipPath id={`${gId}-clipAbove`}>
             <rect x={0} y={0} width={W} height={midY} />
           </clipPath>
-          <clipPath id="clipBelow">
+          <clipPath id={`${gId}-clipBelow`}>
             <rect x={0} y={midY} width={W} height={H - midY} />
           </clipPath>
         </defs>
@@ -334,10 +338,10 @@ function SentimentSparkline({
         />
 
         {/* Green area above zero */}
-        <path d={areaPath} fill="url(#sparkBull)" clipPath="url(#clipAbove)" />
+        <path d={areaPath} fill={`url(#${gId}-sparkBull)`} clipPath={`url(#${gId}-clipAbove)`} />
 
         {/* Red area below zero */}
-        <path d={areaPath} fill="url(#sparkBear)" clipPath="url(#clipBelow)" />
+        <path d={areaPath} fill={`url(#${gId}-sparkBear)`} clipPath={`url(#${gId}-clipBelow)`} />
 
         {/* Line stroke */}
         <motion.path

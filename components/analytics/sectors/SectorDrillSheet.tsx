@@ -19,6 +19,8 @@ import {
   formatMarketCap,
   formatVolume,
 } from './constants';
+import { formatPrice } from '@/src/lib/exchange/formatting';
+import type { ExchangeCode } from '@/src/lib/exchange/config';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
 
 interface SectorDrillSheetProps {
@@ -26,6 +28,7 @@ interface SectorDrillSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   timeframe: SectorTimeframe;
+  exchange?: ExchangeCode;
 }
 
 type StockSortKey = 'ticker' | 'change_pct' | 'volume' | 'volume_ratio' | 'pos_52w' | 'market_cap';
@@ -35,6 +38,7 @@ export function SectorDrillSheet({
   open,
   onOpenChange,
   timeframe,
+  exchange = 'NSE',
 }: SectorDrillSheetProps) {
   const router = useRouter();
   const [sortKey, setSortKey] = useState<StockSortKey>('change_pct');
@@ -266,7 +270,7 @@ export function SectorDrillSheet({
                       <div>
                         <span className="font-semibold text-white">{stock.ticker}</span>
                         <div className="text-[9px] text-muted-foreground truncate max-w-[100px]">
-                          {stock.last_price != null ? `₹${stock.last_price.toLocaleString()}` : ''}
+                          {stock.last_price != null ? formatPrice(stock.last_price, exchange) : ''}
                         </div>
                       </div>
                     </td>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Zap } from 'lucide-react';
 import { toast } from 'sonner';
@@ -160,23 +160,41 @@ export function ScenarioDashboard() {
     correlationShift: 0.1,
   });
   const [data, setData] = useState<IScenarioResult | null>(null);
-  const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const runControllerRef = useRef<AbortController | null>(null);
 
   // Fetch presets once
   useEffect(() => {
-    simulationApi.getScenarioPresets().then((res) => {
+    const controller = new AbortController();
+    simulationApi.getScenarioPresets({ signal: controller.signal }).then((res) => {
       if (res.success) setPresets(res.data);
-    }).catch((err) => { console.warn('Failed to load scenario presets:', err); });
+    }).catch((err) => {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      console.warn('Failed to load scenario presets:', err);
+    });
 
-    simulationApi.getPresets().then((res) => {
+    simulationApi.getPresets({ signal: controller.signal }).then((res) => {
       if (res.success) setPortfolioPresets(res.data);
-    }).catch((err) => { console.warn('Failed to load portfolio presets:', err); });
+    }).catch((err) => {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      console.warn('Failed to load portfolio presets:', err);
+    });
+
+    return () => controller.abort();
+  }, []);
+
+  // Abort runScenario on unmount
+  useEffect(() => {
+    return () => runControllerRef.current?.abort();
   }, []);
 
   const runScenario = useCallback(async () => {
     if (!selectedScenario || tickers.length === 0) return;
+
+    runControllerRef.current?.abort();
+    runControllerRef.current = new AbortController();
+    const signal = runControllerRef.current.signal;
 
     setRunning(true);
     setError(null);
@@ -195,8 +213,10 @@ export function ScenarioDashboard() {
         } : undefined,
         undefined,
         exchangeConfig.code,
+        { signal },
       );
 
+      if (signal.aborted) return;
       if (result.success) {
         setData(result.data);
         toast.success(`Stress test complete: ${result.data.scenario.label}`);
@@ -204,7 +224,8 @@ export function ScenarioDashboard() {
         setError(result.error.message);
         toast.error('Stress test failed');
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError('Failed to run scenario analysis');
       toast.error('Failed to run stress test');
     } finally {

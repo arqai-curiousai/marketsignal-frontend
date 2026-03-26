@@ -15,6 +15,7 @@ export function SectorLegend({ sectors, activeSector, onSectorClick }: SectorLeg
     <div className="flex items-center gap-2 flex-wrap">
       <button
         onClick={() => onSectorClick(null)}
+        aria-pressed={activeSector === null}
         className={cn(
           'px-3 py-1.5 text-xs font-medium rounded-full transition-all',
           activeSector === null
@@ -31,6 +32,7 @@ export function SectorLegend({ sectors, activeSector, onSectorClick }: SectorLeg
           <button
             key={sector}
             onClick={() => onSectorClick(isActive ? null : sector)}
+            aria-pressed={isActive}
             className={cn(
               'px-3 py-1.5 text-xs font-medium rounded-full transition-all flex items-center gap-1.5',
               isActive

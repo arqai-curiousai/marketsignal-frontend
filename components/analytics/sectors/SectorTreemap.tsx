@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { hierarchy, treemap, treemapSquarify, HierarchyRectangularNode } from 'd3-hierarchy';
 import { SECTOR_COLORS, perfColor, formatMarketCap } from './constants';
 import type { ISectorAnalytics, SectorTimeframe } from '@/types/analytics';
@@ -166,6 +166,9 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
           return (
             <g
               key={d.name}
+              role="button"
+              tabIndex={0}
+              aria-label={drilledSector ? `Stock: ${d.name}` : `Sector: ${d.name}`}
               onMouseEnter={(e) => {
                 setHoveredNode(d.name);
                 const rect = containerRef.current?.getBoundingClientRect();
@@ -177,6 +180,7 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
               }}
               onMouseLeave={() => setHoveredNode(null)}
               onClick={() => handleNodeClick(node)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNodeClick(node); } }}
               className="cursor-pointer"
             >
               <motion.rect
@@ -264,7 +268,11 @@ export function SectorTreemap({ sectors, timeframe, selectedSector, onSectorClic
               {/* Drill-in button — visible on hover for sector tiles */}
               {isHovered && !drilledSector && d.sectorData && w > 60 && h > 30 && (
                 <g
-                  onClick={(e) => handleDrillIn(e as unknown as React.MouseEvent, node)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Drill into ${d.name} stocks`}
+                  onClick={(e: React.MouseEvent<SVGGElement>) => handleDrillIn(e, node)}
+                  onKeyDown={(e: React.KeyboardEvent<SVGGElement>) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleDrillIn(e as unknown as React.MouseEvent, node); } }}
                   className="cursor-pointer"
                 >
                   <rect

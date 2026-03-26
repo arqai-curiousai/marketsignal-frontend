@@ -4,6 +4,11 @@ import type { ISectorAnalytics } from '@/types/analytics';
 
 export type Quadrant = 'leading' | 'weakening' | 'lagging' | 'improving';
 
+const QUADRANTS = ['leading', 'weakening', 'lagging', 'improving'] as const;
+function isQuadrant(s: string): s is Quadrant {
+  return (QUADRANTS as readonly string[]).includes(s);
+}
+
 export function getQuadrant(ratio: number, momentum: number): Quadrant {
   if (ratio >= 100 && momentum >= 100) return 'leading';
   if (ratio >= 100 && momentum < 100) return 'weakening';
@@ -22,7 +27,7 @@ export function countByQuadrant(sectors: ISectorAnalytics[]): QuadrantCounts {
   const counts: QuadrantCounts = { leading: 0, weakening: 0, lagging: 0, improving: 0 };
   for (const s of sectors) {
     const q = s.rrg.quadrant;
-    if (q in counts) counts[q as Quadrant]++;
+    if (isQuadrant(q)) counts[q]++;
   }
   return counts;
 }
@@ -40,8 +45,8 @@ export function detectCrossings(sectors: ISectorAnalytics[]): QuadrantCrossing[]
     if (!trail || trail.length === 0) continue;
     const prev = trail[trail.length - 1];
     const prevQ = getQuadrant(prev.rs_ratio, prev.rs_momentum);
-    const curQ = s.rrg.quadrant as Quadrant;
-    if (prevQ !== curQ) {
+    const curQ = s.rrg.quadrant;
+    if (isQuadrant(curQ) && prevQ !== curQ) {
       crossings.push({ sector: s.sector, from: prevQ, to: curQ });
     }
   }
@@ -81,8 +86,8 @@ export function groupByQuadrant(
     lagging: [],
   };
   for (const s of sectors) {
-    const q = s.rrg.quadrant as Quadrant;
-    if (q in groups) groups[q].push(s);
+    const q = s.rrg.quadrant;
+    if (isQuadrant(q)) groups[q].push(s);
   }
   // Sort each group by distance from center (100,100) descending
   for (const q of Object.keys(groups) as Quadrant[]) {

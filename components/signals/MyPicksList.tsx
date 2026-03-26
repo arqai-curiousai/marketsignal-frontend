@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { WatchlistItem } from '@/src/lib/api/watchlistApi';
 import { SignalToggle } from './SignalToggle';
 import type { IAISignal } from '@/types/stock';
+import { formatPriceByCurrency } from '@/lib/exchange/formatting';
 
 interface MyPicksListProps {
     items: WatchlistItem[];
@@ -33,8 +34,13 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
     const handleRemove = async (ticker: string, exchange: string) => {
         const key = `${ticker}:${exchange}`;
         setRemovingStock(key);
-        await onRemove(ticker, exchange);
-        setRemovingStock(null);
+        try {
+            await onRemove(ticker, exchange);
+        } catch {
+            // Error handled by caller; clear removing state
+        } finally {
+            setRemovingStock(null);
+        }
     };
 
     const getChangeIcon = (changePercent: number | null) => {
@@ -49,16 +55,6 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
         if (changePercent > 0) return 'text-green-400';
         if (changePercent < 0) return 'text-red-400';
         return 'text-muted-foreground';
-    };
-
-    const getCurrencySymbol = (curr?: string) => {
-        switch (curr?.toUpperCase()) {
-            case 'INR': return '₹';
-            case 'EUR': return '€';
-            case 'GBP': return '£';
-            case 'JPY': return '¥';
-            default: return '$';
-        }
     };
 
     // Loading state
@@ -105,6 +101,8 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
                                 delay: index * 0.03,
                                 layout: { duration: 0.3 }
                             }}
+                            role="button"
+                            tabIndex={0}
                             className={cn(
                                 "group flex items-center justify-between p-4 rounded-xl",
                                 "bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20",
@@ -112,6 +110,7 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
                                 isRemoving && "opacity-50"
                             )}
                             onClick={() => onSelectStock?.(item.ticker, item.exchange)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectStock?.(item.ticker, item.exchange); } }}
                         >
                             {/* Left: Stock Info */}
                             <div className="flex items-center gap-4 flex-1 min-w-0">
@@ -138,10 +137,7 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
                                 {item.last_price !== null ? (
                                     <>
                                         <div className="text-lg font-semibold text-white">
-                                            {getCurrencySymbol(item.currency)}{item.last_price?.toLocaleString('en-IN', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2
-                                            })}
+                                            {formatPriceByCurrency(item.last_price, item.currency)}
                                         </div>
                                         <div className={cn("flex items-center justify-end gap-1 text-sm", getChangeColor(item.change_percent))}>
                                             {getChangeIcon(item.change_percent)}
@@ -174,7 +170,7 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
                                 variant="ghost"
                                 size="icon"
                                 className={cn(
-                                    "opacity-0 group-hover:opacity-100 transition-opacity",
+                                    "opacity-0 group-hover:opacity-100 focus-visible:opacity-100 group-focus-within:opacity-100 transition-opacity",
                                     "hover:bg-red-500/20 hover:text-red-400"
                                 )}
                                 onClick={(e) => {
@@ -182,6 +178,7 @@ export function MyPicksList({ items, isLoading, onRemove, onSelectStock, activeS
                                     handleRemove(item.ticker, item.exchange);
                                 }}
                                 disabled={isRemoving}
+                                aria-label="Remove from picks"
                             >
                                 {isRemoving ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />

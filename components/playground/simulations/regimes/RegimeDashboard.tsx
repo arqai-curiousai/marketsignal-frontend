@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { Layers, RefreshCw, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { formatDateTime } from '@/src/lib/exchange/formatting';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { simulationApi } from '@/lib/api/simulationApi';
@@ -117,7 +118,7 @@ export function RegimeDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = useCallback(async (ticker: string, isRefresh = false) => {
+  const fetchData = useCallback(async (ticker: string, isRefresh = false, signal?: AbortSignal) => {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
     setError(null);
@@ -126,13 +127,17 @@ export function RegimeDashboard() {
       const result = await simulationApi.getRegimeAnalysis(
         ticker,
         exchangeConfig.code,
+        undefined,
+        { signal },
       );
+      if (signal?.aborted) return;
       if (result.success) {
         setData(result.data);
       } else {
         setError(result.error.message);
       }
-    } catch {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError('Failed to fetch regime analysis');
       toast.error('Failed to load regime data');
     } finally {
@@ -142,7 +147,9 @@ export function RegimeDashboard() {
   }, [exchangeConfig.code]);
 
   useEffect(() => {
-    fetchData(selectedTicker);
+    const controller = new AbortController();
+    fetchData(selectedTicker, false, controller.signal);
+    return () => controller.abort();
   }, [selectedTicker, fetchData]);
 
   const handleTickerChange = (ticker: string) => {
@@ -168,6 +175,7 @@ export function RegimeDashboard() {
           <select
             value={selectedTicker}
             onChange={(e) => handleTickerChange(e.target.value)}
+            aria-label="Select ticker"
             className={cn(
               'bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-1.5',
               'text-xs font-mono text-white/80 focus:outline-none focus:border-indigo-500/30',
@@ -270,7 +278,6 @@ export function RegimeDashboard() {
             />
             <RegimeForecastStrip
               forecast={data.forecast}
-              states={data.states}
             />
           </div>
 
@@ -286,7 +293,7 @@ export function RegimeDashboard() {
                 {data.description}
               </p>
               <p className="text-[9px] text-white/20 mt-2">
-                Computed at {new Date(data.computedAt).toLocaleString('en-IN')} | BIC: {data.selectedModelBic.toFixed(1)}
+                Computed at {formatDateTime(data.computedAt)} | BIC: {data.selectedModelBic.toFixed(1)}
               </p>
             </motion.div>
           )}

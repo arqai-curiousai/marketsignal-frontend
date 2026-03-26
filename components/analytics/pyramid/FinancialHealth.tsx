@@ -4,10 +4,15 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import type { IQuarterlyFinancial } from './constants';
 
+function toNumber(val: unknown): number | null {
+  if (val === null || val === undefined) return null;
+  const n = Number(val);
+  return isNaN(n) ? null : n;
+}
+
 interface FinancialHealthProps {
   income: IQuarterlyFinancial[];
   balance: IQuarterlyFinancial[];
-  cashFlow: IQuarterlyFinancial[];
 }
 
 function QuarterLabel({ q }: { q: IQuarterlyFinancial }) {
@@ -58,7 +63,7 @@ function MiniBarChart({
   );
 }
 
-export function FinancialHealth({ income, balance, cashFlow: _cashFlow }: FinancialHealthProps) {
+export function FinancialHealth({ income, balance }: FinancialHealthProps) {
   if (income.length === 0 && balance.length === 0) {
     return (
       <div className="text-xs text-muted-foreground py-2">
@@ -69,16 +74,16 @@ export function FinancialHealth({ income, balance, cashFlow: _cashFlow }: Financ
 
   // Extract revenue/profit from income statements
   const revValues = income.map(
-    (q) => (q.data.total_revenue ?? q.data.revenue ?? null) as number | null,
+    (q) => toNumber(q.data.total_revenue ?? q.data.revenue ?? null),
   );
   const profitValues = income.map(
-    (q) => (q.data.net_income ?? q.data.profit ?? null) as number | null,
+    (q) => toNumber(q.data.net_income ?? q.data.profit ?? null),
   );
 
   // Extract D/E from balance sheet
   const deValues = balance.map((q) => {
-    const debt = (q.data.total_debt ?? q.data.long_term_debt ?? 0) as number;
-    const equity = (q.data.total_equity ?? q.data.stockholders_equity ?? 1) as number;
+    const debt = toNumber(q.data.total_debt ?? q.data.long_term_debt) ?? 0;
+    const equity = toNumber(q.data.total_equity ?? q.data.stockholders_equity) ?? 1;
     return equity !== 0 ? debt / equity : null;
   });
 

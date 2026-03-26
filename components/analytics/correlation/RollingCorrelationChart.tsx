@@ -125,6 +125,7 @@ export function RollingCorrelationChart({
         </div>
       </div>
 
+      <div role="img" aria-label={`Rolling correlation chart for ${tickerA} vs ${tickerB}`}>
       <ResponsiveContainer width="100%" height={height}>
         <ComposedChart data={chartData} margin={{ top: 5, right: 5, bottom: 5, left: -15 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" />
@@ -247,6 +248,7 @@ export function RollingCorrelationChart({
           />
         </ComposedChart>
       </ResponsiveContainer>
+      </div>
 
       {/* Regime alerts */}
       {data.regime_alerts.length > 0 && (

@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { T, S } from '@/components/playground/pyramid/tokens';
 import { simulationApi } from '@/lib/api/simulationApi';
-import type { IRiskQuizResult, IRiskScoreResult } from '@/types/simulation';
+import type { IRiskQuizResult } from '@/types/simulation';
 import { getZoneConfig, fmtScoreFull } from './risk-tokens';
 
 interface Props {

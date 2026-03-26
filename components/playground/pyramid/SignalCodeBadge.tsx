@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { T } from './tokens';
 import type { ILayerResult } from '@/types/strategy';
 
 /**

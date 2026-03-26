@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -21,6 +21,7 @@ interface Props {
 export function PathDensityHeatmap({ density, currentPrice, className }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [resizeKey, setResizeKey] = useState(0);
 
   // Determine whether density data is available
   const hasData = useMemo(() => {
@@ -127,7 +128,7 @@ export function PathDensityHeatmap({ density, currentPrice, className }: Props) 
         ctx.restore();
       }
     }
-  }, [density, currentPrice, hasData]);
+  }, [density, currentPrice, hasData, resizeKey]);
 
   // ─── ResizeObserver ───────────────────────────────────────────────
 
@@ -142,12 +143,7 @@ export function PathDensityHeatmap({ density, currentPrice, className }: Props) 
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(() => {
-        // Re-trigger canvas render via dependency array is not possible here,
-        // so we dispatch a custom resize to force the canvas effect.
-        const canvas = canvasRef.current;
-        if (canvas) {
-          canvas.dispatchEvent(new Event('resize'));
-        }
+        setResizeKey((k) => k + 1);
       });
     });
 

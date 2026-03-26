@@ -79,7 +79,7 @@ export function fmtScoreFull(score: number): string {
 
 // ─── Lookup ──────────────────────────────────────────────────
 
-export function getZoneConfig(zone: string) {
+export function getZoneConfig(zone: string): (typeof RISK_ZONES)[RiskZoneKey] {
   return RISK_ZONES[zone as RiskZoneKey] ?? RISK_ZONES.balanced;
 }
 

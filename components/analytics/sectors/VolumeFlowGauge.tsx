@@ -37,7 +37,7 @@ export function VolumeFlowGauge({ data }: VolumeFlowGaugeProps) {
   return (
     <div>
       <div className="flex justify-center">
-        <svg width={GAUGE_SIZE} height={GAUGE_SIZE * 0.55} viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE * 0.65}`}>
+        <svg width={GAUGE_SIZE} height={GAUGE_SIZE * 0.55} viewBox={`0 0 ${GAUGE_SIZE} ${GAUGE_SIZE * 0.65}`} role="img" aria-label="Volume flow gauge">
           {/* Background arc */}
           <path
             d={describeArc(0, 180, GAUGE_R)}

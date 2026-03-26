@@ -107,7 +107,7 @@ export function ForexTickerStrip({ onSelectPair, overview }: ForexTickerStripPro
   return (
     <div className="relative overflow-hidden border-y border-white/[0.04] bg-white/[0.015]">
       <div
-        className="flex items-center gap-1 py-2 animate-[forexScroll_30s_linear_infinite] hover:[animation-play-state:paused]"
+        className="flex items-center gap-1 py-2 animate-[forexScroll_30s_linear_infinite] hover:[animation-play-state:paused] motion-reduce:[animation-play-state:paused]"
         style={{ width: 'max-content' }}
       >
         {allChips.map((pair, idx) => (

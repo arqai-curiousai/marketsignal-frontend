@@ -101,7 +101,9 @@ function MetadataSection({ metadata }: { metadata: Record<string, unknown> }) {
             <span className={cn(T.monoSm, 'text-white/50 truncate max-w-[120px]')}>
               {typeof val === 'number'
                 ? val.toFixed(4)
-                : String(val ?? '\u2014')}
+                : typeof val === 'object' && val !== null
+                  ? JSON.stringify(val)
+                  : String(val ?? '\u2014')}
             </span>
           </div>
         ))}

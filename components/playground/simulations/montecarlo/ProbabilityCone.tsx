@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useId, useMemo } from 'react';
 import {
   ComposedChart,
   Area,
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import type { IMonteCarloResult, IPercentileBandPoint } from '@/types/simulation';
 import { MC_COLORS, fmtPrice } from './mc-tokens';
 import { T, S, TOOLTIP_STYLE, AXIS_STYLE } from '@/components/playground/pyramid/tokens';
+import { formatNumber } from '@/src/lib/exchange/formatting';
 
 interface Props {
   data: IMonteCarloResult;
@@ -69,6 +70,7 @@ function ConeTooltip({
 // ─── Main Component ───────────────────────────────────────────────
 
 export function ProbabilityCone({ data, currentPrice, target, samplePaths, className }: Props) {
+  const gId = useId();
   const bands = data.percentileBands;
 
   // Compute Y-axis domain
@@ -178,15 +180,15 @@ export function ProbabilityCone({ data, currentPrice, target, samplePaths, class
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={bands} margin={{ top: 10, right: 16, left: 0, bottom: 5 }}>
             <defs>
-              <linearGradient id="mcBand90" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gId}-mcBand90`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6366F1" stopOpacity={0.06} />
                 <stop offset="100%" stopColor="#6366F1" stopOpacity={0.02} />
               </linearGradient>
-              <linearGradient id="mcBand75" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gId}-mcBand75`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6366F1" stopOpacity={0.12} />
                 <stop offset="100%" stopColor="#6366F1" stopOpacity={0.05} />
               </linearGradient>
-              <linearGradient id="mcBand50" x1="0" y1="0" x2="0" y2="1">
+              <linearGradient id={`${gId}-mcBand50`} x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#6366F1" stopOpacity={0.22} />
                 <stop offset="100%" stopColor="#6366F1" stopOpacity={0.08} />
               </linearGradient>
@@ -209,7 +211,7 @@ export function ProbabilityCone({ data, currentPrice, target, samplePaths, class
               width={70}
               domain={[yMin, yMax]}
               tickFormatter={(v: number) =>
-                v.toLocaleString('en-IN', { maximumFractionDigits: 0 })
+                formatNumber(v, 'NSE', { maximumFractionDigits: 0 })
               }
             />
             <Tooltip content={<ConeTooltip />} />
@@ -221,7 +223,7 @@ export function ProbabilityCone({ data, currentPrice, target, samplePaths, class
               xAxisId="day"
               yAxisId="price"
               stroke="none"
-              fill="url(#mcBand90)"
+              fill={`url(#${gId}-mcBand90)`}
               fillOpacity={1}
               animationDuration={1200}
               animationEasing="ease-out"
@@ -243,7 +245,7 @@ export function ProbabilityCone({ data, currentPrice, target, samplePaths, class
               xAxisId="day"
               yAxisId="price"
               stroke="none"
-              fill="url(#mcBand75)"
+              fill={`url(#${gId}-mcBand75)`}
               fillOpacity={1}
               animationDuration={1100}
               animationEasing="ease-out"
@@ -265,7 +267,7 @@ export function ProbabilityCone({ data, currentPrice, target, samplePaths, class
               xAxisId="day"
               yAxisId="price"
               stroke="none"
-              fill="url(#mcBand50)"
+              fill={`url(#${gId}-mcBand50)`}
               fillOpacity={1}
               animationDuration={1000}
               animationEasing="ease-out"

@@ -1,19 +1,18 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, notFound } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { ArrowLeft, BarChart2, Loader2, TrendingUp, TrendingDown, Minus, Zap, Newspaper } from 'lucide-react';
 import NextLink from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { apiClient } from '@/lib/api/client';
+import { apiClient } from '@/lib/api/apiClient';
 import { getStockNews } from '@/src/lib/api/analyticsApi';
 import type { INewsArticle } from '@/types/analytics';
 import { ArticleCard } from '@/components/analytics/news/ArticleCard';
-import { getExchangeConfig } from '@/lib/exchange/config';
+import { getExchangeConfig, isValidExchange } from '@/lib/exchange/config';
 import { getCurrencySymbol as getExchangeCurrencySymbol } from '@/lib/exchange/formatting';
-import type { ExchangeCode } from '@/lib/exchange/config';
 
 interface StockOHLCV {
     timestamp: string;
@@ -45,7 +44,7 @@ function getInstrumentType(exchange: string): string {
 }
 
 function getCurrencySymbol(exchange: string): string {
-    return getExchangeCurrencySymbol(exchange as ExchangeCode);
+    return getExchangeCurrencySymbol(isValidExchange(exchange) ? exchange : 'NSE');
 }
 
 function formatPrice(value: number, exchange?: string): string {
@@ -60,7 +59,8 @@ export default function StockAnalyticsPage() {
     const params = useParams();
     const searchParams = useSearchParams();
     const ticker = typeof params.ticker === 'string' ? decodeURIComponent(params.ticker).toUpperCase() : '';
-    const exchange = searchParams.get('exchange') || 'NSE';
+    const rawExchange = searchParams.get('exchange') || 'NSE';
+    const exchange = isValidExchange(rawExchange) ? rawExchange : 'NSE';
 
     const [ohlcv, setOhlcv] = useState<StockOHLCV[]>([]);
     const [quote, setQuote] = useState<StockQuote | null>(null);
@@ -68,6 +68,7 @@ export default function StockAnalyticsPage() {
     const [quoteLoading, setQuoteLoading] = useState(true);
     const [newsArticles, setNewsArticles] = useState<INewsArticle[]>([]);
     const [newsLoading, setNewsLoading] = useState(true);
+    const [quoteFailed, setQuoteFailed] = useState(false);
 
     const instrumentType = getInstrumentType(exchange);
     const currencySymbol = getCurrencySymbol(exchange);
@@ -75,66 +76,94 @@ export default function StockAnalyticsPage() {
     // Fetch quote
     useEffect(() => {
         if (!ticker) return;
+        const controller = new AbortController();
         async function fetchQuote() {
             try {
                 const response = await apiClient.get<StockQuote>(
                     `/api/stocks/${encodeURIComponent(ticker)}/quote`,
                     { exchange },
+                    { signal: controller.signal },
                 );
-                if (response.success && response.data) {
-                    setQuote(response.data);
+                if (!controller.signal.aborted) {
+                    if (response.success && response.data) {
+                        setQuote(response.data);
+                    } else {
+                        setQuoteFailed(true);
+                    }
+                    setQuoteLoading(false);
                 }
             } catch {
-                console.warn(`Failed to fetch quote for ${ticker}`);
-            } finally {
-                setQuoteLoading(false);
+                if (!controller.signal.aborted) {
+                    console.warn(`Failed to fetch quote for ${ticker}`);
+                    setQuoteFailed(true);
+                    setQuoteLoading(false);
+                }
             }
         }
         fetchQuote();
+        return () => controller.abort();
     }, [ticker, exchange]);
 
     // Fetch stock news
     useEffect(() => {
         if (!ticker) return;
+        const controller = new AbortController();
         async function fetchNews() {
             setNewsLoading(true);
             try {
-                const result = await getStockNews(ticker, 10);
-                if (result.success && result.data?.items) {
-                    setNewsArticles(result.data.items);
+                const result = await getStockNews(ticker, 10, controller.signal);
+                if (!controller.signal.aborted) {
+                    if (result.success && result.data?.items) {
+                        setNewsArticles(result.data.items);
+                    }
+                    setNewsLoading(false);
                 }
             } catch {
-                console.warn(`Failed to fetch news for ${ticker}`);
-            } finally {
-                setNewsLoading(false);
+                if (!controller.signal.aborted) {
+                    console.warn(`Failed to fetch news for ${ticker}`);
+                    setNewsLoading(false);
+                }
             }
         }
         fetchNews();
+        return () => controller.abort();
     }, [ticker, exchange]);
 
     // Fetch OHLCV
     useEffect(() => {
         if (!ticker) return;
+        const controller = new AbortController();
         async function fetchData() {
             try {
                 const response = await apiClient.get<{ bars?: StockOHLCV[] } | StockOHLCV[]>(
                     `/api/stocks/${encodeURIComponent(ticker)}/ohlcv`,
                     { period: '1d', limit: 30, exchange },
+                    { signal: controller.signal },
                 );
-                if (response.success) {
-                    const d = response.data;
-                    setOhlcv(
-                        Array.isArray(d) ? d : (d as { bars?: StockOHLCV[] }).bars ?? [],
-                    );
+                if (!controller.signal.aborted) {
+                    if (response.success) {
+                        const d = response.data;
+                        setOhlcv(
+                            Array.isArray(d) ? d : (d as { bars?: StockOHLCV[] }).bars ?? [],
+                        );
+                    }
+                    setLoading(false);
                 }
             } catch {
-                console.warn(`Failed to fetch OHLCV for ${ticker}`);
-            } finally {
-                setLoading(false);
+                if (!controller.signal.aborted) {
+                    console.warn(`Failed to fetch OHLCV for ${ticker}`);
+                    setLoading(false);
+                }
             }
         }
         fetchData();
+        return () => controller.abort();
     }, [ticker, exchange]);
+
+    // If both quote and OHLCV fetches completed with no data, the ticker is invalid
+    if (!quoteLoading && !loading && quoteFailed && ohlcv.length === 0 && !quote) {
+        notFound();
+    }
 
     const latestBar = ohlcv.length > 0 ? ohlcv[0] : null;
     const highestHigh = ohlcv.length > 0 ? Math.max(...ohlcv.map(b => b.high)) : null;
@@ -234,15 +263,32 @@ export default function StockAnalyticsPage() {
                                 </p>
                             </>
                         ) : (
-                            <>
-                                <BarChart2 className="h-16 w-16 text-brand-blue mb-4 opacity-50" />
-                                <h3 className="text-xl font-medium text-white mb-2">
-                                    {ohlcv.length} Trading Days Loaded
-                                </h3>
-                                <p className="text-muted-foreground max-w-md">
-                                    Latest close: <span className="text-white font-mono">{currencySymbol}{latestBar ? formatPrice(latestBar.close) : '--'}</span>
-                                </p>
-                            </>
+                            <div className="w-full h-full flex flex-col">
+                                <div className="flex items-center justify-between mb-3 px-2">
+                                    <span className="text-xs text-muted-foreground">{ohlcv.length} day price range</span>
+                                    <span className="text-xs text-white font-mono">
+                                        Latest: {currencySymbol}{latestBar ? formatPrice(latestBar.close, exchange) : '--'}
+                                    </span>
+                                </div>
+                                <div className="flex-1 flex items-end gap-[2px] px-2 pb-2">
+                                    {ohlcv.slice().reverse().map((bar, idx) => {
+                                        const range = (highestHigh ?? 1) - (lowestLow ?? 0) || 1;
+                                        const pct = ((bar.close - (lowestLow ?? 0)) / range) * 100;
+                                        const isUp = bar.close >= bar.open;
+                                        return (
+                                            <div
+                                                key={idx}
+                                                className="flex-1 rounded-t-sm transition-all"
+                                                style={{
+                                                    height: `${Math.max(pct, 4)}%`,
+                                                    backgroundColor: isUp ? 'rgba(52, 211, 153, 0.5)' : 'rgba(248, 113, 113, 0.4)',
+                                                }}
+                                                title={`${new Date(bar.timestamp).toLocaleDateString()} Close: ${currencySymbol}${formatPrice(bar.close, exchange)}`}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            </div>
                         )}
                     </div>
 
@@ -267,7 +313,7 @@ export default function StockAnalyticsPage() {
                                         <span className="text-muted-foreground">High</span>
                                         <span className="text-white font-mono">
                                             {(quote?.high ?? latestBar?.high) != null
-                                                ? `${currencySymbol}${formatPrice(quote?.high ?? latestBar!.high)}`
+                                                ? `${currencySymbol}${formatPrice((quote?.high ?? latestBar?.high) as number)}`
                                                 : '--'}
                                         </span>
                                     </div>
@@ -275,16 +321,16 @@ export default function StockAnalyticsPage() {
                                         <span className="text-muted-foreground">Low</span>
                                         <span className="text-white font-mono">
                                             {(quote?.low ?? latestBar?.low) != null
-                                                ? `${currencySymbol}${formatPrice(quote?.low ?? latestBar!.low)}`
+                                                ? `${currencySymbol}${formatPrice((quote?.low ?? latestBar?.low) as number)}`
                                                 : '--'}
                                         </span>
                                     </div>
-                                    {exchange !== 'FX' && (
+                                    {(exchange as string) !== 'FX' && (
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">Volume</span>
                                             <span className="text-white font-mono">
                                                 {(quote?.volume ?? latestBar?.volume) != null
-                                                    ? (quote?.volume ?? latestBar!.volume).toLocaleString(getExchangeConfig(exchange).locale)
+                                                    ? (quote?.volume ?? latestBar?.volume)?.toLocaleString(getExchangeConfig(exchange).locale)
                                                     : '--'}
                                             </span>
                                         </div>

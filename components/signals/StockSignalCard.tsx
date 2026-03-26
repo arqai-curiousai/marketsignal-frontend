@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { SignalOrb, SignalType } from './SignalOrb';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { formatPriceByCurrency } from '@/lib/exchange/formatting';
 
 interface StockSignalCardProps {
     ticker: string;
@@ -16,6 +17,7 @@ interface StockSignalCardProps {
     change?: number | null;
     changePercent?: number | null;
     confidence?: number;
+    currency?: string;
     onSelect?: () => void;
     className?: string;
 }
@@ -26,7 +28,7 @@ interface StockSignalCardProps {
  * Embodies the principle of 侘寂 (Wabi-sabi):
  * Beauty in simplicity, showing only what matters.
  */
-export function StockSignalCard({
+export const StockSignalCard = React.memo(function StockSignalCard({
     ticker,
     name,
     exchange,
@@ -35,6 +37,7 @@ export function StockSignalCard({
     change,
     changePercent,
     confidence,
+    currency = 'INR',
     onSelect,
     className,
 }: StockSignalCardProps) {
@@ -57,6 +60,8 @@ export function StockSignalCard({
             transition={{ duration: 0.2 }}
         >
             <Card
+                role="button"
+                tabIndex={0}
                 className={cn(
                     "relative overflow-hidden cursor-pointer transition-all duration-300",
                     "hover:bg-white/5 hover:shadow-lg hover:shadow-white/5",
@@ -64,6 +69,7 @@ export function StockSignalCard({
                     className
                 )}
                 onClick={onSelect}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect?.(); } }}
             >
                 <CardHeader className="pb-2 flex flex-row items-start justify-between space-y-0">
                     {/* Left: Ticker & Signal */}
@@ -82,7 +88,7 @@ export function StockSignalCard({
                         {price != null ? (
                             <>
                                 <p className="font-mono text-lg font-semibold">
-                                    ₹{price.toFixed(2)}
+                                    {formatPriceByCurrency(price, currency)}
                                 </p>
                                 <div className={cn(
                                     "flex items-center justify-end gap-1 text-xs",
@@ -132,6 +138,6 @@ export function StockSignalCard({
             </Card>
         </motion.div>
     );
-}
+});
 
 export default StockSignalCard;
