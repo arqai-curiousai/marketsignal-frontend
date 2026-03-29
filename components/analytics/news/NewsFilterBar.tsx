@@ -4,15 +4,19 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
-import { TIME_RANGES, SOURCE_FILTER_OPTIONS } from './constants';
+import { TIME_RANGES, getSourceFilterOptions } from './constants';
+import type { NewsScope } from './constants';
 import type { SentimentFilterValue } from './hooks/useNewsFilters';
 
-export type IntelligenceMode = 'pulse' | 'flow' | 'map';
+export type ViewMode = 'feed' | 'explore';
 
 interface NewsFilterBarProps {
-  // Mode toggle
-  mode: IntelligenceMode;
-  onModeChange: (mode: IntelligenceMode) => void;
+  // View toggle
+  view: ViewMode;
+  onViewChange: (view: ViewMode) => void;
+
+  // Scope (for dynamic source options)
+  scope: NewsScope;
 
   // Filter state
   timeRange: number;
@@ -42,21 +46,22 @@ interface NewsFilterBarProps {
   secondsAgo?: number;
 }
 
-/**
- * Progressive disclosure toolbar — only 3 visible elements:
- * 1. Search icon (expands to full-width search)
- * 2. Filter pill (shows count, reveals dropdown)
- * 3. Freshness dot (pulses when new articles arrive)
- */
-const MODE_OPTIONS: { value: IntelligenceMode; label: string }[] = [
-  { value: 'pulse', label: 'Pulse' },
-  { value: 'flow', label: 'Flow' },
-  { value: 'map', label: 'Map' },
+const VIEW_OPTIONS: { value: ViewMode; label: string }[] = [
+  { value: 'feed', label: 'Feed' },
+  { value: 'explore', label: 'Explore' },
 ];
 
+/**
+ * NewsFilterBar — progressive disclosure toolbar.
+ *
+ * Left: Feed | Explore toggle
+ * Right: Search, Filters, Refresh, Freshness dot
+ * Source filter options change dynamically based on news scope (India vs Global).
+ */
 export function NewsFilterBar({
-  mode,
-  onModeChange,
+  view,
+  onViewChange,
+  scope,
   timeRange,
   sentimentFilter,
   sourceFilter,
@@ -81,6 +86,8 @@ export function NewsFilterBar({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const sourceOptions = getSourceFilterOptions(scope);
 
   // Clean up debounce timer on unmount
   useEffect(() => () => clearTimeout(debounceRef.current ?? undefined), []);
@@ -132,14 +139,14 @@ export function NewsFilterBar({
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap sm:flex-nowrap">
-      {/* Mode toggle — Pulse | Flow | Map */}
+      {/* View toggle — Feed | Explore */}
       <div className="flex items-center rounded-lg border border-white/[0.06] bg-white/[0.02] p-0.5">
-        {MODE_OPTIONS.map((opt) => (
+        {VIEW_OPTIONS.map((opt) => (
           <button
             key={opt.value}
-            onClick={() => onModeChange(opt.value)}
+            onClick={() => onViewChange(opt.value)}
             className={`px-2 sm:px-2.5 py-1.5 sm:py-1 rounded-md text-[11px] font-medium transition-all min-h-[36px] sm:min-h-0 ${
-              mode === opt.value
+              view === opt.value
                 ? 'bg-white/[0.08] text-white/80 shadow-sm'
                 : 'text-white/30 hover:text-white/50'
             }`}
@@ -298,7 +305,7 @@ export function NewsFilterBar({
                 </div>
               </div>
 
-              {/* Source */}
+              {/* Source — dynamic options based on scope */}
               <div>
                 <div className="text-[10px] uppercase tracking-wider text-white/30 mb-1.5">
                   Source
@@ -309,7 +316,7 @@ export function NewsFilterBar({
                   aria-label="Filter by source"
                   className="w-full bg-white/[0.03] border border-white/[0.08] rounded px-2 py-1 text-[11px] text-white/60 outline-none"
                 >
-                  {SOURCE_FILTER_OPTIONS.map((o) => (
+                  {sourceOptions.map((o) => (
                     <option key={o.value} value={o.value}>
                       {o.label}
                     </option>

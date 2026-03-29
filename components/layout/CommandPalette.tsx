@@ -13,12 +13,12 @@ import {
   CommandSeparator,
 } from "@/components/ui/command";
 import {
-  Radar,
-  DollarSign,
-  FlaskConical,
-  MessageSquare,
-  Library,
-  Settings,
+  Activity,
+  ArrowLeftRight,
+  TestTubes,
+  BrainCircuit,
+  CircleUser,
+  Users,
   LogOut,
   TrendingUp,
   Moon,
@@ -30,12 +30,12 @@ import { useTheme } from "next-themes";
 import { useHotkeys } from "@/lib/hooks/useHotkeys";
 
 const NAV_ITEMS = [
-  { name: "Pulse", href: "/signals", icon: Radar, shortcut: "G P" },
-  { name: "Forex", href: "/forex", icon: DollarSign, shortcut: "G F" },
-  { name: "Playground", href: "/playground", icon: FlaskConical, shortcut: "G L" },
-  { name: "Assistant", href: "/assistant", icon: MessageSquare },
-  { name: "Research", href: "/research", icon: Library },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Pulse", href: "/signals", icon: Activity, shortcut: "G P" },
+  { name: "Forex", href: "/forex", icon: ArrowLeftRight, shortcut: "G F" },
+  { name: "Playground", href: "/playground", icon: TestTubes, shortcut: "G L" },
+  { name: "Assistant", href: "/assistant", icon: BrainCircuit, shortcut: "G A" },
+  { name: "About Us", href: "/about", icon: Users, shortcut: "G B" },
+  { name: "Settings", href: "/settings", icon: CircleUser, shortcut: "G S" },
 ];
 
 export function CommandPalette() {

@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { getAllAssets } from '@/components/analytics/correlation/constants';
 import type { INewsArticle, INewsCluster } from '@/types/analytics';
 
@@ -10,29 +9,31 @@ import { useNewsData } from './hooks/useNewsData';
 import { useNewsFilters } from './hooks/useNewsFilters';
 import { useMarketIntelligence } from './hooks/useMarketIntelligence';
 
-// River components
-import { SentimentPulseStrip } from './SentimentPulseStrip';
-import { BreakingTicker } from './BreakingTicker';
+// New components
+import { ScopeTabs } from './ScopeTabs';
+import { MarketPulseBar } from './MarketPulseBar';
+import { BreakingWire } from './BreakingWire';
+
+// Existing components
 import { NewsFilterBar } from './NewsFilterBar';
-import type { IntelligenceMode } from './NewsFilterBar';
+import type { ViewMode } from './NewsFilterBar';
 import { RiverFlow } from './RiverFlow';
 import { ArticleExpansion } from './ArticleExpansion';
 
-// Intelligence components (Phase 1 wiring)
+// Intelligence components
 import { MorningBriefCard } from './MorningBriefCard';
 import { DivergenceRow } from './DivergenceRow';
 import { PortfolioNewsPanel } from './PortfolioNewsPanel';
 import { StoryThread } from './StoryThread';
-import { SentimentTopography } from './SentimentTopography';
 
-// Existing visualization components (Map mode)
+// Map/Explore mode components
 import { NewsNetworkGraph } from './NewsNetworkGraph';
 import { NewsMindMap } from './NewsMindMap';
 import { NewsTimeline } from './NewsTimeline';
 
 // Export
 import { ExportButton } from '@/components/ui/ExportButton';
-import { FileSpreadsheet, Image } from 'lucide-react';
+import { FileSpreadsheet, Image as ImageIcon } from 'lucide-react';
 import { downloadCSV, downloadPNG } from '@/src/lib/utils/export';
 import { getSourceDisplayName } from './constants';
 
@@ -40,27 +41,26 @@ interface NewsRiverProps {
   exchange: string;
 }
 
-type OverlayView = null | 'constellation' | 'timeline' | 'mindmap';
+type ExploreView = 'constellation' | 'mindmap' | 'timeline';
 
 /**
  * NewsRiver — Market Intelligence Command Center.
  *
- * Three modes, one canvas:
- *   Pulse — executive cockpit (scan in 5s, decide in 10)
- *   Flow  — deep reading with sentiment topography
- *   Map   — spatial intelligence (network, mindmap, timeline)
+ * Two scopes: India (RSS feeds) | Global (EODHD)
+ * Two views: Feed (reading) | Explore (visualizations)
  *
- * Keyboard: 1/2/3 switch modes, c/t overlays, / search, Esc close
+ * Keyboard: 1/2 switch views, / search, Esc close
  */
-export function NewsRiver({ exchange }: NewsRiverProps) {
-  const tickerOptions = useMemo(
-    () => getAllAssets(exchange).map((a) => a.ticker),
-    [exchange]
-  );
-
+export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
   // ── Hooks ──────────────────────────────────────────────────────
   const filters = useNewsFilters();
-  const data = useNewsData(filters.timeRange, exchange, null);
+  // Use scope-derived exchange instead of parent exchange for news data
+  const data = useNewsData(filters.timeRange, filters.exchange, null);
+
+  const tickerOptions = useMemo(
+    () => getAllAssets(filters.exchange === 'GLOBAL' ? 'NASDAQ' : filters.exchange).map((a) => a.ticker),
+    [filters.exchange]
+  );
 
   // Extract top tickers from clusters for divergence fetching
   const topTickers = useMemo(() => {
@@ -75,22 +75,11 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
     return Array.from(tickers);
   }, [data.clusters]);
 
-  const intel = useMarketIntelligence(exchange, topTickers);
+  const intel = useMarketIntelligence(filters.exchange, topTickers);
 
-  // ── Mode state (persisted to URL) ──────────────────────────────
-  const searchParams = useSearchParams();
-  const [mode, setModeState] = useState<IntelligenceMode>(() => {
-    const v = searchParams.get('mode');
-    return (v === 'pulse' || v === 'flow' || v === 'map') ? v : 'pulse';
-  });
-  const setMode = useCallback((m: IntelligenceMode) => {
-    setModeState(m);
-    if (typeof window === 'undefined') return;
-    const url = new URL(window.location.href);
-    if (m !== 'pulse') url.searchParams.set('mode', m); else url.searchParams.delete('mode');
-    window.history.replaceState({}, '', url.toString());
-  }, []);
-  const [overlayView, setOverlayView] = useState<OverlayView>(null);
+  // ── View state ─────────────────────────────────────────────────
+  const [view, setView] = useState<ViewMode>('feed');
+  const [exploreView, setExploreView] = useState<ExploreView>('constellation');
   const [selectedTicker, setSelectedTicker] = useState<string | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<INewsArticle | null>(null);
 
@@ -114,7 +103,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
   const filteredFeedArticles = filters.filterArticles(data.fallbackArticles);
 
   // When the flat /news endpoint returns empty but clusters have embedded
-  // articles, extract them so SentimentPulseStrip and export still work.
+  // articles, extract them so MarketPulseBar and export still work.
   const filteredArticles = useMemo(() => {
     if (filteredFeedArticles.length > 0) return filteredFeedArticles;
     if (filteredClusters.length === 0) return filteredFeedArticles;
@@ -151,13 +140,21 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
           ]
         : [];
 
+  // ── Stable refs for data methods (avoid dependency lint warnings) ──
+  const fetchEntityDataRef = useRef(data.fetchEntityData);
+  const fetchMindMapRef = useRef(data.fetchMindMap);
+  const clearNewArticlesFlagRef = useRef(data.clearNewArticlesFlag);
+  useEffect(() => { fetchEntityDataRef.current = data.fetchEntityData; }, [data.fetchEntityData]);
+  useEffect(() => { fetchMindMapRef.current = data.fetchMindMap; }, [data.fetchMindMap]);
+  useEffect(() => { clearNewArticlesFlagRef.current = data.clearNewArticlesFlag; }, [data.clearNewArticlesFlag]);
+
   // ── Handlers ───────────────────────────────────────────────────
   const handleSelectArticle = useCallback(
     (article: INewsArticle) => {
       setSelectedArticle(article);
-      data.fetchEntityData(article.id);
+      fetchEntityDataRef.current(article.id);
     },
-    [data.fetchEntityData]
+    []
   );
 
   const handleCloseArticle = useCallback(() => {
@@ -167,16 +164,17 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
   const handleTickerClick = useCallback(
     (ticker: string) => {
       setSelectedTicker(ticker);
-      setOverlayView('mindmap');
-      data.fetchMindMap(ticker);
+      setView('explore');
+      setExploreView('mindmap');
+      fetchMindMapRef.current(ticker);
     },
-    [data.fetchMindMap]
+    []
   );
 
   const handleScrollToTop = useCallback(() => {
     riverRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-    data.clearNewArticlesFlag();
-  }, [data.clearNewArticlesFlag]);
+    clearNewArticlesFlagRef.current();
+  }, []);
 
   // ── Keyboard shortcuts ─────────────────────────────────────────
   useEffect(() => {
@@ -189,26 +187,10 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
 
       switch (e.key) {
         case '1':
-          setMode('pulse');
+          setView('feed');
           break;
         case '2':
-          setMode('flow');
-          break;
-        case '3':
-          setMode('map');
-          setOverlayView(null);
-          break;
-        case 'c':
-          if (mode === 'map') {
-            setOverlayView((v) => (v === 'constellation' ? null : 'constellation'));
-            if (overlayView !== 'constellation') data.fetchGraph();
-          }
-          break;
-        case 't':
-          if (mode === 'map') {
-            setOverlayView((v) => (v === 'timeline' ? null : 'timeline'));
-            if (overlayView !== 'timeline') data.fetchTimeline();
-          }
+          setView('explore');
           break;
         case 's':
           if (intel.storyOpen) intel.closeStory();
@@ -218,32 +200,28 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
             intel.closeStory();
           } else if (selectedArticle) {
             handleCloseArticle();
-          } else if (overlayView) {
-            setOverlayView(null);
           }
           break;
       }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [overlayView, data.fetchGraph, data.fetchTimeline, mode, intel, selectedArticle, handleCloseArticle]);
+  }, [intel, selectedArticle, handleCloseArticle]);
 
   // ── Impact data for selected article ───────────────────────────
   const selectedImpact = selectedArticle
     ? data.impactMap.get(selectedArticle.id)?.impact_scores ?? null
     : null;
 
-  // ── Stable ref for fetchGraph (avoid re-triggering mode effect) ──
+  // ── Explore mode: auto-fetch on enter ──────────────────────────
   const fetchGraphRef = useRef(data.fetchGraph);
   useEffect(() => { fetchGraphRef.current = data.fetchGraph; }, [data.fetchGraph]);
 
-  // ── Map mode: auto-fetch on enter ──────────────────────────────
   useEffect(() => {
-    if (mode === 'map' && !overlayView) {
-      setOverlayView('constellation');
+    if (view === 'explore' && exploreView === 'constellation') {
       fetchGraphRef.current();
     }
-  }, [mode, overlayView]);
+  }, [view, exploreView]);
 
   // ── Export handlers ─────────────────────────────────────────────
   const handleExportCSV = useCallback(() => {
@@ -256,31 +234,42 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
       published_at: a.published_at || '',
       url: a.url,
     }));
-    downloadCSV(rows, `news-${exchange}-${new Date().toISOString().slice(0, 10)}`);
-  }, [filteredArticles, exchange]);
+    downloadCSV(rows, `news-${filters.scope}-${new Date().toISOString().slice(0, 10)}`);
+  }, [filteredArticles, filters.scope]);
 
   const handleExportPNG = useCallback(async () => {
     if (riverRef.current) {
-      await downloadPNG(riverRef.current, `news-${mode}-${exchange}`);
+      await downloadPNG(riverRef.current, `news-${view}-${filters.scope}`);
     }
-  }, [mode, exchange]);
+  }, [view, filters.scope]);
 
   const exportOptions = useMemo(() => [
     { label: 'CSV (articles)', icon: <FileSpreadsheet className="h-3 w-3" />, onClick: handleExportCSV },
-    { label: 'PNG (screenshot)', icon: <Image className="h-3 w-3" />, onClick: handleExportPNG },
+    { label: 'PNG (screenshot)', icon: <ImageIcon className="h-3 w-3" />, onClick: handleExportPNG },
   ], [handleExportCSV, handleExportPNG]);
+
+  const isIndiaScope = filters.scope === 'india';
 
   return (
     <div className="space-y-3" ref={riverRef}>
-      {/* Sentiment Pulse Strip — gauge + sparkline + KPIs */}
-      <SentimentPulseStrip articles={filteredArticles} hours={filters.timeRange} />
+      {/* Scope toggle — India | Global */}
+      <div className="flex items-center justify-between gap-3">
+        <ScopeTabs scope={filters.scope} onScopeChange={filters.setScope} />
+        <ExportButton options={exportOptions} className="export-exclude shrink-0" />
+      </div>
 
-      {/* Filter bar with mode toggle + export */}
-      <div className="flex items-start gap-2">
-      <div className="flex-1 min-w-0">
+      {/* Market Pulse — 4 KPI cards */}
+      <MarketPulseBar
+        articles={filteredArticles}
+        clusters={baseClusters}
+        onTickerClick={handleTickerClick}
+      />
+
+      {/* Filter bar with view toggle */}
       <NewsFilterBar
-        mode={mode}
-        onModeChange={setMode}
+        view={view}
+        onViewChange={setView}
+        scope={filters.scope}
         timeRange={filters.timeRange}
         sentimentFilter={filters.sentimentFilter}
         sourceFilter={filters.sourceFilter}
@@ -299,12 +288,9 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
         refreshing={data.refreshing}
         secondsAgo={data.secondsAgo}
       />
-      </div>
-      <ExportButton options={exportOptions} className="export-exclude shrink-0 mt-1" />
-      </div>
 
-      {/* Breaking news — shared across all modes */}
-      <BreakingTicker
+      {/* Breaking Wire — multi-line ticker tape */}
+      <BreakingWire
         articles={data.breakingArticles}
         onSelect={handleSelectArticle}
         onDismiss={data.dismissBreaking}
@@ -318,19 +304,21 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
         </div>
       )}
 
-      {/* ═══ PULSE MODE ═══ */}
-      {mode === 'pulse' && (
+      {/* ═══ FEED VIEW ═══ */}
+      {view === 'feed' && (
         <div className="space-y-4">
-          {/* Portfolio News — personalized watchlist feed */}
-          <PortfolioNewsPanel exchange={exchange} />
+          {/* Portfolio News — India scope only */}
+          {isIndiaScope && <PortfolioNewsPanel exchange={filters.exchange} />}
 
-          {/* Morning Brief */}
-          <MorningBriefCard
-            brief={intel.brief}
-            loading={intel.briefLoading}
-            dismissed={intel.briefDismissed}
-            onDismiss={intel.dismissBrief}
-          />
+          {/* Morning Brief — India scope only */}
+          {isIndiaScope && (
+            <MorningBriefCard
+              brief={intel.brief}
+              loading={intel.briefLoading}
+              dismissed={intel.briefDismissed}
+              onDismiss={intel.dismissBrief}
+            />
+          )}
 
           {/* Divergence Row — contrarian signals */}
           <DivergenceRow
@@ -403,7 +391,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
             </div>
           )}
 
-          {/* River flow — also shown in Pulse for continuity */}
+          {/* River flow — cluster-based feed */}
           <RiverFlow
             clusters={baseClusters}
             articles={filteredArticles}
@@ -419,58 +407,33 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
         </div>
       )}
 
-      {/* ═══ FLOW MODE ═══ */}
-      {mode === 'flow' && (
-        <div className="space-y-4">
-          {/* Sentiment Topography — theme × time heatmap */}
-          <SentimentTopography
-            articles={filteredArticles}
-            hours={filters.timeRange}
-          />
-
-          {/* River flow — main reading experience */}
-          <RiverFlow
-            clusters={baseClusters}
-            articles={filteredArticles}
-            loading={data.feedLoading}
-            onSelectArticle={handleSelectArticle}
-            onTickerClick={handleTickerClick}
-            selectedArticle={selectedArticle}
-            previousClusterCounts={prevClusterCounts}
-            hasMore={data.hasMore}
-            loadingMore={data.loadingMore}
-            onLoadMore={data.loadMore}
-          />
-        </div>
-      )}
-
-      {/* ═══ MAP MODE ═══ */}
-      {mode === 'map' && (
+      {/* ═══ EXPLORE VIEW ═══ */}
+      {view === 'explore' && (
         <div className="space-y-3">
           {/* Sub-tab selector */}
           <div className="flex gap-1 overflow-x-auto scrollbar-none">
-            {(['constellation', 'mindmap', 'timeline'] as const).map((view) => (
+            {(['constellation', 'mindmap', 'timeline'] as const).map((ev) => (
               <button
-                key={view}
+                key={ev}
                 onClick={() => {
-                  setOverlayView(view);
-                  if (view === 'constellation') data.fetchGraph();
-                  if (view === 'timeline') data.fetchTimeline();
+                  setExploreView(ev);
+                  if (ev === 'constellation') data.fetchGraph();
+                  if (ev === 'timeline') data.fetchTimeline();
                 }}
                 className={`px-3 py-2 sm:py-1.5 rounded-md text-[11px] font-medium transition-colors shrink-0 min-h-[36px] sm:min-h-0 ${
-                  overlayView === view
+                  exploreView === ev
                     ? 'bg-white/[0.08] text-white/70'
                     : 'text-white/25 hover:text-white/40'
                 }`}
               >
-                {view === 'constellation' ? 'Network' : view === 'mindmap' ? 'Mind Map' : 'Timeline'}
+                {ev === 'constellation' ? 'Network' : ev === 'mindmap' ? 'Mind Map' : 'Timeline'}
               </button>
             ))}
           </div>
 
-          {/* Inline map views (not overlays in Map mode) */}
+          {/* Visualization area */}
           <div className="min-h-[300px] sm:min-h-[500px] rounded-lg border border-white/[0.06] bg-white/[0.01] overflow-hidden">
-            {overlayView === 'constellation' && !data.graphError && (
+            {exploreView === 'constellation' && !data.graphError && (
               <NewsNetworkGraph
                 nodes={data.graph?.nodes ?? []}
                 edges={data.graph?.edges ?? []}
@@ -481,12 +444,12 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
                 }}
                 onSelectTicker={(ticker) => {
                   setSelectedTicker(ticker);
-                  setOverlayView('mindmap');
+                  setExploreView('mindmap');
                   data.fetchMindMap(ticker);
                 }}
               />
             )}
-            {overlayView === 'constellation' && data.graphError && !data.graphLoading && (
+            {exploreView === 'constellation' && data.graphError && !data.graphLoading && (
               <div className="flex items-center justify-center h-full min-h-[300px]">
                 <div className="text-center space-y-2">
                   <p className="text-xs text-red-400/80">Failed to load network graph</p>
@@ -500,7 +463,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
               </div>
             )}
 
-            {overlayView === 'mindmap' && !data.mindmapError && (
+            {exploreView === 'mindmap' && !data.mindmapError && (
               <NewsMindMap
                 tree={data.mindMapTree}
                 loading={data.mindmapLoading}
@@ -516,7 +479,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
                 tickerOptions={tickerOptions}
               />
             )}
-            {overlayView === 'mindmap' && data.mindmapError && !data.mindmapLoading && (
+            {exploreView === 'mindmap' && data.mindmapError && !data.mindmapLoading && (
               <div className="flex items-center justify-center h-full min-h-[300px]">
                 <div className="text-center space-y-2">
                   <p className="text-xs text-red-400/80">Failed to load mind map</p>
@@ -530,7 +493,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
               </div>
             )}
 
-            {overlayView === 'timeline' && !data.timelineError && (
+            {exploreView === 'timeline' && !data.timelineError && (
               <div className="p-4 h-full">
                 <NewsTimeline
                   data={data.timeline}
@@ -546,7 +509,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
                 />
               </div>
             )}
-            {overlayView === 'timeline' && data.timelineError && !data.timelineLoading && (
+            {exploreView === 'timeline' && data.timelineError && !data.timelineLoading && (
               <div className="flex items-center justify-center h-full min-h-[300px]">
                 <div className="text-center space-y-2">
                   <p className="text-xs text-red-400/80">Failed to load timeline</p>
@@ -563,7 +526,7 @@ export function NewsRiver({ exchange }: NewsRiverProps) {
         </div>
       )}
 
-      {/* StoryThread slide-over (shared across modes) */}
+      {/* StoryThread slide-over (shared across views) */}
       <StoryThread
         story={intel.selectedStory}
         open={intel.storyOpen}

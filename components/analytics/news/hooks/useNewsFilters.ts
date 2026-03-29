@@ -3,11 +3,13 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { INewsArticle, INewsCluster } from '@/types/analytics';
-import { SENTIMENT_THRESHOLDS } from '../constants';
+import { SENTIMENT_THRESHOLDS, scopeToExchange } from '../constants';
+import type { NewsScope } from '../constants';
 
 export type SentimentFilterValue = 'all' | 'bullish' | 'bearish';
 
 export interface NewsFiltersState {
+  scope: NewsScope;
   timeRange: number;
   sentimentFilter: SentimentFilterValue;
   sourceFilter: string;
@@ -16,6 +18,8 @@ export interface NewsFiltersState {
 
 export interface UseNewsFiltersReturn {
   // State
+  scope: NewsScope;
+  exchange: string;
   timeRange: number;
   sentimentFilter: SentimentFilterValue;
   sourceFilter: string;
@@ -23,6 +27,7 @@ export interface UseNewsFiltersReturn {
   activeFilterCount: number;
 
   // Setters
+  setScope: (scope: NewsScope) => void;
   setTimeRange: (range: number) => void;
   setSentimentFilter: (filter: SentimentFilterValue) => void;
   setSourceFilter: (source: string) => void;
@@ -37,10 +42,18 @@ export interface UseNewsFiltersReturn {
 
 const VALID_TIME_RANGES = new Set([6, 24, 72, 168]);
 const VALID_SENTIMENTS = new Set<SentimentFilterValue>(['all', 'bullish', 'bearish']);
+const VALID_SCOPES = new Set<NewsScope>(['india', 'global']);
 
-function syncFilterParams(timeRange: number, sentimentFilter: SentimentFilterValue, sourceFilter: string, searchQuery: string) {
+function syncFilterParams(
+  scope: NewsScope,
+  timeRange: number,
+  sentimentFilter: SentimentFilterValue,
+  sourceFilter: string,
+  searchQuery: string,
+) {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
+  if (scope !== 'india') url.searchParams.set('scope', scope); else url.searchParams.delete('scope');
   if (timeRange !== 24) url.searchParams.set('hours', String(timeRange)); else url.searchParams.delete('hours');
   if (sentimentFilter !== 'all') url.searchParams.set('sentiment', sentimentFilter); else url.searchParams.delete('sentiment');
   if (sourceFilter) url.searchParams.set('source', sourceFilter); else url.searchParams.delete('source');
@@ -52,6 +65,10 @@ export function useNewsFilters(): UseNewsFiltersReturn {
   const searchParams = useSearchParams();
   const isInitRef = useRef(true);
 
+  const [scope, setScopeState] = useState<NewsScope>(() => {
+    const v = searchParams.get('scope') as NewsScope;
+    return VALID_SCOPES.has(v) ? v : 'india';
+  });
   const [timeRange, setTimeRange] = useState(() => {
     const v = parseInt(searchParams.get('hours') || '', 10);
     return VALID_TIME_RANGES.has(v) ? v : 24;
@@ -63,11 +80,20 @@ export function useNewsFilters(): UseNewsFiltersReturn {
   const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
 
+  // Reset source filter when scope changes (sources differ per scope)
+  const setScope = useCallback((newScope: NewsScope) => {
+    setScopeState(newScope);
+    setSourceFilter('');
+  }, []);
+
+  // Derive exchange from scope
+  const exchange = useMemo(() => scopeToExchange(scope), [scope]);
+
   // Sync filter state → URL (skip first render to avoid overwriting on mount)
   useEffect(() => {
     if (isInitRef.current) { isInitRef.current = false; return; }
-    syncFilterParams(timeRange, sentimentFilter, sourceFilter, searchQuery);
-  }, [timeRange, sentimentFilter, sourceFilter, searchQuery]);
+    syncFilterParams(scope, timeRange, sentimentFilter, sourceFilter, searchQuery);
+  }, [scope, timeRange, sentimentFilter, sourceFilter, searchQuery]);
 
   const matchesSource = useCallback(
     (source: string) => {
@@ -128,11 +154,14 @@ export function useNewsFilters(): UseNewsFiltersReturn {
   }, [sentimentFilter, sourceFilter, timeRange]);
 
   return {
+    scope,
+    exchange,
     timeRange,
     sentimentFilter,
     sourceFilter,
     searchQuery,
     activeFilterCount,
+    setScope,
     setTimeRange,
     setSentimentFilter,
     setSourceFilter,

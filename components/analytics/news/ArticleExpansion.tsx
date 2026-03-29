@@ -8,7 +8,7 @@ import type { INewsArticle } from '@/types/analytics';
 import type { EntityData } from './hooks/useNewsData';
 import { getSentimentColor, THEME_COLORS, THEME_LABELS, formatTimeAgo } from './constants';
 import { sanitizeUrl } from '@/lib/security/xss';
-import { NewsFingerprint } from './NewsFingerprint';
+import { SourceBadge } from './SourceBadge';
 import { ImpactReplay } from './ImpactReplay';
 
 interface ArticleExpansionProps {
@@ -91,7 +91,7 @@ export function ArticleExpansion({
             {/* Header */}
             <div className="sticky top-0 flex items-center justify-between px-4 py-3 bg-[#0d1117]/90 backdrop-blur-md border-b border-white/[0.06] z-10">
               <div className="flex items-center gap-2 text-[10px] text-white/40">
-                <NewsFingerprint article={article} size={20} />
+                <SourceBadge source={article.source} />
                 <Clock className="w-3 h-3" />
                 {formatTimeAgo(article.published_at)}
                 <span className="text-white/20">|</span>

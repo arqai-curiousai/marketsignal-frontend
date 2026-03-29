@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight, Loader2 } from 'lucide-react';
 import type { INewsCluster, INewsArticle } from '@/types/analytics';
 import { cn } from '@/lib/utils';
 import { THEME_COLORS, getSentimentColor, getTimeGroup, formatTimeAgo } from './constants';
-import { NewsFingerprint } from './NewsFingerprint';
+import { SourceBadge } from './SourceBadge';
 
 interface RiverFlowProps {
   clusters: INewsCluster[];
@@ -358,7 +358,7 @@ function RiverArticle({ article, index, isSelected, onSelect, onTickerClick }: R
                 </span>
               )}
               <div className="flex items-center gap-1.5 ml-auto shrink-0">
-                <NewsFingerprint article={article} size={18} />
+                <SourceBadge source={article.source} />
                 <span className="text-[10px] text-white/20">
                   {formatTimeAgo(article.published_at)}
                 </span>
@@ -397,7 +397,7 @@ function RiverArticle({ article, index, isSelected, onSelect, onTickerClick }: R
               {article.symbols.slice(0, 2).join(', ')}
             </span>
           )}
-          <NewsFingerprint article={article} size={16} />
+          <SourceBadge source={article.source} />
           <span className="text-[10px] text-white/15 shrink-0">
             {formatTimeAgo(article.published_at)}
           </span>

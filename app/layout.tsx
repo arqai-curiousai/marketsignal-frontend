@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { Inter, Sora } from 'next/font/google';
+import { Inter, Sora, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Shell } from '@/components/layout/Shell';
 import { Toaster } from '@/components/ui/sonner';
 import { AuthProvider } from '@/context/AuthContext';
 import { ExchangeProvider } from '@/context/ExchangeContext';
 import { ThemeProvider } from 'next-themes';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const inter = Inter({ subsets: ['latin'] });
 const sora = Sora({
@@ -13,6 +14,12 @@ const sora = Sora({
   variable: '--font-display',
   display: 'swap',
   weight: ['300', '400', '600', '700'],
+});
+const playfair = Playfair_Display({
+  subsets: ['latin'],
+  variable: '--font-serif',
+  display: 'swap',
+  weight: ['400', '700'],
 });
 
 export const metadata: Metadata = {
@@ -27,7 +34,7 @@ export default function RootLayout({
 }) {
     return (
         <html lang="en" suppressHydrationWarning>
-            <body className={`${inter.className} ${sora.variable}`}>
+            <body className={`${inter.className} ${sora.variable} ${playfair.variable}`}>
                 <ThemeProvider
                     attribute="class"
                     defaultTheme="dark"
@@ -36,7 +43,9 @@ export default function RootLayout({
                 >
                     <AuthProvider>
                         <ExchangeProvider>
-                            <Shell>{children}</Shell>
+                            <TooltipProvider delayDuration={200}>
+                                <Shell>{children}</Shell>
+                            </TooltipProvider>
                         </ExchangeProvider>
                     </AuthProvider>
                     <Toaster position="top-right" />

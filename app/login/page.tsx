@@ -6,7 +6,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 
 export default function LoginPage(): React.ReactElement {
     return (
-        <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        <div className="min-h-screen flex flex-col bg-gradient-to-b from-[hsl(var(--zen-void))] via-[hsl(var(--zen-mist))] to-[hsl(var(--zen-void))]">
             {/* Main content */}
             <main className="flex-1 flex items-center justify-center px-4 py-12">
                 <div className="relative w-full max-w-6xl mx-auto flex flex-col lg:flex-row items-center gap-12">
@@ -40,13 +40,13 @@ export default function LoginPage(): React.ReactElement {
                             <span className="h-1.5 w-1.5 rounded-full bg-brand-emerald animate-pulse" />
                             Secure OTP Login
                         </div>
-                        <h1 className="text-4xl lg:text-5xl font-bold text-slate-50 leading-tight">
+                        <h1 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
                             Welcome to{' '}
                             <span className="bg-gradient-to-r from-brand-emerald via-brand-blue to-brand-violet bg-clip-text text-transparent">
                                 Market Signal
                             </span>
                         </h1>
-                        <p className="text-lg text-slate-300 max-w-md mx-auto lg:mx-0">
+                        <p className="text-lg text-muted-foreground max-w-md mx-auto lg:mx-0">
                             AI-powered investment research and signals platform. Get real-time market insights and data-driven recommendations.
                         </p>
                         <div className="space-y-3">
@@ -69,7 +69,7 @@ export default function LoginPage(): React.ReactElement {
             </main>
 
             {/* Footer */}
-            <footer className="p-6 text-center text-sm text-slate-500">
+            <footer className="p-6 text-center text-sm text-muted-foreground/70">
                 © {new Date().getFullYear()} Market Signal by arQai. All rights reserved.
             </footer>
         </div>
@@ -78,7 +78,7 @@ export default function LoginPage(): React.ReactElement {
 
 function FeatureItem({ text }: { readonly text: string }): React.ReactElement {
     return (
-        <div className="flex items-center gap-2 text-slate-400">
+        <div className="flex items-center gap-2 text-muted-foreground">
             <div className="h-1.5 w-1.5 rounded-full bg-brand-blue" />
             <span className="text-sm">{text}</span>
         </div>

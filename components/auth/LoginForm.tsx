@@ -153,13 +153,13 @@ export function LoginForm(): React.ReactElement {
     };
 
     return (
-        <Card className="w-full max-w-md border-slate-800/80 bg-slate-950/85 backdrop-blur-xl shadow-2xl">
+        <Card className="w-full max-w-md border-border/80 bg-background/85 backdrop-blur-xl shadow-2xl">
             <CardHeader className="space-y-1 pb-4">
-                <CardTitle className="text-2xl font-bold text-slate-50">
+                <CardTitle className="text-2xl font-bold text-foreground">
                     {state.step === 'email' ? 'Sign in to Market Signal' :
                         state.step === 'register' ? 'Complete Profile' : 'Enter OTP'}
                 </CardTitle>
-                <CardDescription className="text-slate-400">
+                <CardDescription className="text-muted-foreground">
                     {state.step === 'email'
                         ? 'We\'ll send you a one-time passcode to verify your identity.'
                         : state.step === 'register'
@@ -176,16 +176,16 @@ export function LoginForm(): React.ReactElement {
                         className="space-y-4"
                     >
                         <div className="space-y-2">
-                            <Label htmlFor="email" className="text-slate-200">Email address</Label>
+                            <Label htmlFor="email" className="text-foreground/80">Email address</Label>
                             <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                                 <Input
                                     id="email"
                                     type="email"
                                     placeholder="you@example.com"
                                     value={state.email}
                                     onChange={(e) => setState(prev => ({ ...prev, email: e.target.value }))}
-                                    className="pl-10 bg-slate-900/50 border-slate-700 text-slate-100 placeholder:text-slate-500"
+                                    className="pl-10 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
                                     disabled={state.isLoading}
                                     required
                                 />
@@ -217,25 +217,25 @@ export function LoginForm(): React.ReactElement {
                     >
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="firstName" className="text-slate-200">First Name</Label>
+                                <Label htmlFor="firstName" className="text-foreground/80">First Name</Label>
                                 <Input
                                     id="firstName"
                                     placeholder="John"
                                     value={state.firstName}
                                     onChange={(e) => setState(prev => ({ ...prev, firstName: e.target.value }))}
-                                    className="bg-slate-900/50 border-slate-700 text-slate-100 placeholder:text-slate-500"
+                                    className="bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
                                     disabled={state.isLoading}
                                     required
                                 />
                             </div>
                             <div className="space-y-2">
-                                <Label htmlFor="lastName" className="text-slate-200">Last Name</Label>
+                                <Label htmlFor="lastName" className="text-foreground/80">Last Name</Label>
                                 <Input
                                     id="lastName"
                                     placeholder="Doe"
                                     value={state.lastName}
                                     onChange={(e) => setState(prev => ({ ...prev, lastName: e.target.value }))}
-                                    className="bg-slate-900/50 border-slate-700 text-slate-100 placeholder:text-slate-500"
+                                    className="bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
                                     disabled={state.isLoading}
                                     required
                                 />
@@ -247,7 +247,7 @@ export function LoginForm(): React.ReactElement {
                                 type="button"
                                 variant="outline"
                                 onClick={handleBackToRegister}
-                                className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+                                className="flex-1 border-border text-muted-foreground hover:bg-secondary"
                                 disabled={state.isLoading}
                             >
                                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -279,7 +279,7 @@ export function LoginForm(): React.ReactElement {
                         className="space-y-4"
                     >
                         <div className="space-y-2">
-                            <Label className="text-slate-200" htmlFor="otp-input">One-time passcode</Label>
+                            <Label className="text-foreground/80" htmlFor="otp-input">One-time passcode</Label>
                             <div className="flex justify-center">
                                 <InputOTP
                                     id="otp-input"
@@ -288,12 +288,12 @@ export function LoginForm(): React.ReactElement {
                                     onChange={(value) => setState(prev => ({ ...prev, otp: value }))}
                                 >
                                     <InputOTPGroup>
-                                        <InputOTPSlot index={0} className="bg-slate-900/50 border-slate-700" />
-                                        <InputOTPSlot index={1} className="bg-slate-900/50 border-slate-700" />
-                                        <InputOTPSlot index={2} className="bg-slate-900/50 border-slate-700" />
-                                        <InputOTPSlot index={3} className="bg-slate-900/50 border-slate-700" />
-                                        <InputOTPSlot index={4} className="bg-slate-900/50 border-slate-700" />
-                                        <InputOTPSlot index={5} className="bg-slate-900/50 border-slate-700" />
+                                        <InputOTPSlot index={0} className="bg-secondary/50 border-border" />
+                                        <InputOTPSlot index={1} className="bg-secondary/50 border-border" />
+                                        <InputOTPSlot index={2} className="bg-secondary/50 border-border" />
+                                        <InputOTPSlot index={3} className="bg-secondary/50 border-border" />
+                                        <InputOTPSlot index={4} className="bg-secondary/50 border-border" />
+                                        <InputOTPSlot index={5} className="bg-secondary/50 border-border" />
                                     </InputOTPGroup>
                                 </InputOTP>
                             </div>
@@ -303,7 +303,7 @@ export function LoginForm(): React.ReactElement {
                                 type="button"
                                 variant="outline"
                                 onClick={handleBackToEmail}
-                                className="flex-1 border-slate-700 text-slate-300 hover:bg-slate-800"
+                                className="flex-1 border-border text-muted-foreground hover:bg-secondary"
                                 disabled={state.isLoading}
                             >
                                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -329,7 +329,7 @@ export function LoginForm(): React.ReactElement {
                         </div>
                     </motion.form>
                 )}
-                <p className="mt-4 text-xs text-slate-500 text-center">
+                <p className="mt-4 text-xs text-muted-foreground/70 text-center">
                     By continuing, you agree to our Terms of Service and Privacy Policy.
                 </p>
             </CardContent>

@@ -2,6 +2,8 @@
 
 export type NewsViewMode = 'feed' | 'graph' | 'mindmap' | 'timeline';
 
+export type NewsScope = 'india' | 'global';
+
 /** Unified sentiment thresholds — use these everywhere instead of magic numbers */
 export const SENTIMENT_THRESHOLDS = {
   BULLISH: 0.15,
@@ -88,8 +90,8 @@ export function getSourceDisplayName(source: string): string {
   return SOURCE_DISPLAY_NAMES[source] || source;
 }
 
-/** Source filter options for toolbar dropdown. */
-export const SOURCE_FILTER_OPTIONS = [
+/** Source filter options for India scope. */
+export const INDIA_SOURCE_FILTER_OPTIONS = [
   { label: 'All Sources', value: '' },
   { label: 'Economic Times', value: 'economic_times' },
   { label: 'LiveMint', value: 'livemint' },
@@ -98,6 +100,38 @@ export const SOURCE_FILTER_OPTIONS = [
   { label: 'NDTV Profit', value: 'ndtv_profit' },
   { label: 'Google News', value: 'google_news_rss' },
 ] as const;
+
+/** Source filter options for Global scope. */
+export const GLOBAL_SOURCE_FILTER_OPTIONS = [
+  { label: 'All Sources', value: '' },
+  { label: 'EODHD', value: 'eodhd' },
+] as const;
+
+/** Backward-compat alias — defaults to India sources. */
+export const SOURCE_FILTER_OPTIONS = INDIA_SOURCE_FILTER_OPTIONS;
+
+/** Returns scope-appropriate source filter options. */
+export function getSourceFilterOptions(scope: NewsScope) {
+  return scope === 'global' ? GLOBAL_SOURCE_FILTER_OPTIONS : INDIA_SOURCE_FILTER_OPTIONS;
+}
+
+/** Maps scope to the exchange parameter for API calls. */
+export function scopeToExchange(scope: NewsScope): string {
+  return scope === 'global' ? 'GLOBAL' : 'NSE';
+}
+
+/** Source badge configuration — abbreviation + color for compact chips. */
+export const SOURCE_BADGE_CONFIG: Record<string, { abbr: string; color: string }> = {
+  economic_times: { abbr: 'ET', color: '#F59E0B' },
+  moneycontrol: { abbr: 'MC', color: '#3B82F6' },
+  livemint: { abbr: 'LM', color: '#10B981' },
+  ndtv_profit: { abbr: 'NDTV', color: '#EF4444' },
+  hindu_businessline: { abbr: 'HBL', color: '#8B5CF6' },
+  google_news_rss: { abbr: 'GN', color: '#6B7280' },
+  searchapi: { abbr: 'GN', color: '#6B7280' },
+  eodhd: { abbr: 'EODHD', color: '#14B8A6' },
+  newsdata: { abbr: 'ND', color: '#EC4899' },
+};
 
 /** Known primary/trusted financial news publishers. */
 export const PRIMARY_SOURCES = new Set([

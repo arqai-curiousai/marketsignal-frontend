@@ -19,6 +19,7 @@ module.exports = {
         extend: {
             fontFamily: {
                 display: ['var(--font-display)', 'system-ui', 'sans-serif'],
+                serif: ['var(--font-serif)', 'Georgia', 'serif'],
             },
             colors: {
                 border: 'hsl(var(--border))',
@@ -71,13 +72,13 @@ module.exports = {
                     border: 'hsl(var(--sidebar-border))',
                     ring: 'hsl(var(--sidebar-ring))'
                 },
-                // Custom Market Signal brand colors — organic green palette
-                // Keys are semantic roles (primary/secondary action), not literal hues
+                // MarketSignal brand colors — emerald primary with true spectral depth
                 brand: {
-                    slate: '#0B1A12',      // Deep dark green-black (backgrounds)
-                    emerald: '#6EE7B7',    // Light emerald (accents)
-                    blue: '#4ADE80',       // Primary action (green-400)
-                    violet: '#22C55E',     // Secondary action (green-500)
+                    slate: '#091412',      // Deepened dark bg
+                    emerald: '#6EE7B7',    // Primary accent (unchanged)
+                    blue: '#60A5FA',       // True blue-400 (secondary)
+                    violet: '#A78BFA',     // True violet-400 (tertiary)
+                    amber: '#FBBF24',      // Warm emphasis / alerts
                     sage: '#86EFAC',       // Light sage (highlights)
                     moss: '#166534',       // Deep moss (dark accents)
                 }
@@ -130,6 +131,23 @@ module.exports = {
                     '50%': { opacity: '1' },
                     '100%': { transform: 'translateY(-400px)', opacity: '0' },
                 },
+                'data-stream': {
+                    '0%': { transform: 'translateY(0)' },
+                    '100%': { transform: 'translateY(-100%)' },
+                },
+                'spin-slow': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                },
+                'dash-flow': {
+                    '0%': { strokeDashoffset: '20' },
+                    '100%': { strokeDashoffset: '0' },
+                },
+                'bias-cycle': {
+                    '0%, 100%': { transform: 'translateX(0%)' },
+                    '33%': { transform: 'translateX(-100%)' },
+                    '66%': { transform: 'translateX(100%)' },
+                },
             },
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
@@ -138,6 +156,9 @@ module.exports = {
                 'float': 'float 5s ease-in-out infinite',
                 'glow-pulse': 'glow-pulse 3s ease-in-out infinite',
                 'float-up': 'float-up 4s ease-in-out infinite',
+                'data-stream': 'data-stream 20s linear infinite',
+                'spin-slow': 'spin-slow 8s linear infinite',
+                'dash-flow': 'dash-flow 1.5s linear infinite',
             }
         }
     },
