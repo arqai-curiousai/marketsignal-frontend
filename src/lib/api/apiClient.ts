@@ -55,7 +55,7 @@ let isRedirecting: number = 0;
 function buildUrl(endpoint: string, params?: Record<string, string | number | boolean | undefined>): string {
     const base = typeof window !== 'undefined'
         ? window.location.origin
-        : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000');
+        : (process.env.NEXT_PUBLIC_API_ORIGIN || process.env.NEXT_PUBLIC_API_URL || '');
     const url = new URL(endpoint, base);
 
     if (params) {
@@ -158,6 +158,19 @@ async function request<T>(
                     detail: 'Session expired',
                 },
             };
+        }
+
+        // Handle 429 — rate limited; respect Retry-After and retry once
+        if (response.status === 429 && _retryCount === 0) {
+            const retryAfter = response.headers.get('Retry-After');
+            const delayMs = retryAfter
+                ? (Number.isFinite(Number(retryAfter))
+                    ? Number(retryAfter) * 1000
+                    : Math.max(0, new Date(retryAfter).getTime() - Date.now()))
+                : 2000;
+            const safeDelay = Math.min(Math.max(delayMs, 500), 30_000);
+            await new Promise((r) => setTimeout(r, safeDelay));
+            return request<T>(endpoint, options, 1);
         }
 
         // Handle non-OK responses

@@ -74,6 +74,9 @@ import type {
   IMorningBrief,
   IPortfolioNewsResponse,
   ICurrencyCandlesResponse,
+  IScannerResult,
+  IGeoSentiment,
+  IImpactChain,
 } from '@/types/analytics';
 import type {
   IPyramidData,
@@ -408,10 +411,12 @@ export async function getNewsImpact(
   hours: number = 24,
   impactType?: string,
   limit: number = 20,
-  exchange: string = 'NSE'
+  exchange: string = 'NSE',
+  region?: string
 ): Promise<ApiResult<{ items: INewsImpact[]; count: number }>> {
   let url = `/api/analytics/news-impact?hours=${hours}&limit=${limit}&exchange=${exchange}`;
   if (impactType) url += `&impact_type=${impactType}`;
+  if (region) url += `&region=${region}`;
   return apiClient.get(url);
 }
 
@@ -476,8 +481,11 @@ export async function getMarketNews(
   limit: number = 30,
   exchange: string = 'NSE',
   offset: number = 0,
+  region?: string,
 ): Promise<ApiResult<{ items: INewsArticle[]; count: number; offset: number; has_more: boolean }>> {
-  return apiClient.get(`/api/analytics/news?hours=${hours}&limit=${limit}&exchange=${exchange}&offset=${offset}`);
+  let url = `/api/analytics/news?hours=${hours}&limit=${limit}&exchange=${exchange}&offset=${offset}`;
+  if (region) url += `&region=${region}`;
+  return apiClient.get(url);
 }
 
 export async function getStockNews(
@@ -492,11 +500,12 @@ export async function getStockNews(
 export async function searchNews(
   query: string,
   limit: number = 20,
-  exchange: string = 'NSE'
+  exchange: string = 'NSE',
+  region?: string
 ): Promise<ApiResult<{ items: INewsArticle[]; count: number; query: string }>> {
-  return apiClient.get(
-    `/api/analytics/news/search?q=${encodeURIComponent(query)}&limit=${limit}&exchange=${exchange}`
-  );
+  let url = `/api/analytics/news/search?q=${encodeURIComponent(query)}&limit=${limit}&exchange=${exchange}`;
+  if (region) url += `&region=${region}`;
+  return apiClient.get(url);
 }
 
 /** Trigger an immediate news sync from all sources. Rate-limited to 3/min. */
@@ -516,18 +525,23 @@ export async function syncNewsNow(): Promise<ApiResult<{
 export async function getNewsClusters(
   hours: number = 72,
   limit: number = 10,
-  exchange: string = 'NSE'
+  exchange: string = 'NSE',
+  region?: string
 ): Promise<ApiResult<{ clusters: INewsCluster[]; count: number }>> {
-  return apiClient.get(`/api/analytics/news/clusters?hours=${hours}&limit=${limit}&exchange=${exchange}`);
+  let url = `/api/analytics/news/clusters?hours=${hours}&limit=${limit}&exchange=${exchange}`;
+  if (region) url += `&region=${region}`;
+  return apiClient.get(url);
 }
 
 export async function getNewsGraph(
   hours: number = 72,
   ticker?: string,
-  exchange: string = 'NSE'
+  exchange: string = 'NSE',
+  region?: string
 ): Promise<ApiResult<INewsGraph>> {
   let url = `/api/analytics/news/graph?hours=${hours}&exchange=${exchange}`;
   if (ticker) url += `&ticker=${ticker}`;
+  if (region) url += `&region=${region}`;
   return apiClient.get(url);
 }
 
@@ -541,10 +555,12 @@ export async function getNewsMindMap(
 export async function getNewsTimeline(
   hours: number = 168,
   ticker?: string,
-  exchange: string = 'NSE'
+  exchange: string = 'NSE',
+  region?: string
 ): Promise<ApiResult<INewsTimeline>> {
   let url = `/api/analytics/news/timeline?hours=${hours}&exchange=${exchange}`;
   if (ticker) url += `&ticker=${ticker}`;
+  if (region) url += `&region=${region}`;
   return apiClient.get(url);
 }
 
@@ -561,11 +577,13 @@ export async function getNewsStories(
   limit = 10,
   ticker?: string,
   exchange?: string,
+  region?: string,
   signal?: AbortSignal
 ): Promise<ApiResult<{ stories: IStoryArc[]; count: number }>> {
   let url = `/api/analytics/news/stories?hours=${hours}&limit=${limit}`;
   if (ticker) url += `&ticker=${ticker}`;
   if (exchange) url += `&exchange=${exchange}`;
+  if (region) url += `&region=${region}`;
   return apiClient.get(url, undefined, { signal });
 }
 
@@ -602,11 +620,14 @@ export async function getSentimentDivergence(
 
 export async function getMorningBrief(
   exchange?: string,
+  region?: string,
   signal?: AbortSignal
 ): Promise<ApiResult<IMorningBrief>> {
-  let url = '/api/analytics/news/brief';
-  if (exchange) url += `?exchange=${exchange}`;
-  return apiClient.get(url, undefined, { signal });
+  const params = new URLSearchParams();
+  if (exchange) params.set('exchange', exchange);
+  if (region) params.set('region', region);
+  const qs = params.toString();
+  return apiClient.get(`/api/analytics/news/brief${qs ? `?${qs}` : ''}`, undefined, { signal });
 }
 
 // ─── News Intelligence: Portfolio News ──────────────────────────
@@ -626,6 +647,16 @@ export async function getPortfolioNews(
   params.set('hours', String(hours));
   const qs = params.toString();
   return apiClient.get(`/api/analytics/news/portfolio${qs ? `?${qs}` : ''}`, undefined, { signal });
+}
+
+// ─── News Intelligence: Geo-Sentiment & Impact Chains ───────────
+
+export async function getGeoSentiment(hours = 24): Promise<ApiResult<IGeoSentiment[]>> {
+  return apiClient.get(`/api/analytics/news/geo-sentiment?hours=${hours}`);
+}
+
+export async function getImpactChains(hours = 72, limit = 5): Promise<ApiResult<IImpactChain[]>> {
+  return apiClient.get(`/api/analytics/news/impact-chains?hours=${hours}&limit=${limit}`);
 }
 
 // =============================================================================
@@ -755,9 +786,10 @@ export async function getCurrencyPairs(): Promise<ApiResult<IForexPairList>> {
 }
 
 export async function getCurrencyCrossRates(
-  timeframe: string = '1d'
+  timeframe: string = '1d',
+  mode: string = 'g10'
 ): Promise<ApiResult<ICrossRatesMatrix>> {
-  return apiClient.get(`/api/analytics/currency/cross-rates?timeframe=${timeframe}`);
+  return apiClient.get(`/api/analytics/currency/cross-rates?timeframe=${timeframe}&mode=${mode}`);
 }
 
 export async function getCurrencyTopMovers(signal?: AbortSignal): Promise<ApiResult<ITopMovers>> {
@@ -846,5 +878,22 @@ export async function deletePriceAlert(
   alertId: string
 ): Promise<ApiResult<{ success: boolean }>> {
   return apiClient.delete(`/api/analytics/currency/alerts/${alertId}`);
+}
+
+// =============================================================================
+// Forex Pattern Scanner
+// =============================================================================
+
+export async function getForexPatternScanner(opts?: {
+  categories?: string;
+  direction?: string;
+  minQuality?: string;
+}): Promise<ApiResult<IScannerResult>> {
+  const params = new URLSearchParams();
+  if (opts?.categories) params.set('categories', opts.categories);
+  if (opts?.direction) params.set('direction', opts.direction);
+  if (opts?.minQuality) params.set('min_quality', opts.minQuality);
+  const qs = params.toString();
+  return apiClient.get(`/api/analytics/scanner/forex${qs ? `?${qs}` : ''}`);
 }
 

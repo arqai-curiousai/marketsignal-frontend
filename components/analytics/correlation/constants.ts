@@ -135,24 +135,6 @@ const LSE_STOCK_ASSETS: Asset[] = [
   { ticker: 'NG', name: 'National Grid', type: 'stock', sector: 'Utilities' },
 ];
 
-const SGX_STOCK_ASSETS: Asset[] = [
-  { ticker: 'D05', name: 'DBS Group', type: 'stock', sector: 'Financials' },
-  { ticker: 'O39', name: 'OCBC Bank', type: 'stock', sector: 'Financials' },
-  { ticker: 'U11', name: 'United Overseas Bank', type: 'stock', sector: 'Financials' },
-  { ticker: 'Z74', name: 'Singtel', type: 'stock', sector: 'Communication Services' },
-  { ticker: 'BN4', name: 'Keppel', type: 'stock', sector: 'Industrials' },
-  { ticker: 'C38U', name: 'CapitaLand Integrated', type: 'stock', sector: 'Real Estate' },
-  { ticker: 'A17U', name: 'CapitaLand Ascendas REIT', type: 'stock', sector: 'Real Estate' },
-  { ticker: 'C09', name: 'City Developments', type: 'stock', sector: 'Real Estate' },
-  { ticker: 'G13', name: 'Genting Singapore', type: 'stock', sector: 'Consumer Discretionary' },
-  { ticker: 'S58', name: 'SATS', type: 'stock', sector: 'Industrials' },
-  { ticker: 'S68', name: 'Singapore Exchange', type: 'stock', sector: 'Financials' },
-  { ticker: 'C6L', name: 'Singapore Airlines', type: 'stock', sector: 'Industrials' },
-  { ticker: 'Y92', name: 'Thai Beverage', type: 'stock', sector: 'Consumer Staples' },
-  { ticker: 'F34', name: 'Wilmar International', type: 'stock', sector: 'Consumer Staples' },
-  { ticker: 'BS6', name: 'Yangzijiang Shipbuilding', type: 'stock', sector: 'Industrials' },
-];
-
 const HKSE_STOCK_ASSETS: Asset[] = [
   { ticker: '0700', name: 'Tencent', type: 'stock', sector: 'Communication Services' },
   { ticker: '9988', name: 'Alibaba', type: 'stock', sector: 'Consumer Discretionary' },
@@ -176,16 +158,29 @@ const HKSE_STOCK_ASSETS: Asset[] = [
   { ticker: '0016', name: 'Sun Hung Kai Properties', type: 'stock', sector: 'Real Estate' },
 ];
 
-/** Stock assets by exchange. */
+// ── Dynamic asset cache (populated by fetchStockAssets) ──────────────
+const _dynamicCache = new Map<string, Asset[]>();
+
+/** Stock assets by exchange. Uses dynamic cache (from API) when available, else hardcoded fallback. */
 export function getStockAssets(exchange: string): Asset[] {
-  switch (exchange.toUpperCase()) {
+  const key = exchange.toUpperCase();
+  if (_dynamicCache.has(key)) return _dynamicCache.get(key)!;
+  switch (key) {
     case 'NSE': return NSE_STOCK_ASSETS;
     case 'NASDAQ': return NASDAQ_STOCK_ASSETS;
     case 'NYSE': return NYSE_STOCK_ASSETS;
     case 'LSE': return LSE_STOCK_ASSETS;
-    case 'SGX': return SGX_STOCK_ASSETS;
     case 'HKSE': return HKSE_STOCK_ASSETS;
     default: return [];
+  }
+}
+
+/** Populate the dynamic cache from an API response. Call this after fetching instruments. */
+export function setDynamicStockAssets(exchange: string, assets: Asset[]): void {
+  _dynamicCache.set(exchange.toUpperCase(), assets);
+  // Also rebuild global ASSET_MAP with fresh data
+  for (const a of assets) {
+    ASSET_MAP.set(a.ticker, a);
   }
 }
 
@@ -211,7 +206,7 @@ export const ALL_ASSETS: Asset[] = [...NSE_STOCK_ASSETS, ...CURRENCY_ASSETS, ...
 /** Comprehensive asset map across ALL exchanges — used by all correlation components. */
 const ALL_EXCHANGE_ASSETS: Asset[] = [
   ...NSE_STOCK_ASSETS, ...NASDAQ_STOCK_ASSETS, ...NYSE_STOCK_ASSETS,
-  ...LSE_STOCK_ASSETS, ...SGX_STOCK_ASSETS, ...HKSE_STOCK_ASSETS,
+  ...LSE_STOCK_ASSETS, ...HKSE_STOCK_ASSETS,
   ...CURRENCY_ASSETS, ...COMMODITY_ASSETS,
 ];
 export const ASSET_MAP = new Map(ALL_EXCHANGE_ASSETS.map((a) => [a.ticker, a]));
@@ -251,12 +246,6 @@ const LSE_QUICK_GROUPS = [
   { label: 'Consumer', tickers: ['ULVR', 'DGE', 'BATS', 'TSCO'] },
 ];
 
-const SGX_QUICK_GROUPS = [
-  { label: 'Banks', tickers: ['D05', 'O39', 'U11'] },
-  { label: 'REITs', tickers: ['C38U', 'A17U'] },
-  { label: 'Industrials', tickers: ['BN4', 'S58', 'C6L', 'BS6'] },
-];
-
 const HKSE_QUICK_GROUPS = [
   { label: 'Tech', tickers: ['0700', '9988', '9618', '9999', '3690'] },
   { label: 'Banks', tickers: ['0005', '1398', '3988', '2318'] },
@@ -270,7 +259,6 @@ export function getQuickGroups(exchange: string): { label: string; tickers: stri
     case 'NASDAQ': return NASDAQ_QUICK_GROUPS;
     case 'NYSE': return NYSE_QUICK_GROUPS;
     case 'LSE': return LSE_QUICK_GROUPS;
-    case 'SGX': return SGX_QUICK_GROUPS;
     case 'HKSE': return HKSE_QUICK_GROUPS;
     case 'NSE':
     default: return QUICK_GROUPS;

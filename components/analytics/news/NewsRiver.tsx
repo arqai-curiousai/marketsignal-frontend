@@ -10,7 +10,7 @@ import { useNewsFilters } from './hooks/useNewsFilters';
 import { useMarketIntelligence } from './hooks/useMarketIntelligence';
 
 // New components
-import { ScopeTabs } from './ScopeTabs';
+import { RegionCommandBar } from './RegionCommandBar';
 import { MarketPulseBar } from './MarketPulseBar';
 import { BreakingWire } from './BreakingWire';
 
@@ -21,12 +21,14 @@ import { RiverFlow } from './RiverFlow';
 import { ArticleExpansion } from './ArticleExpansion';
 
 // Intelligence components
-import { MorningBriefCard } from './MorningBriefCard';
+import { GlobalBriefCard } from './GlobalBriefCard';
 import { DivergenceRow } from './DivergenceRow';
 import { PortfolioNewsPanel } from './PortfolioNewsPanel';
 import { StoryThread } from './StoryThread';
 
 // Map/Explore mode components
+import GeoSentimentMap from './GeoSentimentMap';
+import { MultiRegionDeck } from './MultiRegionDeck';
 import { NewsNetworkGraph } from './NewsNetworkGraph';
 import { NewsMindMap } from './NewsMindMap';
 import { NewsTimeline } from './NewsTimeline';
@@ -36,6 +38,8 @@ import { ExportButton } from '@/components/ui/ExportButton';
 import { FileSpreadsheet, Image as ImageIcon } from 'lucide-react';
 import { downloadCSV, downloadPNG } from '@/src/lib/utils/export';
 import { getSourceDisplayName } from './constants';
+import { getGeoSentiment } from '@/src/lib/api/analyticsApi';
+import type { IGeoSentiment } from '@/types/analytics';
 
 interface NewsRiverProps {
   exchange: string;
@@ -54,8 +58,8 @@ type ExploreView = 'constellation' | 'mindmap' | 'timeline';
 export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
   // ── Hooks ──────────────────────────────────────────────────────
   const filters = useNewsFilters();
-  // Use scope-derived exchange instead of parent exchange for news data
-  const data = useNewsData(filters.timeRange, filters.exchange, null);
+  // Use region-derived params instead of parent exchange for news data
+  const data = useNewsData(filters.timeRange, filters.regionParam, filters.exchange, null);
 
   const tickerOptions = useMemo(
     () => getAllAssets(filters.exchange === 'GLOBAL' ? 'NASDAQ' : filters.exchange).map((a) => a.ticker),
@@ -190,6 +194,9 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
           setView('feed');
           break;
         case '2':
+          setView('deck');
+          break;
+        case '3':
           setView('explore');
           break;
         case 's':
@@ -234,42 +241,64 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
       published_at: a.published_at || '',
       url: a.url,
     }));
-    downloadCSV(rows, `news-${filters.scope}-${new Date().toISOString().slice(0, 10)}`);
-  }, [filteredArticles, filters.scope]);
+    const regionLabel = filters.regions.size === 0 ? 'all' : Array.from(filters.regions).sort().join('-');
+    downloadCSV(rows, `news-${regionLabel}-${new Date().toISOString().slice(0, 10)}`);
+  }, [filteredArticles, filters.regions]);
 
   const handleExportPNG = useCallback(async () => {
     if (riverRef.current) {
-      await downloadPNG(riverRef.current, `news-${view}-${filters.scope}`);
+      const regionLabel = filters.regions.size === 0 ? 'all' : Array.from(filters.regions).sort().join('-');
+      await downloadPNG(riverRef.current, `news-${view}-${regionLabel}`);
     }
-  }, [view, filters.scope]);
+  }, [view, filters.regions]);
 
   const exportOptions = useMemo(() => [
     { label: 'CSV (articles)', icon: <FileSpreadsheet className="h-3 w-3" />, onClick: handleExportCSV },
     { label: 'PNG (screenshot)', icon: <ImageIcon className="h-3 w-3" />, onClick: handleExportPNG },
   ], [handleExportCSV, handleExportPNG]);
 
-  const isIndiaScope = filters.scope === 'india';
+  // ── Geo sentiment for RegionCommandBar badges ──────────────────
+  const [geoSentiment, setGeoSentiment] = useState<IGeoSentiment[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    getGeoSentiment(filters.timeRange).then((res) => {
+      if (!cancelled && res && res.success && res.data) setGeoSentiment(res.data);
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [filters.timeRange]);
 
   return (
     <div className="space-y-3" ref={riverRef}>
-      {/* Scope toggle — India | Global */}
+      {/* Region command bar — multi-select region pills */}
       <div className="flex items-center justify-between gap-3">
-        <ScopeTabs scope={filters.scope} onScopeChange={filters.setScope} />
+        <RegionCommandBar
+          regions={filters.regions}
+          onToggle={filters.toggleRegion}
+          geoSentiment={geoSentiment}
+        />
         <ExportButton options={exportOptions} className="export-exclude shrink-0" />
       </div>
 
-      {/* Market Pulse — 4 KPI cards */}
+      {/* Geo Sentiment Map — hero visualization */}
+      <GeoSentimentMap
+        geoSentiment={geoSentiment}
+        activeRegions={filters.regions}
+        onRegionClick={filters.toggleRegion}
+      />
+
+      {/* Market Pulse — global KPI cards + region row */}
       <MarketPulseBar
         articles={filteredArticles}
         clusters={baseClusters}
         onTickerClick={handleTickerClick}
+        geoSentiment={geoSentiment}
       />
 
       {/* Filter bar with view toggle */}
       <NewsFilterBar
         view={view}
         onViewChange={setView}
-        scope={filters.scope}
+        regions={filters.regions}
         timeRange={filters.timeRange}
         sentimentFilter={filters.sentimentFilter}
         sourceFilter={filters.sourceFilter}
@@ -307,18 +336,17 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
       {/* ═══ FEED VIEW ═══ */}
       {view === 'feed' && (
         <div className="space-y-4">
-          {/* Portfolio News — India scope only */}
-          {isIndiaScope && <PortfolioNewsPanel exchange={filters.exchange} />}
+          {/* Portfolio News — always shown */}
+          <PortfolioNewsPanel exchange={filters.exchange} />
 
-          {/* Morning Brief — India scope only */}
-          {isIndiaScope && (
-            <MorningBriefCard
-              brief={intel.brief}
-              loading={intel.briefLoading}
-              dismissed={intel.briefDismissed}
-              onDismiss={intel.dismissBrief}
-            />
-          )}
+          {/* Global Brief — region-aware morning brief */}
+          <GlobalBriefCard
+            brief={intel.brief}
+            loading={intel.briefLoading}
+            dismissed={intel.briefDismissed}
+            onDismiss={intel.dismissBrief}
+            geoSentiment={geoSentiment}
+          />
 
           {/* Divergence Row — contrarian signals */}
           <DivergenceRow
@@ -405,6 +433,16 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
             onLoadMore={data.loadMore}
           />
         </div>
+      )}
+
+      {/* ═══ DECK VIEW — Bloomberg multi-column layout ═══ */}
+      {view === 'deck' && (
+        <MultiRegionDeck
+          articles={filteredArticles}
+          regions={filters.regions}
+          onSelectArticle={handleSelectArticle}
+          onTickerClick={handleTickerClick}
+        />
       )}
 
       {/* ═══ EXPLORE VIEW ═══ */}

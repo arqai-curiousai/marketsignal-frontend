@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, TrendingUp, TrendingDown, RefreshCw, Triangle } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { AlertTriangle, TrendingUp, TrendingDown, RefreshCw, Triangle, ChevronDown, ChevronUp } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { getCurrencyStrength } from '@/src/lib/api/analyticsApi';
@@ -16,7 +16,9 @@ const TIMEFRAMES: { id: Timeframe; label: string }[] = [
   { id: '3m', label: '3M' },
 ];
 
-const CURRENCIES = ['USD', 'EUR', 'GBP', 'JPY', 'INR'] as const;
+/** G10 + INR shown by default; exotic/EM currencies in "Show all" */
+const CORE_CURRENCIES = new Set(['USD', 'EUR', 'GBP', 'JPY', 'CHF', 'CAD', 'AUD', 'NZD', 'INR', 'SEK', 'NOK']);
+const DEFAULT_VISIBLE = 10;
 
 interface CurrencyValues {
   '1d': number;
@@ -132,6 +134,7 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
   const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState<string | null>(null);
   const [selectedTf, setSelectedTf] = useState<Timeframe>('1d');
+  const [showAll, setShowAll] = useState(false);
 
   // Sync external data when parent refreshes
   useEffect(() => {
@@ -164,11 +167,34 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
     }
   }, [fetchData, initialData]);
 
+  // All hooks must be called before any early returns (React rules of hooks)
+  const currencies = data?.currencies ?? {};
+
+  const sorted = useMemo(() =>
+    Object.keys(currencies)
+      .filter((c) => currencies[c])
+      .map((c) => ({
+        currency: c,
+        values: currencies[c] as CurrencyValues,
+        sortValue: (currencies[c] as CurrencyValues)[selectedTf] ?? 0,
+        isCore: CORE_CURRENCIES.has(c),
+      }))
+      .sort((a, b) => b.sortValue - a.sortValue),
+    [currencies, selectedTf],
+  );
+
+  const visibleSorted = useMemo(() => {
+    if (showAll) return sorted;
+    const core = sorted.filter(s => s.isCore);
+    const exotic = sorted.filter(s => !s.isCore);
+    return [...core, ...exotic].slice(0, DEFAULT_VISIBLE);
+  }, [sorted, showAll]);
+
   if (loading) {
     return (
       <div className="space-y-4">
         <Skeleton className="h-8 w-48" />
-        {Array.from({ length: 9 }).map((_, i) => (
+        {Array.from({ length: DEFAULT_VISIBLE }).map((_, i) => (
           <Skeleton key={i} className="h-6" />
         ))}
       </div>
@@ -190,7 +216,7 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
     );
   }
 
-  if (!data?.currencies) {
+  if (!data?.currencies || sorted.length === 0) {
     return (
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-6">
         <p className="text-sm text-muted-foreground">No strength data available</p>
@@ -198,16 +224,7 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
     );
   }
 
-  const currencies = data.currencies;
-
-  // Build sorted list for selected timeframe
-  const sorted = CURRENCIES.filter((c) => currencies[c])
-    .map((c) => ({
-      currency: c,
-      values: currencies[c] as CurrencyValues,
-      sortValue: (currencies[c] as CurrencyValues)[selectedTf] ?? 0,
-    }))
-    .sort((a, b) => b.sortValue - a.sortValue);
+  const hasHidden = sorted.length > DEFAULT_VISIBLE;
 
   const maxAbsValue = Math.max(
     ...sorted.map((s) => Math.abs(s.sortValue)),
@@ -251,7 +268,7 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
 
         {/* Strength bars */}
         <div className="space-y-0">
-          {sorted.map((item) => (
+          {visibleSorted.map((item) => (
             <StrengthBar
               key={item.currency}
               currency={item.currency}
@@ -261,6 +278,26 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
             />
           ))}
         </div>
+
+        {/* Show more / less toggle */}
+        {hasHidden && (
+          <button
+            onClick={() => setShowAll(prev => !prev)}
+            className="flex items-center gap-1 mx-auto mt-2 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            {showAll ? (
+              <>
+                <ChevronUp className="h-3 w-3" />
+                Show fewer ({DEFAULT_VISIBLE})
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3 w-3" />
+                Show all {sorted.length} currencies
+              </>
+            )}
+          </button>
+        )}
 
         {/* Multi-timeframe grid */}
         <div className="mt-4 pt-3 border-t border-white/[0.04]">
@@ -288,7 +325,7 @@ export function CurrencyStrengthMeter({ initialData }: CurrencyStrengthMeterProp
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((item) => (
+                {visibleSorted.map((item) => (
                   <tr key={item.currency}>
                     <td className="py-0.5 font-medium">{item.currency}</td>
                     {TIMEFRAMES.map((tf) => {

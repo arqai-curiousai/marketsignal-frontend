@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { StockList } from '@/components/stocks/StockList';
@@ -79,11 +79,17 @@ export default function StocksDashboard() {
         }
     }, [isAuthenticated]);
 
+    // Stable key derived from actual watchlist content (not just length)
+    const watchlistKey = useMemo(
+        () => watchlistItems.map((w: WatchlistItem) => w.ticker).sort().join(','),
+        [watchlistItems],
+    );
+
     useEffect(() => {
         if (isAuthenticated && watchlistItems.length > 0) {
             fetchActiveSignals();
         }
-    }, [isAuthenticated, watchlistItems.length, fetchActiveSignals]);
+    }, [isAuthenticated, watchlistKey, fetchActiveSignals]); // eslint-disable-line react-hooks/exhaustive-deps
 
     return (
         <div className="container py-8 md:py-12 px-4 md:px-6 max-w-[1440px] mx-auto">

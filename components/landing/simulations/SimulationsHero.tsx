@@ -6,6 +6,7 @@ import { SIM_HERO } from '../constants/simulations';
 export function SimulationsHero() {
   return (
     <LandingHero
+      badge="Simulation Lab"
       headlineBold={SIM_HERO.headlineBold}
       headlineSerif={SIM_HERO.headlineSerif}
       sub={SIM_HERO.sub}
@@ -13,11 +14,12 @@ export function SimulationsHero() {
       secondaryCta={SIM_HERO.secondaryCta}
       video={SIM_HERO.video}
       blobColors={[
-        'bg-brand-violet/[0.05]',
-        'bg-indigo-400/[0.04]',
-        'bg-brand-blue/[0.03]',
+        'bg-brand-violet/[0.04]',
+        'bg-indigo-400/[0.03]',
+        'bg-brand-blue/[0.02]',
       ]}
       accentColor="violet"
+      socialProof="Monte Carlo \u00B7 Portfolio Optimizer \u00B7 Free"
     />
   );
 }

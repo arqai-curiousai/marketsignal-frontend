@@ -21,9 +21,9 @@ export const FOREX_ACCENT = {
 
 // ── Hero ──
 export const FOREX_HERO = {
-  headlineBold: 'See the Signal',
-  headlineSerif: 'Through the Noise',
-  sub: '28 global forex pairs. Real-time technicals, volatility analysis, carry trade metrics, and AI-curated news impact scoring across every major session',
+  headlineBold: 'Read the Market',
+  headlineSerif: 'Before the Move',
+  sub: '42 global forex pairs across 17 currencies. Real-time technicals, volatility analysis, carry trade metrics, and AI-curated news intelligence across every major session.',
   primaryCta: { label: 'Open the Dashboard', href: '/login' },
   secondaryCta: { label: 'See How It Works', href: '#showcase' },
   video: {
@@ -35,9 +35,9 @@ export const FOREX_HERO = {
 
 // ── Trust Bar Stats ──
 export const FOREX_STATS = [
-  { value: '28', suffix: '', label: 'Forex Pairs', icon: 'currency' as const },
+  { value: '42', suffix: '', label: 'Forex Pairs', icon: 'currency' as const },
   { value: '3', suffix: '', label: 'Global Sessions', icon: 'globe' as const },
-  { value: '8', suffix: '', label: 'Currencies', icon: 'chart' as const },
+  { value: '17', suffix: '', label: 'Currencies', icon: 'chart' as const },
   { value: '2', suffix: '', label: 'AI Agents', icon: 'agents' as const },
   { value: '5', suffix: 'min', label: 'Refresh Rate', icon: 'refresh' as const },
 ];
@@ -58,9 +58,9 @@ export const FOREX_SHOWCASE_PANELS: ForexShowcasePanel[] = [
     id: 'heatmap',
     icon: DollarSign,
     label: 'FOREX HEATMAP',
-    headline: '28 Pairs, One Grid',
+    headline: '42 Pairs, Three Matrix Modes',
     description:
-      'Cross-pair performance across all 28 forex pairs, color-coded by change. Filter by session. Spot momentum shifts and outliers before they become consensus',
+      'Cross-pair performance across all 42 forex pairs with G10, Full, and Exotics matrix views. Spot momentum shifts and outliers before they become consensus',
     features: [
       'Color-coded performance grid across all tracked pairs',
       'Top movers and gainers/losers at a glance',
@@ -75,12 +75,12 @@ export const FOREX_SHOWCASE_PANELS: ForexShowcasePanel[] = [
     label: 'CURRENCY STRENGTH',
     headline: 'Who\'s Leading, Who\'s Lagging',
     description:
-      'Currency strength meter scoring USD, EUR, GBP, JPY, INR, and more against their basket. Carry trade differentials and interest rate context baked in.',
+      'Currency strength meter scoring all 17 currencies — G10, INR, SGD, CNH, MXN, ZAR, TRY — against their basket. Carry trade differentials and interest rate context baked in.',
     features: [
       'Strength index for each major currency',
       'Carry trade yield differentials by pair',
       'Central bank rate dashboard (Fed, ECB, BOJ, RBI)',
-      'COT positioning data for futures context',
+      'Momentum and trend alignment across currency baskets',
     ],
     video: { webm: '/landing/videos/forex-strength.webm', mp4: '/landing/videos/forex-strength.mp4' },
   },
@@ -145,8 +145,8 @@ export const FOREX_MODULES: ForexModule[] = FOREX_SHOWCASE_PANELS.map((panel) =>
 // ── Heatmap Showcase (deep-dive section) ──
 export const FOREX_HEATMAP_SHOWCASE = {
   label: 'FOREX HEATMAP',
-  headline: '28 Pairs, One Grid',
-  sub: 'Cross-pair performance across all 28 forex pairs, color-coded by change. Filter by session, timeframe, or pair group. Spot momentum shifts and outliers before they become consensus.',
+  headline: '42 Pairs, Three Matrix Modes',
+  sub: 'Cross-pair performance across all 42 forex pairs, color-coded by change. Filter by session, timeframe, or pair group. Spot momentum shifts and outliers before they become consensus.',
   features: [
     { title: 'Performance Grid', description: 'Color-coded cells showing real-time % change across all pairs' },
     { title: 'Top Movers', description: 'Instant visibility into gainers, losers, and volatility spikes' },
@@ -160,12 +160,12 @@ export const FOREX_HEATMAP_SHOWCASE = {
 export const FOREX_STRENGTH_SHOWCASE = {
   label: 'CURRENCY STRENGTH',
   headline: 'Who\'s Leading, Who\'s Lagging',
-  sub: 'Relative strength scoring for 8 major currencies against their basket. Carry trade yield differentials and central bank rate context help you identify the strongest trends.',
+  sub: 'Relative strength scoring for all 17 tracked currencies against their basket. Carry trade yield differentials and central bank rate context help you identify the strongest trends.',
   features: [
-    { title: 'Strength Index', description: 'Real-time scoring for USD, EUR, GBP, JPY, INR, AUD, CAD, CHF' },
+    { title: 'Strength Index', description: 'Real-time scoring for all 17 currencies — G10, INR, SGD, CNH, MXN, ZAR, TRY' },
     { title: 'Carry Trade', description: 'Yield differentials and interest rate spreads by pair' },
     { title: 'Central Banks', description: 'Rate dashboard tracking Fed, ECB, BOJ, RBI policy' },
-    { title: 'COT Data', description: 'Commitment of Traders positioning for futures context' },
+    { title: 'Momentum Overlay', description: 'Rate-of-change and trend alignment across all currency baskets' },
   ],
   video: { webm: '/landing/videos/forex-strength.webm', mp4: '/landing/videos/forex-strength.mp4' },
 };
@@ -188,12 +188,12 @@ export const FOREX_TECHNICALS_SHOWCASE = {
 export const FOREX_COVERAGE = {
   headline: 'Built for Forex Traders',
   headlineSerif: 'Powered by Global Data',
-  body: '28 forex pairs tracking every major session — Asia, London, New York. Plus 260+ stocks across NSE, NASDAQ, NYSE, LSE, SGX, and HKSE with sector analytics, fundamentals, and earnings calendars.',
+  body: '42 forex pairs tracking every major session — Asia, London, New York. Plus 260+ stocks across NSE, NASDAQ, NYSE, LSE, and HKSE with sector analytics, fundamentals, and earnings calendars.',
   features: [
-    '28 forex pairs with carry trade metrics and session tracking',
+    '42 forex pairs with carry trade metrics and session tracking',
     '260+ stocks across 6 global exchanges',
     '5 MCX commodities (Gold, Silver, Crude, Copper, Natural Gas)',
-    '10+ news sources curated for forex impact and macro events',
+    '20+ news sources across 6 global regions curated for forex impact and macro events',
   ],
   sessions: [
     { id: 'asia', label: 'Asia-Pacific', city: 'Tokyo', time: '00:00 – 09:00 UTC' },
@@ -205,7 +205,6 @@ export const FOREX_COVERAGE = {
     { id: 'NASDAQ', label: 'NASDAQ', city: 'New York', x: 25, y: 35 },
     { id: 'NYSE', label: 'NYSE', city: 'New York', x: 27, y: 37 },
     { id: 'LSE', label: 'LSE', city: 'London', x: 47, y: 30 },
-    { id: 'SGX', label: 'SGX', city: 'Singapore', x: 76, y: 52 },
     { id: 'HKSE', label: 'HKSE', city: 'Hong Kong', x: 80, y: 40 },
   ],
 };
@@ -213,7 +212,7 @@ export const FOREX_COVERAGE = {
 // ── Final CTA ──
 export const FOREX_CTA = {
   headline: 'The Forex Terminal You Actually Want',
-  sub: '28 pairs. Three sessions. Two AI agents. Free to start',
+  sub: '42 pairs. 17 currencies. Three sessions. Two AI agents. Free to start',
   cta: { label: 'Open the Dashboard', href: '/login' },
   video: {
     webm: '/landing/videos/forex-cta.webm',

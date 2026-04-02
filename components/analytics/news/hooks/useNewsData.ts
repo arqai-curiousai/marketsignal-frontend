@@ -87,6 +87,7 @@ export interface UseNewsDataReturn {
 
 export function useNewsData(
   timeRange: number,
+  regionParam: string,
   exchange: string,
   selectedTicker: string | null,
 ): UseNewsDataReturn {
@@ -145,9 +146,9 @@ export function useNewsData(
     offsetRef.current = 0;
     try {
       const settled = await Promise.allSettled([
-        getNewsClusters(timeRange, 10, exchange),
-        getMarketNews(timeRange, 50, exchange, 0),
-        getNewsImpact(timeRange, undefined, 50, exchange),
+        getNewsClusters(timeRange, 10, exchange, regionParam),
+        getMarketNews(timeRange, 50, exchange, 0, regionParam),
+        getNewsImpact(timeRange, undefined, 50, exchange, regionParam),
       ]);
 
       const clustersRes = settled[0].status === 'fulfilled' ? settled[0].value : { success: false as const, data: null };
@@ -180,18 +181,22 @@ export function useNewsData(
     } finally {
       setFeedLoading(false);
     }
-  }, [timeRange, exchange]);
+  }, [timeRange, exchange, regionParam]);
+
+  // Keep a stable ref to fetchFeed so the interval never churns
+  const fetchFeedRef = useRef(fetchFeed);
+  useEffect(() => { fetchFeedRef.current = fetchFeed; }, [fetchFeed]);
 
   // Initial fetch + re-fetch on deps change
   useEffect(() => {
     fetchFeed();
   }, [fetchFeed]);
 
-  // Auto-refresh every 5 minutes
+  // Auto-refresh every 5 minutes (stable interval — deps never change)
   useEffect(() => {
-    const interval = setInterval(fetchFeed, NEWS_REFRESH_INTERVAL_MS);
+    const interval = setInterval(() => fetchFeedRef.current(), NEWS_REFRESH_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [fetchFeed]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Countdown timer
   useEffect(() => {
@@ -205,7 +210,7 @@ export function useNewsData(
     return () => clearInterval(timer);
   }, [lastUpdated]);
 
-  // ── SSE connection (reconnects on exchange change) ─────────────
+  // ── SSE connection (reconnects on exchange/region change) ─────────────
   useEffect(() => {
     let retryDelay = 1000;
     const maxRetryDelay = 30_000;
@@ -217,9 +222,12 @@ export function useNewsData(
       if (eventSourceRef.current) eventSourceRef.current.close();
       seenIds.clear();
 
-      const es = new EventSource(
-        `${NEWS_STREAM_URL}?exchange=${encodeURIComponent(exchange)}`
-      );
+      let streamUrl = `${NEWS_STREAM_URL}?exchange=${encodeURIComponent(exchange)}`;
+      if (regionParam) {
+        streamUrl += `&region=${encodeURIComponent(regionParam)}`;
+      }
+
+      const es = new EventSource(streamUrl);
       eventSourceRef.current = es;
 
       es.onopen = () => {
@@ -234,9 +242,14 @@ export function useNewsData(
 
           const article = JSON.parse(event.data) as INewsArticle;
 
-          // O(1) dedup via Set
+          // O(1) dedup via bounded Set (prevent unbounded memory growth)
           if (seenIds.has(article.id)) return;
           seenIds.add(article.id);
+          if (seenIds.size > 2000) {
+            const keep = Array.from(seenIds).slice(-1000);
+            seenIds.clear();
+            keep.forEach((id) => seenIds.add(id));
+          }
 
           setFallbackArticles((prev) => [article, ...prev].slice(0, 100));
 
@@ -278,7 +291,7 @@ export function useNewsData(
       }
       seenIds.clear();
     };
-  }, [exchange]);
+  }, [exchange, regionParam]);
 
   const dismissBreaking = useCallback((id: string) => {
     setBreakingArticles((prev) => prev.filter((a) => a.id !== id));
@@ -308,7 +321,7 @@ export function useNewsData(
     loadingMoreRef.current = true;
     setLoadingMore(true);
     try {
-      const res = await getMarketNews(timeRange, 50, exchange, offsetRef.current);
+      const res = await getMarketNews(timeRange, 50, exchange, offsetRef.current, regionParam);
       if (res.success && res.data?.items) {
         setFallbackArticles((prev) => [...prev, ...res.data?.items ?? []]);
         setHasMore(res.data.has_more ?? false);
@@ -320,24 +333,30 @@ export function useNewsData(
       loadingMoreRef.current = false;
       setLoadingMore(false);
     }
-  }, [timeRange, exchange, hasMore]);
+  }, [timeRange, exchange, regionParam, hasMore]);
 
   // ── Search (debounced) ──────────────────────────────────────────
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchActiveRef = useRef(false);
   const handleSearch = useCallback(
     (query: string) => {
       if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
 
       if (!query || query.length < 2) {
-        setSearchResults([]);
+        // Only clear results if a search was previously active (avoid premature empty flash)
+        if (searchActiveRef.current) {
+          setSearchResults([]);
+          searchActiveRef.current = false;
+        }
         setSearchLoading(false);
         return;
       }
 
       setSearchLoading(true);
       searchTimerRef.current = setTimeout(async () => {
+        searchActiveRef.current = true;
         try {
-          const res = await searchNews(query, 20, exchange);
+          const res = await searchNews(query, 20, exchange, regionParam);
           if (res.success && res.data?.items) {
             setSearchResults(res.data.items);
           } else {
@@ -350,7 +369,7 @@ export function useNewsData(
         }
       }, 300);
     },
-    [exchange]
+    [exchange, regionParam]
   );
 
   // Cleanup search timer
@@ -368,7 +387,8 @@ export function useNewsData(
       const res = await getNewsGraph(
         timeRange,
         selectedTicker || undefined,
-        exchange
+        exchange,
+        regionParam
       );
       if (res.success && res.data) setGraph(res.data);
     } catch {
@@ -377,7 +397,7 @@ export function useNewsData(
     } finally {
       setGraphLoading(false);
     }
-  }, [selectedTicker, timeRange, exchange]);
+  }, [selectedTicker, timeRange, exchange, regionParam]);
 
   // ── Mind Map ───────────────────────────────────────────────────
   const fetchMindMap = useCallback(async (ticker: string) => {
@@ -407,7 +427,8 @@ export function useNewsData(
       const res = await getNewsTimeline(
         timeRange,
         selectedTicker || undefined,
-        exchange
+        exchange,
+        regionParam
       );
       if (res.success && res.data) setTimeline(res.data);
     } catch {
@@ -416,7 +437,7 @@ export function useNewsData(
     } finally {
       setTimelineLoading(false);
     }
-  }, [selectedTicker, timeRange, exchange]);
+  }, [selectedTicker, timeRange, exchange, regionParam]);
 
   // ── Entity data (race-condition safe) ──────────────────────────
   const fetchEntityData = useCallback(async (articleId: string) => {

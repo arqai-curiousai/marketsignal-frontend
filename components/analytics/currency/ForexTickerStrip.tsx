@@ -1,9 +1,14 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ICurrencyOverview, ICurrencyPairSnapshot } from '@/src/types/analytics';
+import {
+  FOREX_FILTER_CATEGORIES,
+  getPairsForCategory,
+  type ForexFilterCategory,
+} from './constants';
 
 interface ForexTickerStripProps {
   onSelectPair: (pair: string) => void;
@@ -97,26 +102,75 @@ function TickerChip({
 }
 
 export function ForexTickerStrip({ onSelectPair, overview }: ForexTickerStripProps) {
-  const pairs = useMemo(() => overview?.pairs ?? [], [overview]);
+  const allPairs = useMemo(() => overview?.pairs ?? [], [overview]);
+  const [filterCat, setFilterCat] = useState<ForexFilterCategory>('all');
 
-  if (!pairs.length) return null;
+  // Build a set of tickers allowed by the selected category
+  const allowedTickers = useMemo(() => {
+    const categoryPairs = getPairsForCategory(filterCat);
+    return new Set(categoryPairs);
+  }, [filterCat]);
 
-  // Triple for seamless scroll on wide screens
-  const allChips = [...pairs, ...pairs, ...pairs];
+  // Filter the overview pairs by selected category
+  const filteredPairs = useMemo(
+    () => allPairs.filter(p => allowedTickers.has(p.ticker)),
+    [allPairs, allowedTickers],
+  );
+
+  if (!allPairs.length) return null;
+
+  // Duplicate for seamless scroll — fewer dupes needed if filtered set is small
+  const dupeCount = filteredPairs.length <= 10 ? 4 : 3;
+  const scrollPairs = Array.from({ length: dupeCount }, () => filteredPairs).flat();
+
+  // Adjust animation speed based on pair count (proportional to content width)
+  const scrollDuration = Math.max(15, filteredPairs.length * 1.2);
 
   return (
-    <div className="relative overflow-hidden border-y border-white/[0.04] bg-white/[0.015]">
-      <div
-        className="flex items-center gap-1 py-2 animate-[forexScroll_30s_linear_infinite] hover:[animation-play-state:paused] motion-reduce:[animation-play-state:paused]"
-        style={{ width: 'max-content' }}
-      >
-        {allChips.map((pair, idx) => (
-          <TickerChip
-            key={`${pair.ticker}-${idx}`}
-            pair={pair}
-            onClick={() => onSelectPair(pair.ticker)}
-          />
+    <div className="space-y-0">
+      {/* Category filter pills */}
+      <div className="flex items-center gap-1.5 px-4 md:px-6 py-1.5 border-b border-white/[0.04] bg-white/[0.01]">
+        <span className="text-[9px] text-muted-foreground/40 uppercase tracking-wider mr-1 hidden sm:inline">Filter</span>
+        {FOREX_FILTER_CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setFilterCat(cat.id)}
+            className={cn(
+              'flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-medium transition-all duration-200',
+              filterCat === cat.id
+                ? 'bg-sky-500/15 text-sky-400 ring-1 ring-sky-500/20'
+                : 'text-muted-foreground/50 hover:text-muted-foreground/80 hover:bg-white/[0.03]',
+            )}
+          >
+            {cat.label}
+            <span className="text-[8px] opacity-50">{cat.count}</span>
+          </button>
         ))}
+      </div>
+
+      {/* Scrolling ticker strip */}
+      <div className="relative overflow-hidden border-b border-white/[0.04] bg-white/[0.015]">
+        {filteredPairs.length > 0 ? (
+          <div
+            className="flex items-center gap-1 py-2 hover:[animation-play-state:paused] motion-reduce:[animation-play-state:paused]"
+            style={{
+              width: 'max-content',
+              animation: `forexScroll ${scrollDuration}s linear infinite`,
+            }}
+          >
+            {scrollPairs.map((pair, idx) => (
+              <TickerChip
+                key={`${pair.ticker}-${idx}`}
+                pair={pair}
+                onClick={() => onSelectPair(pair.ticker)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="py-3 text-center text-xs text-muted-foreground/40">
+            No pairs with live data in this category
+          </div>
+        )}
       </div>
     </div>
   );

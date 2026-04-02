@@ -16,16 +16,16 @@ interface SignalToggleProps {
     onToggle?: (active: boolean) => void;
 }
 
-const ACTION_COLORS: Record<string, string> = {
-    BUY: 'text-green-400 border-green-400/30 bg-green-400/10',
-    SELL: 'text-red-400 border-red-400/30 bg-red-400/10',
-    HOLD: 'text-yellow-400 border-yellow-400/30 bg-yellow-400/10',
+const NARRATIVE_COLORS: Record<string, string> = {
+    divergence: 'text-amber-400 border-amber-400/30 bg-amber-400/10',
+    alignment: 'text-emerald-400 border-emerald-400/30 bg-emerald-400/10',
+    quiet: 'text-slate-400 border-slate-400/30 bg-slate-400/10',
 };
 
-const CONFLICT_LABELS: Record<string, string> = {
+const NARRATIVE_LABELS: Record<string, string> = {
     divergence: 'Smart Money Divergence',
     alignment: 'Trend Alignment',
-    uncertain: 'No Clear Signal',
+    quiet: 'Low Conviction',
 };
 
 export function SignalToggle({
@@ -77,22 +77,22 @@ export function SignalToggle({
             {active && signal && (
                 <div className={cn(
                     'flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium',
-                    ACTION_COLORS[signal.action] || ACTION_COLORS.HOLD,
+                    NARRATIVE_COLORS[signal.narrativeType] || NARRATIVE_COLORS.quiet,
                 )}>
-                    {signal.action === 'BUY' && <span className="animate-pulse">●</span>}
-                    {signal.action === 'SELL' && <span className="animate-pulse">●</span>}
-                    {signal.action === 'HOLD' && <span>○</span>}
-                    <span>{signal.action}</span>
+                    {signal.narrativeType === 'divergence' && <span className="animate-pulse">●</span>}
+                    {signal.narrativeType === 'alignment' && <span className="animate-pulse">●</span>}
+                    {signal.narrativeType === 'quiet' && <span>○</span>}
+                    <span className="capitalize">{signal.narrativeType}</span>
                     <span className="text-xs opacity-70">
-                        {Math.round(signal.confidence * 100)}%
+                        {Math.round(signal.conviction * 100)}%
                     </span>
                 </div>
             )}
 
-            {/* Conflict type label */}
+            {/* Narrative label */}
             {active && signal && (
                 <span className="text-xs text-muted-foreground hidden md:inline">
-                    {CONFLICT_LABELS[signal.conflictType] || signal.conflictType}
+                    {NARRATIVE_LABELS[signal.narrativeType] || signal.narrativeType}
                 </span>
             )}
 

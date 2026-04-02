@@ -55,20 +55,26 @@ export interface IOHLCVResponse {
 }
 
 // =============================================================================
-// AI Signal Types (Dual Agent Pipeline)
+// Pattern Intelligence Types
 // =============================================================================
 
-export interface IAISignal {
-    action: 'BUY' | 'SELL' | 'HOLD';
-    confidence: number;
-    conflictType: 'divergence' | 'alignment' | 'uncertain';
+export interface IPatternInsight {
+    narrativeType: 'divergence' | 'alignment' | 'quiet';
+    conviction: number;
+    institutionalStance: string;
+    retailSentiment: string;
+    narrative: string;
     marketMakerBias: string;
     retailBias: string;
-    reasoning: string;
     priceAtSignal?: number;
     generatedAt: string;
     isEod: boolean;
+    overallQualityGrade?: string;
+    activePatternCount?: number;
 }
+
+/** @deprecated Use IPatternInsight instead */
+export type IAISignal = IPatternInsight;
 
 export interface IInstrument {
     ticker: string;
@@ -120,7 +126,7 @@ export interface IActiveSignalItem {
     exchange: string;
     instrumentType: string;
     stockName?: string;
-    signal: IAISignal | null;
+    signal: IPatternInsight | null;
     isEod: boolean;
 }
 

@@ -86,16 +86,25 @@
 }
 
 .headline-xl {
-  letter-spacing: -0.03em;
-  line-height: 1.02;
+  letter-spacing: -0.05em;
+  line-height: 0.95;
+}
+
+.headline-lg {
+  letter-spacing: -0.04em;
+  line-height: 0.98;
 }
 
 .landing-section {
-  @apply w-full py-24 md:py-32 px-6;
+  @apply w-full py-32 md:py-44 lg:py-56 px-6;
+}
+
+.landing-section-tight {
+  @apply w-full py-24 md:py-32 lg:py-40 px-6;
 }
 
 .section-label {
-  @apply inline-flex items-center gap-2.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-brand-emerald mb-4;
+  @apply inline-flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.3em] text-brand-emerald mb-6;
 }
 
 .section-label::before {
@@ -104,21 +113,96 @@
   box-shadow: 0 0 8px rgba(110, 231, 183, 0.6);
 }
 
+.section-label::after {
+  content: '';
+  @apply w-5 h-px bg-brand-emerald/30;
+  margin-left: -0.25rem;
+}
+
+/* Body text upgrade — brighter than muted */
+.landing-body {
+  @apply text-xl text-white/70 leading-relaxed;
+}
+
+.landing-body-sm {
+  @apply text-base text-white/60 leading-relaxed;
+}
+
 .bento-card {
-  @apply bg-white/[0.03] border border-white/[0.06] rounded-2xl p-6 md:p-8
-    hover:bg-white/[0.05] transition-all duration-500 cursor-pointer;
-  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.04), 0 0 0 1px rgba(255,255,255,0.02);
-  backdrop-filter: blur(12px) saturate(140%);
+  @apply bg-white/[0.02] border border-white/[0.04] rounded-2xl p-6 md:p-8
+    hover:bg-white/[0.04] transition-all duration-500 cursor-pointer;
+  box-shadow: inset 0 1px 0 0 rgba(255,255,255,0.03), 0 0 0 1px rgba(255,255,255,0.015);
+  backdrop-filter: blur(16px) saturate(150%);
 }
 
 .bento-card:hover {
-  border-color: rgba(110, 231, 183, 0.12);
+  border-color: rgba(110, 231, 183, 0.15);
   box-shadow:
     inset 0 1px 0 0 rgba(255,255,255,0.06),
-    0 0 0 1px rgba(110, 231, 183, 0.06),
-    0 8px 40px rgba(110, 231, 183, 0.04),
-    0 0 80px rgba(110, 231, 183, 0.02);
+    0 0 0 1px rgba(110, 231, 183, 0.08),
+    0 12px 48px rgba(110, 231, 183, 0.05),
+    0 0 100px rgba(110, 231, 183, 0.025);
 }
+
+/* Radial vignette overlay for landing pages */
+.landing-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+}
+
+/* Section fade — bottom gradient mask for smooth transitions */
+.section-fade-bottom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 80px;
+  background: linear-gradient(to bottom, transparent, hsl(var(--background)));
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* Button shimmer sweep */
+@keyframes shimmer-sweep {
+  0% { transform: translateX(-100%) skewX(-15deg); }
+  100% { transform: translateX(200%) skewX(-15deg); }
+}
+
+.btn-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-shimmer::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+  transform: translateX(-100%) skewX(-15deg);
+  animation: shimmer-sweep 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* Gradient divider line */
+.gradient-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(110,231,183,0.2), rgba(96,165,250,0.2), transparent);
+}
+
+.gradient-divider-blue {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(96,165,250,0.2), rgba(110,231,183,0.15), transparent);
+}
+
+/* Accent top bar for cards */
+.card-accent-emerald { border-top: 2px solid rgba(110,231,183,0.3); }
+.card-accent-blue { border-top: 2px solid rgba(96,165,250,0.3); }
+.card-accent-violet { border-top: 2px solid rgba(167,139,250,0.3); }
+.card-accent-amber { border-top: 2px solid rgba(251,191,36,0.3); }
 
 /* Grain texture overlay */
 .grain-overlay::before {

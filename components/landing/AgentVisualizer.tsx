@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 
 const MM_STATES = ['Accumulating', 'Distributing', 'Neutral'] as const;
 const RI_STATES = ['Bullish', 'Bearish', 'Confused'] as const;
-const SIGNALS = ['BUY', 'HOLD', 'SELL'] as const;
+const OUTCOMES = ['BULLISH', 'NEUTRAL', 'BEARISH'] as const;
 const CONFLICTS = ['Divergence', 'Consensus', 'Mixed'] as const;
 
 function BiasBar({ states, colorMap }: { states: readonly string[]; colorMap: Record<string, string> }) {
@@ -73,33 +73,33 @@ function ConfidenceArc({ min, max }: { min: number; max: number }) {
 function ResolverOutput() {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setIdx((p) => (p + 1) % SIGNALS.length), 3000);
+    const t = setInterval(() => setIdx((p) => (p + 1) % OUTCOMES.length), 3000);
     return () => clearInterval(t);
   }, []);
 
-  const signal = SIGNALS[idx];
+  const outcome = OUTCOMES[idx];
   const conflict = CONFLICTS[idx];
-  const colorMap: Record<string, string> = { BUY: 'text-green-400', HOLD: 'text-white', SELL: 'text-red-400' };
+  const colorMap: Record<string, string> = { BULLISH: 'text-green-400', NEUTRAL: 'text-white', BEARISH: 'text-red-400' };
   const glowMap: Record<string, string> = {
-    BUY: '0 0 20px rgba(74,222,128,0.4)',
-    HOLD: '0 0 20px rgba(255,255,255,0.2)',
-    SELL: '0 0 20px rgba(248,113,113,0.4)',
+    BULLISH: '0 0 20px rgba(74,222,128,0.4)',
+    NEUTRAL: '0 0 20px rgba(255,255,255,0.2)',
+    BEARISH: '0 0 20px rgba(248,113,113,0.4)',
   };
 
   return (
     <div className="flex flex-col items-center">
       <motion.div
         className="w-16 h-16 rounded-xl bg-white/[0.04] border border-white/[0.08] flex items-center justify-center backdrop-blur-md"
-        animate={{ boxShadow: glowMap[signal] }}
+        animate={{ boxShadow: glowMap[outcome] }}
         transition={{ duration: 0.5 }}
       >
         <motion.span
-          key={signal}
+          key={outcome}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`text-sm font-bold font-display ${colorMap[signal]}`}
+          className={`text-[11px] font-bold font-display ${colorMap[outcome]}`}
         >
-          {signal}
+          {outcome}
         </motion.span>
       </motion.div>
       <p className="text-[10px] text-muted-foreground mt-2 uppercase tracking-wider">{conflict}</p>

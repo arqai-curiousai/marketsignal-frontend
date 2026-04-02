@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { simulationApi } from '@/lib/api/simulationApi';
 import { useExchange } from '@/context/ExchangeContext';
+import { useInstrumentList } from '@/lib/hooks/useInstrumentList';
 import type { IPortfolioOptimization, IPresetBasket } from '@/types/simulation';
 import { downloadCSV } from '@/lib/utils/export';
 import { T, S } from '@/components/playground/pyramid/tokens';
@@ -116,6 +117,7 @@ function buildExportCSV(data: IPortfolioOptimization): Record<string, unknown>[]
 
 export function PortfolioDashboard() {
   const { exchangeConfig } = useExchange();
+  const { instruments } = useInstrumentList(exchangeConfig.code);
   const [selectedTickers, setSelectedTickers] = useState<string[]>([
     'RELIANCE', 'TCS', 'HDFCBANK', 'INFY', 'ICICIBANK',
     'BHARTIARTL', 'SBIN', 'ITC', 'LT', 'HCLTECH',
@@ -229,6 +231,7 @@ export function PortfolioDashboard() {
               selectedTickers={selectedTickers}
               onTickersChange={setSelectedTickers}
               presets={presets}
+              instruments={instruments}
             />
           </div>
         </div>

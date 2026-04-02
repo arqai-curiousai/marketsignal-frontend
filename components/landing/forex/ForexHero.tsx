@@ -6,6 +6,7 @@ import { FOREX_HERO } from '../constants/forex';
 export function ForexHero() {
   return (
     <LandingHero
+      badge="AI-Powered Forex Analytics"
       headlineBold={FOREX_HERO.headlineBold}
       headlineSerif={FOREX_HERO.headlineSerif}
       sub={FOREX_HERO.sub}
@@ -13,11 +14,12 @@ export function ForexHero() {
       secondaryCta={FOREX_HERO.secondaryCta}
       video={FOREX_HERO.video}
       blobColors={[
-        'bg-brand-blue/[0.05]',
-        'bg-sky-400/[0.04]',
-        'bg-brand-emerald/[0.03]',
+        'bg-brand-blue/[0.04]',
+        'bg-sky-400/[0.03]',
+        'bg-brand-emerald/[0.02]',
       ]}
       accentColor="blue"
+      socialProof="Free forever \u00B7 No credit card required"
     />
   );
 }

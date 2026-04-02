@@ -12,7 +12,7 @@ import { useExchange } from '@/context/ExchangeContext';
 import type { IBacktestAnalysis, IStrategyCatalogItem } from '@/types/simulation';
 import { downloadCSV } from '@/lib/utils/export';
 import { T, S } from '@/components/playground/pyramid/tokens';
-import { NIFTY50_TICKERS } from '@/components/playground/pyramid/constants';
+import { useInstrumentList } from '@/lib/hooks/useInstrumentList';
 
 import { BacktestKPIRow } from './BacktestKPIRow';
 import { EquityCurveRace } from './EquityCurveRace';
@@ -104,6 +104,7 @@ function buildExportCSV(data: IBacktestAnalysis): Record<string, unknown>[] {
 
 export function BacktestDashboard() {
   const { exchangeConfig } = useExchange();
+  const { instruments } = useInstrumentList(exchangeConfig.code);
 
   // Toolbar state — need at least 2 tickers for multi-strategy backtesting
   const [selectedTickers, setSelectedTickers] = useState<string[]>([
@@ -262,11 +263,13 @@ export function BacktestDashboard() {
             <option value="" disabled className="bg-zinc-900">
               + Add Ticker
             </option>
-            {NIFTY50_TICKERS.filter((t) => !selectedTickers.includes(t)).map((t) => (
-              <option key={t} value={t} className="bg-zinc-900">
-                {t}
-              </option>
-            ))}
+            {instruments
+              .filter((inst) => !selectedTickers.includes(inst.ticker))
+              .map((inst) => (
+                <option key={inst.ticker} value={inst.ticker} className="bg-zinc-900">
+                  {inst.ticker}
+                </option>
+              ))}
           </select>
         </div>
 

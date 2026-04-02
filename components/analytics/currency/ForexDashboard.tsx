@@ -14,6 +14,7 @@ import { ForexTickerStrip } from './ForexTickerStrip';
 import { MarketsView } from './MarketsView';
 import { AnalysisView } from './AnalysisView';
 import { MacroView } from './MacroView';
+import { ForexPatternScanner } from './ForexPatternScanner';
 import { ForexCalculators } from './ForexCalculators';
 
 import {
@@ -21,11 +22,15 @@ import {
   FOREX_VALID_MODULE_IDS,
   FOREX_TIMEFRAMES,
   FOREX_DISCLAIMER,
-  NSE_FOREX_PAIRS,
+  ALL_FOREX_PAIRS,
+  FOREX_FILTER_CATEGORIES,
+  PAIR_CATEGORY_LABELS,
+  getPairsForCategory,
   type ForexModule,
+  type ForexFilterCategory,
 } from './constants';
 import { getCurrencyOverview } from '@/src/lib/api/analyticsApi';
-import type { ICurrencyOverview } from '@/src/types/analytics';
+import type { ICurrencyOverview, ICurrencyPairSnapshot } from '@/src/types/analytics';
 
 /* ─── Module Card Component ─────────────────────────────────────────────── */
 
@@ -176,6 +181,144 @@ function ModuleCard({
   );
 }
 
+/* ─── Categorized Pair Selector Panel ─────────────────────────────────────── */
+
+function PairSelectorPanel({
+  selectedPair,
+  onPairChange,
+  overview,
+  onClose,
+}: {
+  selectedPair: string;
+  onPairChange: (pair: string) => void;
+  overview: ICurrencyOverview | null;
+  onClose: () => void;
+}) {
+  const [search, setSearch] = useState('');
+  const [filterCat, setFilterCat] = useState<ForexFilterCategory>('all');
+
+  const priceMap = useMemo(() => {
+    const m = new Map<string, ICurrencyPairSnapshot>();
+    for (const p of overview?.pairs ?? []) m.set(p.ticker, p);
+    return m;
+  }, [overview]);
+
+  const filteredPairs = useMemo(() => {
+    let pairs = [...getPairsForCategory(filterCat)];
+    if (search) {
+      const q = search.toLowerCase();
+      pairs = pairs.filter(p => p.toLowerCase().includes(q));
+    }
+    return pairs;
+  }, [filterCat, search]);
+
+  // Group pairs by sub-category for display
+  const grouped = useMemo((): Array<[string, string[]]> => {
+    const groups = new Map<string, string[]>();
+    for (const pair of filteredPairs) {
+      const label = PAIR_CATEGORY_LABELS[pair] ?? 'Other';
+      if (!groups.has(label)) groups.set(label, []);
+      groups.get(label)!.push(pair);
+    }
+    return Array.from(groups.entries());
+  }, [filteredPairs]);
+
+  return (
+    <div className="absolute top-full left-0 mt-1 w-80 md:w-96 rounded-xl border border-white/[0.08] bg-[#12151F] shadow-2xl z-50 overflow-hidden">
+      {/* Search */}
+      <div className="p-2 border-b border-white/[0.06]">
+        <Input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search 42 pairs..."
+          className="border-0 text-xs bg-white/[0.04] rounded-lg focus-visible:ring-1 focus-visible:ring-sky-500/30 h-8"
+          autoFocus
+        />
+      </div>
+
+      {/* Category filter pills */}
+      <div className="flex gap-1 px-2 py-1.5 border-b border-white/[0.06] overflow-x-auto scrollbar-none">
+        {FOREX_FILTER_CATEGORIES.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setFilterCat(cat.id)}
+            className={cn(
+              'flex items-center gap-1 px-2 py-0.5 text-[10px] rounded-full font-medium transition-colors whitespace-nowrap',
+              filterCat === cat.id
+                ? 'bg-sky-500/20 text-sky-400 ring-1 ring-sky-500/30'
+                : 'bg-white/[0.04] text-muted-foreground hover:bg-white/[0.06]',
+            )}
+          >
+            {cat.label}
+            <span className="text-[9px] opacity-60">{cat.count}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Pair list — grouped by sub-category */}
+      <div className="max-h-72 overflow-y-auto scrollbar-thin">
+        {grouped.map(([groupLabel, pairs]) => (
+          <div key={groupLabel}>
+            <div className="sticky top-0 z-10 px-3 py-1 bg-[#12151F]/95 backdrop-blur-sm">
+              <span className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground/60">
+                {groupLabel}
+              </span>
+            </div>
+            {pairs.map(pair => {
+              const snap = priceMap.get(pair);
+              const pct = snap?.change_pct ?? 0;
+              const isSelected = pair === selectedPair;
+              return (
+                <button
+                  key={pair}
+                  onClick={() => {
+                    onPairChange(pair);
+                    onClose();
+                  }}
+                  className={cn(
+                    'w-full flex items-center gap-2 px-3 py-1.5 text-xs transition-colors',
+                    isSelected
+                      ? 'bg-sky-500/10 text-sky-400'
+                      : 'text-foreground hover:bg-white/[0.04]',
+                  )}
+                >
+                  <span className="font-medium w-16">{pair}</span>
+                  {snap && (
+                    <>
+                      <span className="font-mono tabular-nums text-white/70 text-[11px]">
+                        {snap.price?.toFixed(snap.price >= 100 ? 2 : 4) ?? '—'}
+                      </span>
+                      <span
+                        className={cn(
+                          'ml-auto font-mono text-[10px] tabular-nums',
+                          pct >= 0 ? 'text-sky-400' : 'text-orange-400',
+                        )}
+                      >
+                        {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
+                      </span>
+                    </>
+                  )}
+                  {!snap && <span className="ml-auto text-[10px] text-muted-foreground/40">—</span>}
+                </button>
+              );
+            })}
+          </div>
+        ))}
+        {filteredPairs.length === 0 && (
+          <div className="px-3 py-6 text-center text-xs text-muted-foreground/50">
+            No pairs match &quot;{search}&quot;
+          </div>
+        )}
+      </div>
+
+      {/* Footer */}
+      <div className="px-3 py-1.5 border-t border-white/[0.06] text-[9px] text-muted-foreground/40 text-center">
+        42 pairs across 17 currencies
+      </div>
+    </div>
+  );
+}
+
 /* ─── Command Bar ────────────────────────────────────────────────────────── */
 
 function CommandBar({
@@ -184,35 +327,46 @@ function CommandBar({
   timeframe,
   onTimeframeChange,
   onExportCSV,
+  overview,
 }: {
   selectedPair: string;
   onPairChange: (pair: string) => void;
   timeframe: string;
   onTimeframeChange: (tf: string) => void;
   onExportCSV: () => void;
+  overview: ICurrencyOverview | null;
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
-  const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const filtered = useMemo(() => {
-    if (!search) return [...NSE_FOREX_PAIRS];
-    const q = search.toLowerCase();
-    return NSE_FOREX_PAIRS.filter(p => p.toLowerCase().includes(q));
-  }, [search]);
-
-  // Close search dropdown on click outside
+  // Close on click outside
   useEffect(() => {
     if (!searchOpen) return;
     const handler = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
         setSearchOpen(false);
-        setSearch('');
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [searchOpen]);
+
+  // Close on Escape
+  useEffect(() => {
+    if (!searchOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSearchOpen(false);
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [searchOpen]);
+
+  // Get live change% for the selected pair
+  const selectedSnap = useMemo(
+    () => overview?.pairs?.find(p => p.ticker === selectedPair),
+    [overview, selectedPair],
+  );
+  const pct = selectedSnap?.change_pct ?? 0;
 
   return (
     <div className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-white/[0.04] -mx-4 md:-mx-6 px-4 md:px-6 py-2.5">
@@ -221,42 +375,41 @@ function CommandBar({
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setSearchOpen(o => !o)}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06] transition-colors text-sm"
+            className={cn(
+              'flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors text-sm',
+              searchOpen
+                ? 'border-sky-500/30 bg-sky-500/5'
+                : 'border-white/[0.08] bg-white/[0.04] hover:bg-white/[0.06]',
+            )}
           >
             <Search className="h-3.5 w-3.5 text-muted-foreground" />
-            <span className="font-medium">{selectedPair}</span>
+            <span className="font-semibold">{selectedPair}</span>
+            {selectedSnap && (
+              <span
+                className={cn(
+                  'text-[10px] font-mono tabular-nums',
+                  pct >= 0 ? 'text-sky-400' : 'text-orange-400',
+                )}
+              >
+                {pct >= 0 ? '+' : ''}{pct.toFixed(2)}%
+              </span>
+            )}
           </button>
 
           {searchOpen && (
-            <div className="absolute top-full left-0 mt-1 w-48 rounded-lg border border-white/[0.08] bg-[#1A1F2E] shadow-xl z-50 overflow-hidden">
-              <Input
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-                placeholder="Search pair..."
-                className="border-0 border-b border-white/[0.06] rounded-none text-xs bg-transparent focus-visible:ring-0"
-                autoFocus
-              />
-              <div className="max-h-48 overflow-y-auto">
-                {filtered.map(pair => (
-                  <button
-                    key={pair}
-                    onClick={() => {
-                      onPairChange(pair);
-                      setSearchOpen(false);
-                      setSearch('');
-                    }}
-                    className={cn(
-                      'w-full text-left px-3 py-2 text-xs hover:bg-white/[0.06] transition-colors',
-                      pair === selectedPair ? 'text-sky-400 bg-sky-400/5' : 'text-foreground',
-                    )}
-                  >
-                    {pair}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <PairSelectorPanel
+              selectedPair={selectedPair}
+              onPairChange={onPairChange}
+              overview={overview}
+              onClose={() => setSearchOpen(false)}
+            />
           )}
         </div>
+
+        {/* Category badge */}
+        <span className="hidden sm:inline text-[9px] font-medium px-2 py-0.5 rounded-full bg-white/[0.04] text-muted-foreground/60 uppercase tracking-wider">
+          {PAIR_CATEGORY_LABELS[selectedPair] ?? ''}
+        </span>
 
         {/* Timeframe pills */}
         <div className="flex gap-0.5">
@@ -327,7 +480,7 @@ export function ForexDashboard() {
   const rawPair = searchParams.get('pair');
   const rawTf = searchParams.get('tf');
   const [selectedPair, setSelectedPair] = useState(
-    rawPair && (NSE_FOREX_PAIRS as readonly string[]).includes(rawPair) ? rawPair : 'USD/INR'
+    rawPair && (ALL_FOREX_PAIRS as readonly string[]).includes(rawPair) ? rawPair : 'EUR/USD'
   );
   const [timeframe, setTimeframe] = useState(
     rawTf && (FOREX_TIMEFRAMES as readonly string[]).includes(rawTf) ? rawTf : '1D'
@@ -375,7 +528,7 @@ export function ForexDashboard() {
 
   const handlePairChange = useCallback((pair: string) => {
     setSelectedPair(pair);
-    writeUrlParams({ pair: pair === 'USD/INR' ? null : pair });
+    writeUrlParams({ pair: pair === 'EUR/USD' ? null : pair });
   }, []);
 
   const handleTimeframeChange = useCallback((tf: string) => {
@@ -406,6 +559,7 @@ export function ForexDashboard() {
         timeframe={timeframe}
         onTimeframeChange={handleTimeframeChange}
         onExportCSV={handleExportCSV}
+        overview={overview}
       />
 
       {/* Module Cards */}
@@ -464,6 +618,17 @@ export function ForexDashboard() {
               transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
               <MacroView selectedPair={selectedPair} />
+            </motion.div>
+          )}
+          {activeId === 'patterns' && (
+            <motion.div
+              key="patterns"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <ForexPatternScanner />
             </motion.div>
           )}
           {activeId === 'tools' && (

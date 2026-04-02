@@ -16,112 +16,121 @@ type CTAContent = {
   video: { webm: string; mp4: string };
 };
 
+/* ── Drifting star dots ── */
 const starPositions = [
-  { left: '12%', top: '18%', delay: 0 },
-  { left: '85%', top: '22%', delay: 0.8 },
-  { left: '25%', top: '75%', delay: 1.2 },
-  { left: '72%', top: '80%', delay: 0.4 },
-  { left: '45%', top: '12%', delay: 1.0 },
-  { left: '92%', top: '55%', delay: 0.6 },
+  { left: '8%', top: '15%', delay: 0, dur: 7 },
+  { left: '88%', top: '18%', delay: 0.8, dur: 6 },
+  { left: '18%', top: '78%', delay: 1.2, dur: 8 },
+  { left: '75%', top: '82%', delay: 0.4, dur: 5 },
+  { left: '42%', top: '8%', delay: 1.0, dur: 7 },
+  { left: '92%', top: '50%', delay: 0.6, dur: 6 },
+  { left: '5%', top: '45%', delay: 1.4, dur: 8 },
+  { left: '55%', top: '90%', delay: 0.2, dur: 5 },
+  { left: '30%', top: '25%', delay: 1.6, dur: 7 },
+  { left: '65%', top: '35%', delay: 0.9, dur: 6 },
+  { left: '80%', top: '65%', delay: 1.1, dur: 8 },
+  { left: '15%', top: '60%', delay: 0.3, dur: 5 },
 ];
+
+const BTN_COLORS: Record<string, string> = {
+  blue: 'bg-brand-blue text-white shadow-[0_0_30px_rgba(96,165,250,0.25),0_0_80px_rgba(96,165,250,0.1)]',
+  violet: 'bg-brand-violet text-white shadow-[0_0_30px_rgba(167,139,250,0.25),0_0_80px_rgba(167,139,250,0.1)]',
+  emerald: 'bg-brand-emerald text-brand-slate shadow-[0_0_30px_rgba(110,231,183,0.25),0_0_80px_rgba(110,231,183,0.1)]',
+};
 
 export function FinalCTA({ content, accentColor }: { content?: CTAContent; accentColor?: string }) {
   const data = content ?? FINAL_CTA;
-  const btnColorClass = accentColor === 'blue'
-    ? 'bg-brand-blue text-white shadow-[0_0_30px_rgba(96,165,250,0.2),0_0_60px_rgba(96,165,250,0.1)] hover:shadow-[0_0_50px_rgba(96,165,250,0.3),0_0_80px_rgba(96,165,250,0.15)]'
-    : accentColor === 'violet'
-    ? 'bg-brand-violet text-white shadow-[0_0_30px_rgba(167,139,250,0.2),0_0_60px_rgba(167,139,250,0.1)] hover:shadow-[0_0_50px_rgba(167,139,250,0.3),0_0_80px_rgba(167,139,250,0.15)]'
-    : 'bg-brand-emerald text-brand-slate shadow-[0_0_30px_rgba(110,231,183,0.2),0_0_60px_rgba(110,231,183,0.1)] hover:shadow-[0_0_50px_rgba(110,231,183,0.3),0_0_80px_rgba(110,231,183,0.15)]';
+  const btnClass = BTN_COLORS[accentColor ?? 'emerald'] ?? BTN_COLORS.emerald;
+
   return (
-    <section className="relative w-full py-32 md:py-40 lg:py-48 px-6 overflow-hidden">
+    <section className="relative w-full py-48 md:py-56 lg:py-64 px-6 overflow-hidden">
       {/* Video underlay */}
       <VideoClip
         webm={data.video.webm}
         mp4={data.video.mp4}
         overlay
-        opacity={0.15}
+        opacity={0.12}
         blendMode="screen"
       />
 
-      {/* Aurora gradient blobs */}
+      {/* Aurora blobs */}
       <motion.div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-brand-emerald/[0.07] blur-[180px] rounded-full pointer-events-none"
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] bg-brand-emerald/[0.05] blur-[220px] rounded-full pointer-events-none"
         animate={{ x: [0, 30, -20, 0], y: [0, -25, 15, 0], scale: [1, 1.1, 0.95, 1] }}
-        transition={{ duration: 9, repeat: Infinity, ease: 'easeInOut' }}
+        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
-        className="absolute top-[40%] left-[35%] w-[400px] h-[400px] bg-brand-blue/[0.05] blur-[150px] rounded-full pointer-events-none"
-        animate={{ x: [0, -25, 20, 0], y: [0, 20, -15, 0], scale: [1, 0.9, 1.1, 1] }}
-        transition={{ duration: 11, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute top-[55%] left-[60%] w-[350px] h-[350px] bg-brand-violet/[0.04] blur-[140px] rounded-full pointer-events-none"
-        animate={{ x: [0, 15, -30, 0], y: [0, -20, 25, 0] }}
-        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
+        className="absolute top-[40%] left-[30%] w-[500px] h-[500px] bg-brand-blue/[0.04] blur-[200px] rounded-full pointer-events-none"
+        animate={{ x: [0, -25, 20, 0], y: [0, 20, -15, 0] }}
+        transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
 
-      {/* Perspective grid floor */}
-      <div
-        className="absolute inset-0 pointer-events-none overflow-hidden opacity-[0.04]"
-        style={{ perspective: '600px' }}
-      >
+      {/* Radial burst — rotating rays */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
-          className="absolute inset-x-0 bottom-0 h-[60%]"
-          style={{ transform: 'rotateX(55deg)', transformOrigin: 'bottom center' }}
-        >
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={`h-${i}`}
-              className="absolute h-px w-full bg-white"
-              style={{ bottom: `${i * 9}%` }}
-            />
-          ))}
-          {Array.from({ length: 10 }).map((_, i) => (
-            <div
-              key={`v-${i}`}
-              className="absolute w-px h-full bg-white"
-              style={{ left: `${10 + i * 9}%` }}
-            />
-          ))}
-        </div>
+          className="w-[800px] h-[800px] opacity-[0.02] animate-radial-burst"
+          style={{
+            background: `conic-gradient(from 0deg, transparent 0deg, rgba(255,255,255,0.3) 2deg, transparent 4deg, transparent 30deg, rgba(255,255,255,0.2) 32deg, transparent 34deg, transparent 60deg, rgba(255,255,255,0.3) 62deg, transparent 64deg, transparent 90deg, rgba(255,255,255,0.2) 92deg, transparent 94deg, transparent 120deg, rgba(255,255,255,0.3) 122deg, transparent 124deg, transparent 150deg, rgba(255,255,255,0.2) 152deg, transparent 154deg, transparent 180deg, rgba(255,255,255,0.3) 182deg, transparent 184deg, transparent 210deg, rgba(255,255,255,0.2) 212deg, transparent 214deg, transparent 240deg, rgba(255,255,255,0.3) 242deg, transparent 244deg, transparent 270deg, rgba(255,255,255,0.2) 272deg, transparent 274deg, transparent 300deg, rgba(255,255,255,0.3) 302deg, transparent 304deg, transparent 330deg, rgba(255,255,255,0.2) 332deg, transparent 334deg, transparent 360deg)`,
+            borderRadius: '50%',
+          }}
+        />
       </div>
 
-      {/* Star dots (reduced to 6) */}
+      {/* Drifting star dots */}
       {starPositions.map((star, i) => (
         <motion.div
           key={i}
           aria-hidden="true"
-          className="absolute w-1 h-1 rounded-full bg-white/30"
+          className="absolute w-[2px] h-[2px] rounded-full bg-white/25"
           style={{ left: star.left, top: star.top }}
-          animate={{ opacity: [0.1, 0.5, 0.1], scale: [0.8, 1.2, 0.8] }}
-          transition={{ duration: 3, delay: star.delay, repeat: Infinity, ease: 'easeInOut' }}
+          animate={{
+            x: [0, 8 * (i % 2 === 0 ? 1 : -1), -4, 0],
+            y: [0, -12, -6, 0],
+            opacity: [0.1, 0.4, 0.2, 0.1],
+          }}
+          transition={{
+            duration: star.dur,
+            delay: star.delay,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
         />
       ))}
 
       {/* Content */}
-      <div className="container max-w-3xl mx-auto text-center relative z-10">
+      <div className="container max-w-4xl mx-auto text-center relative z-10">
         <motion.div
           initial="hidden"
           whileInView="visible"
           viewport={{ once: true }}
           variants={scaleReveal}
         >
-          {/* Serif headline — tonal shift per plan */}
-          <h2 className="font-serif headline-xl text-4xl sm:text-5xl md:text-6xl lg:text-[4.5rem] text-white mb-5 font-bold">
+          <h2 className="font-serif headline-xl text-[2.5rem] sm:text-5xl md:text-[5rem] lg:text-[6rem] text-white mb-6 font-bold">
             {data.headline}
           </h2>
-          <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-lg mx-auto">
+          <p className="text-lg md:text-xl text-white/50 mb-14 max-w-md mx-auto">
             {data.sub}
           </p>
           <Link href={data.cta.href}>
             <Button
               size="lg"
-              className={`h-16 px-12 text-lg font-semibold hover:opacity-90 transition-all hover:-translate-y-0.5 rounded-xl animate-glow-pulse ${btnColorClass}`}
+              className={`h-[4.5rem] px-14 text-lg font-semibold hover:opacity-90 transition-all hover:-translate-y-0.5 rounded-2xl btn-shimmer ${btnClass}`}
             >
               {data.cta.label}
-              <ArrowRight className="ml-2 h-5 w-5" />
+              <ArrowRight className="ml-2.5 h-5 w-5" />
             </Button>
           </Link>
+
+          {/* Urgency line */}
+          <motion.p
+            className="text-[11px] text-white/25 mt-8 uppercase tracking-[0.2em]"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.8, duration: 1 }}
+          >
+            Open Beta — Free to start
+          </motion.p>
         </motion.div>
       </div>
     </section>

@@ -9,17 +9,18 @@ import { DualAgentEngine } from '@/components/landing/DualAgentEngine';
 import { ForexCoverageMap } from '@/components/landing/forex/ForexCoverageMap';
 import { TrustWall } from '@/components/landing/TrustWall';
 import { FinalCTA } from '@/components/landing/FinalCTA';
+import { ScrollNarrative } from '@/components/landing/shared/ScrollNarrative';
 import { FOREX_STATS, FOREX_CTA } from '@/components/landing/constants/forex';
 
 export const metadata: Metadata = {
-  title: 'Market Signal — AI-Powered Forex Intelligence by arQai',
+  title: 'MarketSignal — AI-Powered Forex Analytics by arQai',
   description:
-    '28 forex pairs with real-time technicals, volatility analysis, carry trade metrics, and AI news impact scoring. Institutional-grade insight.',
+    '42 forex pairs across 17 currencies with real-time technicals, volatility analysis, carry trade metrics, and AI news impact scoring. Institutional-grade insight.',
 };
 
 export default function ForexLandingPage() {
   return (
-    <div className="flex flex-col">
+    <ScrollNarrative accent="blue">
       {/* Act I — The Promise */}
       <ForexHero />
       <TrustBar stats={FOREX_STATS} />
@@ -35,6 +36,6 @@ export default function ForexLandingPage() {
       {/* Act III — The Close */}
       <TrustWall />
       <FinalCTA content={FOREX_CTA} accentColor="blue" />
-    </div>
+    </ScrollNarrative>
   );
 }

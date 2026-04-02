@@ -601,6 +601,7 @@ export interface INewsArticle {
   published_at: string | null;
   symbols: string[];
   exchanges?: string[];
+  regions: string[];
   sentiment: string | null;
   sentiment_score: number | null;
   sentiment_source?: 'spacy' | 'llm' | null;
@@ -618,6 +619,7 @@ export interface IStoryArc {
   story_phase: 'breaking' | 'developing' | 'analysis' | 'reaction' | 'concluded';
   tickers: string[];
   exchanges: string[];
+  regions?: string[];
   primary_theme: string;
   article_count: number;
   sentiment_trajectory: Array<{ timestamp: string; score: number; phase: string }>;
@@ -797,8 +799,8 @@ export interface IPatternV2 {
   trend_aligned: boolean;
   multi_tf_aligned: boolean;
   description: string;
-  price_target: number | null;
-  stop_loss: number | null;
+  measured_move: number | null;
+  invalidation_level: number | null;
   pattern_start_index: number;
   pattern_end_index: number;
   annotations: IPatternAnnotation[];
@@ -1073,10 +1075,40 @@ export interface INewsCluster {
   cluster_summary: string;
   primary_theme: string;
   tickers: string[];
+  regions?: string[];
   avg_sentiment_score: number;
   article_count: number;
   latest_article_at: string;
   articles: INewsArticle[];
+}
+
+export interface IGeoSentiment {
+  region: string;
+  display_name: string;
+  flag: string;
+  color: string;
+  article_count: number;
+  avg_sentiment: number;
+  breaking_count: number;
+}
+
+export interface IImpactChainPairFlow {
+  pair: string;
+  price_change_1h: number | null;
+  price_change_4h: number | null;
+  price_change_1d: number | null;
+}
+
+export interface IImpactChain {
+  news_id: string;
+  title: string;
+  source: string;
+  sentiment: string;
+  impact_type: string;
+  magnitude: number;
+  published_at: string | null;
+  affected_regions: string[];
+  pair_flows: IImpactChainPairFlow[];
 }
 
 export interface INewsGraphNode {

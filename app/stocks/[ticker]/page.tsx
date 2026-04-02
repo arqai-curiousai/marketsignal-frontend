@@ -73,90 +73,51 @@ export default function StockAnalyticsPage() {
     const instrumentType = getInstrumentType(exchange);
     const currencySymbol = getCurrencySymbol(exchange);
 
-    // Fetch quote
+    // Fetch quote + news + OHLCV in parallel
     useEffect(() => {
         if (!ticker) return;
         const controller = new AbortController();
-        async function fetchQuote() {
-            try {
-                const response = await apiClient.get<StockQuote>(
+
+        async function fetchAll() {
+            const [quoteResult, newsResult, ohlcvResult] = await Promise.allSettled([
+                apiClient.get<StockQuote>(
                     `/api/stocks/${encodeURIComponent(ticker)}/quote`,
                     { exchange },
                     { signal: controller.signal },
-                );
-                if (!controller.signal.aborted) {
-                    if (response.success && response.data) {
-                        setQuote(response.data);
-                    } else {
-                        setQuoteFailed(true);
-                    }
-                    setQuoteLoading(false);
-                }
-            } catch {
-                if (!controller.signal.aborted) {
-                    console.warn(`Failed to fetch quote for ${ticker}`);
-                    setQuoteFailed(true);
-                    setQuoteLoading(false);
-                }
-            }
-        }
-        fetchQuote();
-        return () => controller.abort();
-    }, [ticker, exchange]);
-
-    // Fetch stock news
-    useEffect(() => {
-        if (!ticker) return;
-        const controller = new AbortController();
-        async function fetchNews() {
-            setNewsLoading(true);
-            try {
-                const result = await getStockNews(ticker, 10, controller.signal);
-                if (!controller.signal.aborted) {
-                    if (result.success && result.data?.items) {
-                        setNewsArticles(result.data.items);
-                    }
-                    setNewsLoading(false);
-                }
-            } catch {
-                if (!controller.signal.aborted) {
-                    console.warn(`Failed to fetch news for ${ticker}`);
-                    setNewsLoading(false);
-                }
-            }
-        }
-        fetchNews();
-        return () => controller.abort();
-    }, [ticker, exchange]);
-
-    // Fetch OHLCV
-    useEffect(() => {
-        if (!ticker) return;
-        const controller = new AbortController();
-        async function fetchData() {
-            try {
-                const response = await apiClient.get<{ bars?: StockOHLCV[] } | StockOHLCV[]>(
+                ),
+                getStockNews(ticker, 10, controller.signal),
+                apiClient.get<{ bars?: StockOHLCV[] } | StockOHLCV[]>(
                     `/api/stocks/${encodeURIComponent(ticker)}/ohlcv`,
                     { period: '1d', limit: 30, exchange },
                     { signal: controller.signal },
-                );
-                if (!controller.signal.aborted) {
-                    if (response.success) {
-                        const d = response.data;
-                        setOhlcv(
-                            Array.isArray(d) ? d : (d as { bars?: StockOHLCV[] }).bars ?? [],
-                        );
-                    }
-                    setLoading(false);
-                }
-            } catch {
-                if (!controller.signal.aborted) {
-                    console.warn(`Failed to fetch OHLCV for ${ticker}`);
-                    setLoading(false);
-                }
+                ),
+            ]);
+
+            if (controller.signal.aborted) return;
+
+            // Quote
+            if (quoteResult.status === 'fulfilled' && quoteResult.value.success && quoteResult.value.data) {
+                setQuote(quoteResult.value.data);
+            } else {
+                setQuoteFailed(true);
             }
+            setQuoteLoading(false);
+
+            // News
+            if (newsResult.status === 'fulfilled' && newsResult.value.success && newsResult.value.data?.items) {
+                setNewsArticles(newsResult.value.data.items);
+            }
+            setNewsLoading(false);
+
+            // OHLCV
+            if (ohlcvResult.status === 'fulfilled' && ohlcvResult.value.success) {
+                const d = ohlcvResult.value.data;
+                setOhlcv(Array.isArray(d) ? d : (d as { bars?: StockOHLCV[] }).bars ?? []);
+            }
+            setLoading(false);
         }
-        fetchData();
+
+        fetchAll();
         return () => controller.abort();
     }, [ticker, exchange]);
 

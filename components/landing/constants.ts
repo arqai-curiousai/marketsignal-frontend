@@ -16,9 +16,9 @@ export type { TrustCard } from './constants/shared';
 // ── Hero (used by old HeroSection.tsx) ──
 export const HERO = {
   badge: 'Forex Intelligence by arQai',
-  headlineBold: 'See the Signal.',
-  headlineSerif: 'Through the Noise.',
-  sub: '28 global forex pairs with real-time technicals, volatility analysis, and AI-curated news impact scoring. Plus sector intelligence and correlation analysis across 6 exchanges — institutional-grade insight without the noise.',
+  headlineBold: 'Read the Market.',
+  headlineSerif: 'Before the Move.',
+  sub: '42 global forex pairs with real-time technicals, volatility analysis, and AI-curated news intelligence. Plus sector analytics and correlation analysis across 5 exchanges — institutional-grade insight without the noise.',
   primaryCta: { label: 'Explore Forex', href: '/signals?tab=currency' },
   secondaryCta: { label: 'See the Platform', href: '#platform' },
   video: {
@@ -57,7 +57,7 @@ export const ANALYTICS_SLIDES: AnalyticsSlide[] = [
     icon: DollarSign,
     label: 'FOREX ANALYTICS',
     headline: 'Every Pair. Every Session.',
-    description: 'Real-time heatmaps, currency strength meters, carry trade analysis, and session tracking across 28 global forex pairs.',
+    description: 'Real-time heatmaps, currency strength meters, carry trade analysis, and session tracking across 42 global forex pairs.',
     features: [
       'Heatmap overview with real-time cross-pair performance',
       'Currency strength scoring with carry trade differentials',
@@ -127,19 +127,18 @@ export const COVERAGE = {
   label: 'GLOBAL COVERAGE',
   headline: 'Built for Forex Traders.',
   headlineSerif: 'Powered by Global Data.',
-  body: '28 forex pairs tracking every major session — Asia, London, New York. Plus 260+ stocks across NSE, NASDAQ, NYSE, LSE, SGX, and HKSE with sector analytics, fundamentals, and earnings calendars.',
+  body: '42 forex pairs tracking every major session — Asia, London, New York. Plus 260+ stocks across NSE, NASDAQ, NYSE, LSE, and HKSE with sector analytics, fundamentals, and earnings calendars.',
   features: [
-    '28 forex pairs with carry trade metrics and session tracking',
-    '260+ stocks across 6 global exchanges',
+    '42 forex pairs with carry trade metrics and session tracking',
+    '260+ stocks across 5 global exchanges',
     '5 MCX commodities (Gold, Silver, Crude, Copper, Natural Gas)',
-    '10+ news sources curated for forex impact and macro events',
+    '20+ news sources across 6 global regions curated for forex impact and macro events',
   ],
   exchanges: [
     { id: 'NSE', label: 'NSE', city: 'Mumbai', x: 68, y: 42 },
     { id: 'NASDAQ', label: 'NASDAQ', city: 'New York', x: 25, y: 35 },
     { id: 'NYSE', label: 'NYSE', city: 'New York', x: 27, y: 37 },
     { id: 'LSE', label: 'LSE', city: 'London', x: 47, y: 30 },
-    { id: 'SGX', label: 'SGX', city: 'Singapore', x: 76, y: 52 },
     { id: 'HKSE', label: 'HKSE', city: 'Hong Kong', x: 80, y: 40 },
   ],
 };

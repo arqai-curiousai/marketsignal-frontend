@@ -27,11 +27,11 @@ export const SIM_ACCENT = {
 
 // ── Hero ──
 export const SIM_HERO = {
-  headlineBold: 'Trust',
-  headlineSerif: 'the Math',
-  sub: 'GARCH volatility. HMM regimes. Monte Carlo paths. Portfolio optimization. Backtesting. Risk scoring. Nine modules, one lab',
-  primaryCta: { label: 'Start Simulating', href: '/login' },
-  secondaryCta: { label: 'See 9 Modules', href: '#grid' },
+  headlineBold: 'Invest',
+  headlineSerif: 'with Proof',
+  sub: 'Test any strategy before you risk real money. Simulate thousands of outcomes. Stress-test against crashes. Find the right portfolio mix. Nine powerful tools — built for professionals, now free for everyone.',
+  primaryCta: { label: 'Start Free', href: '/login' },
+  secondaryCta: { label: 'See All 9 Tools', href: '#grid' },
   video: {
     webm: '/landing/videos/sim-hero.webm',
     mp4: '/landing/videos/sim-hero.mp4',
@@ -41,11 +41,11 @@ export const SIM_HERO = {
 
 // ── Trust Bar Stats ──
 export const SIM_STATS = [
-  { value: '9', suffix: '', label: 'Simulations', icon: 'chart' as const },
-  { value: '5', suffix: '', label: 'Vol Estimators', icon: 'currency' as const },
-  { value: '8', suffix: '', label: 'Stress Scenarios', icon: 'globe' as const },
-  { value: '2', suffix: '', label: 'AI Agents', icon: 'agents' as const },
-  { value: '5', suffix: 'min', label: 'Refresh Rate', icon: 'refresh' as const },
+  { value: '9', suffix: '', label: 'Free Tools', icon: 'chart' as const },
+  { value: '5', suffix: '', label: 'Risk Models', icon: 'currency' as const },
+  { value: '8', suffix: '', label: 'Crash Scenarios', icon: 'globe' as const },
+  { value: '6', suffix: '', label: 'Exchanges', icon: 'agents' as const },
+  { value: '5', suffix: 'min', label: 'Live Updates', icon: 'refresh' as const },
 ];
 
 // ── Simulation Grid (3x3 bento) ──
@@ -62,124 +62,124 @@ export const SIM_GRID: SimGridItem[] = [
   {
     id: 'signals',
     icon: Activity,
-    title: 'AI Signals',
-    subtitle: 'Dual-Agent Pipeline',
-    description: '5-layer AI signal pipeline with XGBoost/LightGBM ensemble scoring.',
+    title: 'AI Patterns',
+    subtitle: 'Multi-Model Pattern Detection',
+    description: 'AI analyzes price action, volume, volatility, and market context to surface recurring patterns — so you focus on what matters, not noise.',
     video: { webm: '/landing/videos/sim-grid-preview.webm', mp4: '/landing/videos/sim-grid-preview.mp4' },
   },
   {
     id: 'volatility',
     icon: Zap,
     title: 'Volatility',
-    subtitle: 'GARCH Forecasts',
-    description: '5 range-based estimators (Parkinson, GK, RS, EWMA, GARCH) with regime detection.',
+    subtitle: 'Stock Volatility Checker',
+    description: 'See how wildly a stock actually moves — not just what it did yesterday, but what it is likely to do next. A storm gauge tells you if markets are calm, choppy, or dangerous.',
     video: { webm: '/landing/videos/sim-volatility.webm', mp4: '/landing/videos/sim-volatility.mp4' },
   },
   {
     id: 'regimes',
     icon: Layers,
     title: 'Regimes',
-    subtitle: 'Hidden Markov Models',
-    description: 'HMM-based regime compass with transition matrices and state forecasts.',
+    subtitle: 'Market Regime Detector',
+    description: 'Markets shift between calm rallies, choppy sideways drifts, and sharp selloffs. This tool detects which mode the market is in right now and where it is heading next.',
     video: { webm: '/landing/videos/sim-grid-preview.webm', mp4: '/landing/videos/sim-grid-preview.mp4' },
   },
   {
     id: 'montecarlo',
     icon: TrendingUp,
     title: 'Monte Carlo',
-    subtitle: 'Path Simulation',
-    description: 'Thousands of price paths with probability cones, convergence plots, and drawdown analysis.',
+    subtitle: 'Future Price Simulator',
+    description: 'Simulate thousands of possible price paths for any stock. See the best case, worst case, and most likely outcome — so you stop relying on gut feelings.',
     video: { webm: '/landing/videos/sim-hero.webm', mp4: '/landing/videos/sim-hero.mp4' },
   },
   {
     id: 'portfolio',
     icon: BarChart3,
     title: 'Portfolio',
-    subtitle: 'Mean-Variance & HRP',
-    description: 'Efficient frontier optimization, risk parity, and hierarchical risk parity allocation.',
+    subtitle: 'Portfolio Optimizer',
+    description: 'Find the ideal mix of stocks for your goals. Balance risk and return automatically — the same method pension funds and endowments use to manage billions.',
     video: { webm: '/landing/videos/sim-portfolio.webm', mp4: '/landing/videos/sim-portfolio.mp4' },
   },
   {
     id: 'backtesting',
     icon: Target,
     title: 'Backtesting',
-    subtitle: 'Walk-Forward Validation',
-    description: 'CPCV overfitting detection, equity curve racing, and rolling metrics analysis.',
+    subtitle: 'Strategy Tester',
+    description: 'Test any investment strategy against years of real market data before you commit real money. Built-in safeguards catch strategies that only look good on paper.',
     video: { webm: '/landing/videos/sim-backtest.webm', mp4: '/landing/videos/sim-backtest.mp4' },
   },
   {
     id: 'riskscore',
     icon: Gauge,
     title: 'Risk Score',
-    subtitle: 'Quiz-Based Profiling',
-    description: 'Personalized risk compass (1-99), decomposition by factor, and zone-based guidance.',
+    subtitle: 'Investment Risk Calculator',
+    description: 'Answer a few simple questions and get a personal risk score from 1 to 99. Then see exactly which parts of your portfolio are adding the most risk.',
     video: { webm: '/landing/videos/sim-risk.webm', mp4: '/landing/videos/sim-risk.mp4' },
   },
   {
     id: 'scenarios',
     icon: Shield,
     title: 'Scenarios',
-    subtitle: 'India Macro Stress',
-    description: '8 India-specific scenarios: Rate hike, INR crisis, oil shock, and more.',
+    subtitle: 'Crash Stress Tests',
+    description: 'What happens to your portfolio if interest rates spike? If crude oil doubles? If a currency crisis hits? Run 8 real-world disaster scenarios and find out before it happens.',
     video: { webm: '/landing/videos/sim-grid-preview.webm', mp4: '/landing/videos/sim-grid-preview.mp4' },
   },
   {
     id: 'factors',
     icon: Brain,
     title: 'Factors',
-    subtitle: 'Multi-Factor Attribution',
-    description: 'Value, Momentum, Quality, Size, Low Vol — decompose returns by factor exposure.',
+    subtitle: 'Return Breakdown',
+    description: 'Understand why your stocks move. Is it value? Momentum? Quality? See which invisible forces are driving your returns — and which ones are dragging them down.',
     video: { webm: '/landing/videos/sim-grid-preview.webm', mp4: '/landing/videos/sim-grid-preview.mp4' },
   },
 ];
 
 // ── Volatility Showcase ──
 export const SIM_VOLATILITY_SHOWCASE = {
-  label: 'VOLATILITY INTELLIGENCE',
-  headline: 'Calm, Storm, or Hurricane',
-  sub: '5 range-based estimators converge into a unified volatility view. GARCH forecasts fan out into probability cones. Regime detection tells you which volatility state the market is in.',
+  label: 'KNOW BEFORE THE STORM HITS',
+  headline: 'See the Risk Others Miss',
+  sub: 'Most investors check if a stock went up or down. This tool shows you how violently it could move tomorrow. Five different models measure risk from every angle, then a single storm gauge tells you whether conditions are calm, brewing, or dangerous — so you can act before the crowd reacts.',
   features: [
-    { title: 'Storm Gauge', description: 'Visual severity indicator from Calm to Hurricane' },
-    { title: 'Fan Chart', description: 'GARCH-powered probability cones with confidence bands' },
-    { title: 'Regime Detection', description: 'Automatic volatility state classification' },
-    { title: '5 Estimators', description: 'Parkinson, Garman-Klass, Rogers-Satchell, EWMA, GARCH' },
+    { title: 'Storm Gauge', description: 'One visual that instantly tells you if markets are calm, brewing, or in a full storm' },
+    { title: 'Forecast Cones', description: 'See the range of likely prices over the next days and weeks, not just a single guess' },
+    { title: 'Regime Alert', description: 'Automatically detects whether you are in a low-risk, medium-risk, or high-risk environment' },
+    { title: '5 Risk Lenses', description: 'Five independent models cross-check each other so no single method can fool you' },
   ],
   video: { webm: '/landing/videos/sim-volatility.webm', mp4: '/landing/videos/sim-volatility.mp4' },
 };
 
 // ── Portfolio + Backtest Showcase ──
 export const SIM_PORTFOLIO_SHOWCASE = {
-  label: 'PORTFOLIO & BACKTESTING',
-  headline: 'Optimize, Then Prove It',
-  sub: 'Build optimal portfolios on the efficient frontier. Then validate with walk-forward backtesting and CPCV overfitting detection — because past performance is only useful when properly tested.',
+  label: 'BUILD SMARTER, TEST FIRST',
+  headline: 'Build It. Then Prove It Works.',
+  sub: 'Find the best combination of stocks for your money — the same mathematical approach that manages trillions globally. Then test your strategy against years of real crashes, rallies, and sideways markets. If it only works on paper, the backtest will catch it before your money does.',
   features: [
-    { title: 'Efficient Frontier', description: 'Mean-variance optimization with constraint support' },
-    { title: 'Risk Parity', description: 'Equal risk contribution allocation' },
-    { title: 'Walk-Forward', description: 'Out-of-sample validation with rolling windows' },
-    { title: 'Overfitting Guard', description: 'CPCV detects when a strategy is curve-fit to noise' },
+    { title: 'Optimal Mix', description: 'Automatically find the portfolio balance that gives you the most return for the risk you are comfortable with' },
+    { title: 'Equal Risk', description: 'Spread risk evenly across your holdings so no single stock can sink your portfolio' },
+    { title: 'Reality Check', description: 'Test strategies against actual market history — including 2008, 2020, and every crash in between' },
+    { title: 'Overfitting Guard', description: 'Catches strategies that are accidentally fine-tuned to the past but will fail in the future' },
   ],
   video: { webm: '/landing/videos/sim-portfolio.webm', mp4: '/landing/videos/sim-portfolio.mp4' },
 };
 
 // ── Risk + Scenarios Showcase ──
 export const SIM_RISK_SHOWCASE = {
-  label: 'RISK & SCENARIOS',
-  headline: 'Know Your Exposure',
-  sub: 'Quiz-based risk profiling generates a personalized risk compass. Then stress-test against 8 India-specific macro scenarios — rate hikes, INR crises, oil shocks, and global contagion.',
+  label: 'PREPARE FOR ANYTHING',
+  headline: 'Sleep Better at Night',
+  sub: 'Take a quick quiz and get your personal risk score — a single number from 1 to 99 that tells you if your portfolio matches your comfort level. Then stress-test it against real disaster scenarios: central bank rate hikes, oil shocks, currency crises, and global contagion. Know what could happen before it does.',
   features: [
-    { title: 'Risk Compass', description: 'Personalized score (1-99) with decomposition by factor' },
-    { title: 'India Scenarios', description: '8 curated macro stress tests specific to Indian markets' },
-    { title: 'Shockwave Gauge', description: 'Visual portfolio impact severity per scenario' },
-    { title: 'Actionable Zones', description: 'Green/Yellow/Red guidance with hedging suggestions' },
+    { title: 'Your Risk Score', description: 'A personal score from 1 to 99 that shows whether your portfolio matches how much risk you can handle' },
+    { title: 'Global Crash Tests', description: '8 scenarios spanning rate hikes, currency crises, commodity shocks, and global selloffs' },
+    { title: 'Impact Meter', description: 'See exactly how much your portfolio could lose in each scenario — in your local currency, not just percentages' },
+    { title: 'Clear Next Steps', description: 'Green, yellow, and red zones with plain-language guidance on what to do about your risk level' },
   ],
   video: { webm: '/landing/videos/sim-risk.webm', mp4: '/landing/videos/sim-risk.mp4' },
 };
 
 // ── Final CTA ──
 export const SIM_CTA = {
-  headline: 'Run the Numbers, Then Decide',
-  sub: 'Nine simulation modules. Zero guesswork. Free to start',
-  cta: { label: 'Start Simulating', href: '/login' },
+  headline: 'Stop Guessing. Start Simulating.',
+  sub: 'Nine institutional-grade tools. Zero cost. Built for the everyday investor.',
+  cta: { label: 'Get Started Free', href: '/login' },
   video: {
     webm: '/landing/videos/sim-cta.webm',
     mp4: '/landing/videos/sim-cta.mp4',

@@ -45,8 +45,8 @@ export function PulseModules() {
             variants={fadeUp}
             className="font-display text-4xl md:text-5xl lg:text-6xl headline-xl text-white mb-6"
           >
-            <span className="font-bold">Sectors, Correlations,</span>{' '}
-            <span className="font-serif italic gradient-text-hero">News</span>
+            <span className="font-bold">News Intelligence,</span>{' '}
+            <span className="font-serif italic gradient-text-hero">Sectors & Correlations</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Three intelligence layers that surface what single-instrument analysis cannot — how capital, correlation, and narrative interact in real time

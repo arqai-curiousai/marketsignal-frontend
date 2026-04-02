@@ -13,7 +13,7 @@ import { useExchange } from '@/context/ExchangeContext';
 import type { IRegimeAnalysis } from '@/types/simulation';
 import { downloadCSV } from '@/lib/utils/export';
 import { S } from '@/components/playground/pyramid/tokens';
-import { NIFTY50_TICKERS } from '@/components/playground/pyramid/constants';
+import { useInstrumentList } from '@/lib/hooks/useInstrumentList';
 
 import { RegimeKPIRow } from './RegimeKPIRow';
 import { RegimeCompass } from './RegimeCompass';
@@ -112,6 +112,7 @@ function buildExportCSV(data: IRegimeAnalysis): Record<string, unknown>[] {
 
 export function RegimeDashboard() {
   const { exchangeConfig } = useExchange();
+  const { instruments } = useInstrumentList(exchangeConfig.code);
   const [selectedTicker, setSelectedTicker] = useState(exchangeConfig.defaultTicker);
   const [data, setData] = useState<IRegimeAnalysis | null>(null);
   const [loading, setLoading] = useState(true);
@@ -182,9 +183,9 @@ export function RegimeDashboard() {
               'appearance-none cursor-pointer',
             )}
           >
-            {NIFTY50_TICKERS.map((t) => (
-              <option key={t} value={t} className="bg-zinc-900">
-                {t}
+            {instruments.map((inst) => (
+              <option key={inst.ticker} value={inst.ticker} className="bg-zinc-900">
+                {inst.ticker}
               </option>
             ))}
           </select>

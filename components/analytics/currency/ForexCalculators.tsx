@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Calculator, ArrowRightLeft, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { NSE_FOREX_PAIRS } from './constants';
+import { ALL_FOREX_PAIRS } from './constants';
 import { getCurrencyOverview } from '@/src/lib/api/analyticsApi';
 
 /* ─── Types ───────────────────────────────────────────────────────────────── */
@@ -97,7 +97,7 @@ function PipCalculator({ selectedPair, liveRates }: { selectedPair: string; live
             onChange={e => setPair(e.target.value)}
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-sky-500/40"
           >
-            {NSE_FOREX_PAIRS.map(p => (
+            {ALL_FOREX_PAIRS.map(p => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>
@@ -282,7 +282,7 @@ function PositionSizeCalculator({ selectedPair, liveRates }: { selectedPair: str
             onChange={e => setPair(e.target.value)}
             className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-1 focus:ring-sky-500/40"
           >
-            {NSE_FOREX_PAIRS.map(p => (
+            {ALL_FOREX_PAIRS.map(p => (
               <option key={p} value={p}>{p}</option>
             ))}
           </select>

@@ -7,7 +7,6 @@ import { cn } from '@/lib/utils';
 import { useExchange } from '@/context/ExchangeContext';
 import { getInstruments } from '@/lib/api/signalApi';
 import type { IInstrument } from '@/types/stock';
-import { NIFTY50_TICKERS } from '@/components/playground/pyramid/constants';
 
 interface Props {
   value: string;
@@ -27,21 +26,20 @@ export function TickerCombobox({ value, onChange, className }: Props) {
 
   // Fetch instruments for current exchange
   const fetchInstruments = useCallback(async () => {
-    const code = exchangeConfig.code.toLowerCase() as Parameters<typeof getInstruments>[0];
+    const typeMap: Record<string, string> = { FX: 'currency' };
+    const code = (typeMap[exchangeConfig.code] ?? exchangeConfig.code.toLowerCase()) as Parameters<typeof getInstruments>[0];
     const result = await getInstruments(code);
     if (result.success) {
       setInstruments(result.data);
     } else {
-      // Fallback: create bare instruments from NIFTY50_TICKERS
-      setInstruments(
-        NIFTY50_TICKERS.map((t) => ({
-          ticker: t,
-          name: t,
-          instrumentType: 'equity' as IInstrument['instrumentType'],
-          exchange: 'NSE',
-          currency: 'INR',
-        })),
-      );
+      // Fallback: create a bare instrument from the exchange default ticker
+      setInstruments([{
+        ticker: exchangeConfig.defaultTicker,
+        name: exchangeConfig.defaultTicker,
+        instrumentType: 'equity' as IInstrument['instrumentType'],
+        exchange: exchangeConfig.code,
+        currency: exchangeConfig.currency,
+      }]);
     }
     setLoaded(true);
   }, [exchangeConfig.code]);

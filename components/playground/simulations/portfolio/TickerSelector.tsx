@@ -4,14 +4,16 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { NIFTY50_TICKERS } from '@/components/playground/pyramid/constants';
 import type { IPresetBasket } from '@/types/simulation';
+import type { IInstrument } from '@/types/stock';
 
 interface Props {
   selectedTickers: string[];
   onTickersChange: (tickers: string[]) => void;
   presets?: IPresetBasket[];
   className?: string;
+  /** Available instruments (from useInstrumentList). Falls back to empty. */
+  instruments?: IInstrument[];
 }
 
 const MAX_TICKERS = 15;
@@ -61,7 +63,7 @@ const DEFAULT_PRESETS: IPresetBasket[] = [
 
 // ─── Main Component ─────────────────────────────────────────────
 
-export function TickerSelector({ selectedTickers, onTickersChange, presets, className }: Props) {
+export function TickerSelector({ selectedTickers, onTickersChange, presets, className, instruments = [] }: Props) {
   const [query, setQuery] = useState('');
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,13 +72,15 @@ export function TickerSelector({ selectedTickers, onTickersChange, presets, clas
   const activePresets = presets && presets.length > 0 ? presets : DEFAULT_PRESETS;
 
   // Filtered tickers based on search query
+  const availableTickers = useMemo(() => instruments.map((i) => i.ticker), [instruments]);
+
   const filteredTickers = useMemo(() => {
     const q = query.toUpperCase().trim();
-    if (!q) return NIFTY50_TICKERS.filter((t) => !selectedTickers.includes(t));
-    return NIFTY50_TICKERS.filter(
+    if (!q) return availableTickers.filter((t) => !selectedTickers.includes(t));
+    return availableTickers.filter(
       (t) => t.includes(q) && !selectedTickers.includes(t),
     );
-  }, [query, selectedTickers]);
+  }, [query, selectedTickers, availableTickers]);
 
   // Close dropdown on outside click
   useEffect(() => {

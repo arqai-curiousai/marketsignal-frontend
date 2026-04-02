@@ -1,0 +1,11 @@
+# MarketSignal by arQai
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://marketsignal.ai/sitemap.xml
+
+# Disallow internal/auth routes
+Disallow: /api/
+Disallow: /login
+Disallow: /settings

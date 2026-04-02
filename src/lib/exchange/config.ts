@@ -1,4 +1,4 @@
-export type ExchangeCode = 'NSE' | 'NASDAQ' | 'NYSE' | 'LSE' | 'SGX' | 'HKSE';
+export type ExchangeCode = 'NSE' | 'NASDAQ' | 'NYSE' | 'LSE' | 'HKSE' | 'FX';
 
 export interface ExchangeConfig {
   code: ExchangeCode;
@@ -69,8 +69,8 @@ export const EXCHANGES: Record<ExchangeCode, ExchangeConfig> = {
     currencySymbol: '$',
     locale: 'en-US',
     timezone: 'America/New_York',
-    indexName: 'Dow Jones 30',
-    stockCount: 30,
+    indexName: 'S&P 500 Top 50',
+    stockCount: 50,
     sectorTaxonomy: 'gics',
     hasFnO: false,
     defaultTicker: 'JPM',
@@ -97,25 +97,6 @@ export const EXCHANGES: Record<ExchangeCode, ExchangeConfig> = {
     marketOpen: '08:00',
     marketClose: '16:30',
   },
-  SGX: {
-    code: 'SGX',
-    name: 'SGX',
-    fullName: 'Singapore Exchange',
-    country: 'SG',
-    flag: '\ud83c\uddf8\ud83c\uddec',
-    currency: 'SGD',
-    currencySymbol: 'S$',
-    locale: 'en-SG',
-    timezone: 'Asia/Singapore',
-    indexName: 'STI 30',
-    stockCount: 30,
-    sectorTaxonomy: 'gics',
-    hasFnO: false,
-    defaultTicker: 'D05',
-    marketCapUnit: 'B',
-    marketOpen: '09:00',
-    marketClose: '17:00',
-  },
   HKSE: {
     code: 'HKSE',
     name: 'HKSE',
@@ -135,12 +116,33 @@ export const EXCHANGES: Record<ExchangeCode, ExchangeConfig> = {
     marketOpen: '09:30',
     marketClose: '16:00',
   },
+  FX: {
+    code: 'FX',
+    name: 'Forex',
+    fullName: 'Global Currency Markets',
+    country: 'GLOBAL',
+    flag: '\ud83c\udf0d',
+    currency: 'Multi',
+    currencySymbol: '',
+    locale: 'en-US',
+    timezone: 'UTC',
+    indexName: '42 Pairs',
+    stockCount: 42,
+    sectorTaxonomy: 'gics',
+    hasFnO: false,
+    defaultTicker: 'EUR/USD',
+    marketCapUnit: '',
+    marketOpen: '17:00 Sun',
+    marketClose: '17:00 Fri',
+  },
 };
 
-export const EXCHANGE_CODES: ExchangeCode[] = ['NSE', 'NASDAQ', 'NYSE', 'LSE', 'SGX', 'HKSE'];
+export const EXCHANGE_CODES: ExchangeCode[] = ['NSE', 'NASDAQ', 'NYSE', 'LSE', 'HKSE', 'FX'];
 
-/** Exchanges currently active for data. Others show "Coming Soon". */
-export const ACTIVE_EXCHANGES: Set<ExchangeCode> = new Set<ExchangeCode>(['NSE']);
+/** Exchanges currently active for data. */
+export const ACTIVE_EXCHANGES: Set<ExchangeCode> = new Set<ExchangeCode>([
+  'NSE', 'NASDAQ', 'NYSE', 'LSE', 'HKSE', 'FX',
+]);
 
 export function getExchangeConfig(code: string): ExchangeConfig {
   return EXCHANGES[code as ExchangeCode] ?? EXCHANGES.NSE;
@@ -148,4 +150,22 @@ export function getExchangeConfig(code: string): ExchangeConfig {
 
 export function isValidExchange(code: string): code is ExchangeCode {
   return code in EXCHANGES;
+}
+
+/**
+ * Update exchange configs with live market hours from the backend
+ * market-status endpoint response. Call once on app init.
+ *
+ * @param exchangeStatuses - The `exchanges` object from GET /api/signals/market-status
+ */
+export function updateMarketHours(
+  exchangeStatuses: Record<string, { market_open?: string; market_close?: string; timezone?: string }>,
+): void {
+  for (const [code, status] of Object.entries(exchangeStatuses)) {
+    const config = EXCHANGES[code as ExchangeCode];
+    if (!config) continue;
+    if (status.market_open) config.marketOpen = status.market_open;
+    if (status.market_close) config.marketClose = status.market_close;
+    if (status.timezone) config.timezone = status.timezone;
+  }
 }

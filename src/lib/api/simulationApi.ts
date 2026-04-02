@@ -215,11 +215,13 @@ export const simulationApi = {
     ticker: string,
     exchange = 'NSE',
     estimator = 'yang_zhang',
-    options?: { signal?: AbortSignal },
+    options?: { signal?: AbortSignal; includeAi?: boolean },
   ): Promise<ApiResult<IVolatilityAnalysis>> {
+    const params: Record<string, string> = { exchange, estimator };
+    if (options?.includeAi) params.include_ai = 'true';
     const result = await apiClient.get<RawVolatilityAnalysis>(
       `/api/simulations/volatility/${encodeURIComponent(ticker)}`,
-      { exchange, estimator },
+      params,
       { signal: options?.signal },
     );
     if (result.success) {
@@ -288,11 +290,13 @@ export const simulationApi = {
     ticker: string,
     exchange = 'NSE',
     maxStates = 3,
-    options?: { signal?: AbortSignal },
+    options?: { signal?: AbortSignal; includeAi?: boolean },
   ): Promise<ApiResult<IRegimeAnalysis>> {
+    const params: Record<string, string | number> = { exchange, max_states: maxStates };
+    if (options?.includeAi) (params as Record<string, string>).include_ai = 'true';
     const result = await apiClient.get<RawRegimeAnalysis>(
       `/api/simulations/regimes/${encodeURIComponent(ticker)}`,
-      { exchange, max_states: maxStates },
+      params,
       { signal: options?.signal },
     );
     if (result.success) {
@@ -309,10 +313,11 @@ export const simulationApi = {
     horizon = 252,
     nPaths = 10000,
     target?: number,
-    options?: { signal?: AbortSignal },
+    options?: { signal?: AbortSignal; includeAi?: boolean },
   ): Promise<ApiResult<IMonteCarloAnalysis>> {
     const params: Record<string, string | number | boolean | undefined> = { exchange, horizon, n_paths: nPaths };
     if (target != null) params.target = target;
+    if (options?.includeAi) params.include_ai = true;
     const result = await apiClient.get<RawMonteCarloAnalysis>(
       `/api/simulations/montecarlo/${encodeURIComponent(ticker)}`,
       params,

@@ -21,7 +21,8 @@ import type {
   ICommunityDetection,
   ICorrelationMover,
 } from '@/types/analytics';
-import { type CorrelationMethod, type ViewMode, type AssetScope, getStockAssets } from './correlation/constants';
+import { type CorrelationMethod, type ViewMode, type AssetScope, getStockAssets, setDynamicStockAssets, type Asset } from './correlation/constants';
+import { getInstruments } from '@/src/lib/api/signalApi';
 import { CorrelationToolbar, type ColorMode } from './correlation/CorrelationToolbar';
 import { NetworkGraph } from './correlation/NetworkGraph';
 import { HeatmapMatrix } from './correlation/HeatmapMatrix';
@@ -132,8 +133,34 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
   const [colorMode, setColorMode] = useState<ColorMode>('type');
   const [communityData, setCommunityData] = useState<ICommunityDetection | null>(null);
 
-  // Reset selected assets when exchange changes
+  // Fetch instruments from backend and populate dynamic cache
   const prevExchangeRef = React.useRef(exchange);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadInstruments() {
+      type InstrumentType = 'nse' | 'nasdaq' | 'nyse' | 'lse' | 'hkse' | 'currency' | 'commodity';
+      const exchangeTypeMap: Record<string, InstrumentType> = {
+        NSE: 'nse', NASDAQ: 'nasdaq', NYSE: 'nyse', LSE: 'lse', HKSE: 'hkse',
+      };
+      const type = exchangeTypeMap[exchange.toUpperCase()];
+      if (!type) return;
+      const result = await getInstruments(type);
+      if (cancelled || !result.success || !result.data) return;
+      const assets: Asset[] = result.data.map((inst) => ({
+        ticker: inst.ticker,
+        name: inst.name,
+        type: 'stock' as const,
+        sector: inst.sector ?? undefined,
+      }));
+      if (assets.length > 0) {
+        setDynamicStockAssets(exchange, assets);
+      }
+    }
+    loadInstruments();
+    return () => { cancelled = true; };
+  }, [exchange]);
+
+  // Reset selected assets when exchange changes
   useEffect(() => {
     if (prevExchangeRef.current !== exchange) {
       prevExchangeRef.current = exchange;

@@ -60,7 +60,7 @@ export function useMarketIntelligence(
     setStoriesLoading(true);
     setStoriesError(false);
     try {
-      const res = await getNewsStories(168, 10, undefined, exchange, controller.signal);
+      const res = await getNewsStories(168, 10, undefined, exchange, undefined, controller.signal);
       if (!controller.signal.aborted) {
         if (res.success && res.data?.stories) {
           setStories(res.data.stories);
@@ -154,7 +154,7 @@ export function useMarketIntelligence(
     setBriefLoading(true);
     setBriefError(false);
     try {
-      const res = await getMorningBrief(exchange, controller.signal);
+      const res = await getMorningBrief(exchange, undefined, controller.signal);
       if (!controller.signal.aborted) {
         if (res.success && res.data) {
           setBrief(res.data);

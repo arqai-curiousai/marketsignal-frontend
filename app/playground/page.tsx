@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { SimulationProvider } from '@/context/SimulationContext';
 import { usePlaygroundHotkeys } from '@/lib/hooks/usePlaygroundHotkeys';
 import { SimShortcutHelp } from '@/components/playground/simulations/shared/SimShortcutHelp';
+import { DataFreshnessStrip } from '@/components/playground/simulations/shared/DataFreshnessStrip';
 import { CrossSimulationInsights } from '@/components/playground/CrossSimulationInsights';
 
 // Simple loading skeleton for lazy-loaded tabs
@@ -98,10 +99,10 @@ interface SimTab {
 const SIMULATION_TABS: SimTab[] = [
   {
     id: 'signals',
-    label: 'AI Signals',
-    shortLabel: 'Signals',
+    label: 'AI Patterns',
+    shortLabel: 'Patterns',
     icon: FlaskConical,
-    description: 'Multi-layer intelligence pipeline',
+    description: 'AI-powered pattern detection across price, volume, and volatility',
     color: 'text-blue-400',
   },
   {
@@ -109,7 +110,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Volatility',
     shortLabel: 'Vol',
     icon: Activity,
-    description: 'Range-based estimators, GARCH forecasts, regime detection',
+    description: 'How wildly could this stock move? Five risk models, one storm gauge',
     color: 'text-indigo-400',
   },
   {
@@ -117,7 +118,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Regimes',
     shortLabel: 'Regimes',
     icon: Waves,
-    description: 'Hidden Markov Models for market regime detection',
+    description: 'Is the market in rally mode, drift mode, or crash mode right now?',
     color: 'text-orange-400',
   },
   {
@@ -125,7 +126,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Monte Carlo',
     shortLabel: 'MC',
     icon: Dice5,
-    description: 'Regime-conditional path simulation with risk metrics',
+    description: 'Simulate thousands of possible futures for any stock price',
     color: 'text-rose-400',
   },
   {
@@ -133,7 +134,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Portfolio',
     shortLabel: 'Portfolio',
     icon: PieChart,
-    description: 'Mean-variance, risk parity, and hierarchical risk parity optimization',
+    description: 'Find the ideal stock mix that balances your risk and return',
     color: 'text-amber-400',
   },
   {
@@ -141,7 +142,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Backtesting',
     shortLabel: 'Backtest',
     icon: BarChart3,
-    description: 'Walk-forward validation with CPCV overfitting detection',
+    description: 'Test any strategy against real market history before risking money',
     color: 'text-emerald-400',
   },
   {
@@ -149,7 +150,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Risk Score',
     shortLabel: 'Risk',
     icon: Shield,
-    description: 'Portfolio risk in one number — from 1 to 99',
+    description: 'Your personal risk score from 1 to 99 — and what to do about it',
     color: 'text-red-400',
   },
   {
@@ -157,7 +158,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Scenarios',
     shortLabel: 'Stress',
     icon: Zap,
-    description: 'India-specific stress testing with 8 preset macro scenarios',
+    description: 'What happens to your money if the market crashes tomorrow?',
     color: 'text-orange-400',
   },
   {
@@ -165,7 +166,7 @@ const SIMULATION_TABS: SimTab[] = [
     label: 'Factors',
     shortLabel: 'Factors',
     icon: Diamond,
-    description: 'Multi-factor decomposition: Value, Momentum, Quality, Size, Low Vol',
+    description: 'Which hidden forces are actually driving your stock returns?',
     color: 'text-violet-400',
   },
 ];
@@ -212,6 +213,9 @@ export default function PlaygroundPage() {
 
       {/* Shortcut help dialog */}
       <SimShortcutHelp open={showHelp} onOpenChange={setShowHelp} />
+
+      {/* Data freshness indicators */}
+      <DataFreshnessStrip className="px-1" />
 
       {/* Cross-simulation insights strip */}
       <CrossSimulationInsights />

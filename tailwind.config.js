@@ -99,20 +99,12 @@ module.exports = {
             },
             keyframes: {
                 'accordion-down': {
-                    from: {
-                        height: '0'
-                    },
-                    to: {
-                        height: 'var(--radix-accordion-content-height)'
-                    }
+                    from: { height: '0' },
+                    to: { height: 'var(--radix-accordion-content-height)' }
                 },
                 'accordion-up': {
-                    from: {
-                        height: 'var(--radix-accordion-content-height)'
-                    },
-                    to: {
-                        height: '0'
-                    }
+                    from: { height: 'var(--radix-accordion-content-height)' },
+                    to: { height: '0' }
                 },
                 'fade-in': {
                     '0%': { opacity: '0', transform: 'translateY(10px)' },
@@ -148,6 +140,20 @@ module.exports = {
                     '33%': { transform: 'translateX(-100%)' },
                     '66%': { transform: 'translateX(100%)' },
                 },
+                'radial-burst': {
+                    '0%': { transform: 'rotate(0deg)' },
+                    '100%': { transform: 'rotate(360deg)' },
+                },
+                'drift': {
+                    '0%, 100%': { transform: 'translate(0, 0)', opacity: '0.15' },
+                    '25%': { transform: 'translate(8px, -12px)', opacity: '0.3' },
+                    '50%': { transform: 'translate(-4px, -20px)', opacity: '0.2' },
+                    '75%': { transform: 'translate(6px, -8px)', opacity: '0.35' },
+                },
+                'radar-ping': {
+                    '0%': { transform: 'scale(1)', opacity: '0.6' },
+                    '100%': { transform: 'scale(3)', opacity: '0' },
+                },
             },
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
@@ -159,6 +165,9 @@ module.exports = {
                 'data-stream': 'data-stream 20s linear infinite',
                 'spin-slow': 'spin-slow 8s linear infinite',
                 'dash-flow': 'dash-flow 1.5s linear infinite',
+                'radial-burst': 'radial-burst 15s linear infinite',
+                'drift': 'drift 6s ease-in-out infinite',
+                'radar-ping': 'radar-ping 2s ease-out infinite',
             }
         }
     },

@@ -23,8 +23,8 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-    title: 'Market Signal - Investment Research & Signals by arQai',
-    description: 'AI-powered investment research and signals platform by arQai. Real-time monitoring and sourced insights.',
+    title: 'MarketSignal — AI-Powered Market Analytics by arQai',
+    description: 'AI-powered market analytics platform by arQai. Real-time monitoring, pattern detection, and data-driven intelligence.',
 };
 
 export default function RootLayout({

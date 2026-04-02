@@ -81,10 +81,23 @@ export function Header() {
 
     const headerBg = isLanding && !scrolled
         ? 'bg-transparent border-transparent'
-        : 'bg-brand-slate/70 backdrop-blur-xl border-white/[0.06] header-lit-edge';
+        : 'bg-brand-slate/80 backdrop-blur-2xl border-white/[0.04] header-lit-edge';
+
+    // Determine accent glow line color based on landing page
+    const glowColor = isLanding
+        ? pathname === '/pulse' ? 'rgba(110,231,183,0.06)' : pathname === '/simulations' ? 'rgba(167,139,250,0.06)' : 'rgba(96,165,250,0.06)'
+        : 'transparent';
 
     return (
-        <header className={cn("sticky top-0 z-50 w-full border-b transition-all duration-500", headerBg)}>
+        <header className={cn("sticky top-0 z-50 w-full border-b transition-all duration-700", headerBg)}>
+            {/* Ambient glow line under header on scroll */}
+            <div
+                className="absolute bottom-0 left-0 right-0 h-px transition-opacity duration-700 pointer-events-none"
+                style={{
+                    background: `linear-gradient(90deg, transparent, ${glowColor}, transparent)`,
+                    opacity: scrolled ? 1 : 0,
+                }}
+            />
             <div className="container flex h-14 items-center gap-4">
                 {/* ── Zone A: Brand ── */}
                 <div className="flex items-center gap-3 shrink-0">

@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
-import { formatTimeAgo, getSentimentColor } from './constants';
+import { formatTimeAgo, getSentimentColor, REGION_METADATA } from './constants';
 
 interface BreakingWireProps {
   articles: INewsArticle[];
@@ -102,6 +102,8 @@ export function BreakingWire({ articles, onSelect, onDismiss }: BreakingWireProp
                   article.sentiment,
                   article.sentiment_score,
                 );
+                const primaryRegion = article.regions?.[0];
+                const regionMeta = primaryRegion ? REGION_METADATA[primaryRegion] : undefined;
                 return (
                   <button
                     key={article.id}
@@ -113,7 +115,12 @@ export function BreakingWire({ articles, onSelect, onDismiss }: BreakingWireProp
                       borderLeftColor: sentimentColor,
                     }}
                   >
-                    {/* Headline */}
+                    {/* Region flag + Headline */}
+                    {regionMeta && (
+                      <span className="text-xs shrink-0" title={regionMeta.displayName}>
+                        {regionMeta.flag}
+                      </span>
+                    )}
                     <span className="text-xs text-white/70 group-hover:text-white/85 line-clamp-1 flex-1 min-w-0">
                       {article.headline}
                     </span>
@@ -127,6 +134,19 @@ export function BreakingWire({ articles, onSelect, onDismiss }: BreakingWireProp
                         {sym}
                       </span>
                     ))}
+
+                    {/* Region badge */}
+                    {regionMeta && (
+                      <span
+                        className="text-[9px] rounded px-1 py-0.5 shrink-0 font-medium"
+                        style={{
+                          color: regionMeta.color,
+                          backgroundColor: `${regionMeta.color}15`,
+                        }}
+                      >
+                        {regionMeta.displayName}
+                      </span>
+                    )}
 
                     {/* Time */}
                     <span className="text-[10px] text-white/20 shrink-0 tabular-nums">

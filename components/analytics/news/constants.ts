@@ -2,7 +2,27 @@
 
 export type NewsViewMode = 'feed' | 'graph' | 'mindmap' | 'timeline';
 
+export type NewsRegion = 'all' | 'americas' | 'europe' | 'asia_pacific' | 'india' | 'scandinavia' | 'emerging_markets';
+
+/** @deprecated Use NewsRegion instead */
 export type NewsScope = 'india' | 'global';
+
+export const REGION_METADATA: Record<string, { displayName: string; flag: string; color: string; primaryCurrencies: string }> = {
+  americas: { displayName: 'Americas', flag: '\uD83C\uDDFA\uD83C\uDDF8', color: '#3B82F6', primaryCurrencies: 'USD, CAD, MXN' },
+  europe: { displayName: 'Europe', flag: '\uD83C\uDDEC\uD83C\uDDE7', color: '#8B5CF6', primaryCurrencies: 'EUR, GBP, CHF' },
+  asia_pacific: { displayName: 'Asia-Pac', flag: '\uD83C\uDF0F', color: '#F59E0B', primaryCurrencies: 'JPY, SGD, HKD, AUD' },
+  india: { displayName: 'India', flag: '\uD83C\uDDEE\uD83C\uDDF3', color: '#10B981', primaryCurrencies: 'INR' },
+  scandinavia: { displayName: 'Scandinavia', flag: '\uD83C\uDDF8\uD83C\uDDEA', color: '#06B6D4', primaryCurrencies: 'SEK, NOK' },
+  emerging_markets: { displayName: 'EM', flag: '\uD83C\uDF0D', color: '#EF4444', primaryCurrencies: 'MXN, ZAR, TRY' },
+};
+
+export const ALL_REGIONS: NewsRegion[] = ['americas', 'europe', 'asia_pacific', 'india', 'scandinavia', 'emerging_markets'];
+
+/** Convert a set of selected regions to the API parameter string. */
+export function regionsToApiParam(regions: Set<NewsRegion>): string {
+  if (regions.has('all') || regions.size === 0 || regions.size === ALL_REGIONS.length) return '';
+  return Array.from(regions).join(',');
+}
 
 /** Unified sentiment thresholds — use these everywhere instead of magic numbers */
 export const SENTIMENT_THRESHOLDS = {
@@ -83,6 +103,20 @@ export const SOURCE_DISPLAY_NAMES: Record<string, string> = {
   google_news_rss: 'Google News',
   searchapi: 'Google News',
   eodhd: 'EODHD',
+  bbc_business: 'BBC Business',
+  cnbc: 'CNBC',
+  guardian_business: 'The Guardian',
+  abc_australia: 'ABC News AU',
+  nikkei: 'Nikkei Asia',
+  central_bank_rss: 'Central Banks',
+  fxstreet: 'FXStreet',
+  google_news_us_rss: 'Google News US',
+  google_news_uk_rss: 'Google News UK',
+  google_news_apac_rss: 'Google News APAC',
+  google_news_em_rss: 'Google News EM',
+  google_news_scandinavia_rss: 'Google News Nordic',
+  forex_news_rss: 'Forex News',
+  newsdata_io: 'NewsData',
 };
 
 /** Returns a user-friendly display name for a source identifier. */
@@ -110,14 +144,71 @@ export const GLOBAL_SOURCE_FILTER_OPTIONS = [
 /** Backward-compat alias — defaults to India sources. */
 export const SOURCE_FILTER_OPTIONS = INDIA_SOURCE_FILTER_OPTIONS;
 
-/** Returns scope-appropriate source filter options. */
+/** @deprecated Use getRegionSourceFilterOptions instead */
 export function getSourceFilterOptions(scope: NewsScope) {
   return scope === 'global' ? GLOBAL_SOURCE_FILTER_OPTIONS : INDIA_SOURCE_FILTER_OPTIONS;
 }
 
-/** Maps scope to the exchange parameter for API calls. */
+/** @deprecated Use regionsToApiParam instead */
 export function scopeToExchange(scope: NewsScope): string {
   return scope === 'global' ? 'GLOBAL' : 'NSE';
+}
+
+/** Region-aware source filter options. */
+const SOURCE_OPTIONS_BY_REGION: Record<string, { label: string; value: string }[]> = {
+  india: [
+    { label: 'Economic Times', value: 'economic_times' },
+    { label: 'LiveMint', value: 'livemint' },
+    { label: 'Hindu BusinessLine', value: 'hindu_businessline' },
+    { label: 'NDTV Profit', value: 'ndtv_profit' },
+    { label: 'Google News India', value: 'google_news_rss' },
+  ],
+  americas: [
+    { label: 'CNBC', value: 'cnbc' },
+    { label: 'Google News US', value: 'google_news_us_rss' },
+    { label: 'EODHD', value: 'eodhd' },
+  ],
+  europe: [
+    { label: 'BBC Business', value: 'bbc_business' },
+    { label: 'The Guardian', value: 'guardian_business' },
+    { label: 'Google News UK', value: 'google_news_uk_rss' },
+    { label: 'EODHD', value: 'eodhd' },
+  ],
+  asia_pacific: [
+    { label: 'Nikkei Asia', value: 'nikkei' },
+    { label: 'ABC Australia', value: 'abc_australia' },
+    { label: 'Google News APAC', value: 'google_news_apac_rss' },
+    { label: 'EODHD', value: 'eodhd' },
+  ],
+  scandinavia: [
+    { label: 'Google News Nordic', value: 'google_news_scandinavia_rss' },
+  ],
+  emerging_markets: [
+    { label: 'Google News EM', value: 'google_news_em_rss' },
+  ],
+  global: [
+    { label: 'Central Banks', value: 'central_bank_rss' },
+    { label: 'FXStreet', value: 'fxstreet' },
+    { label: 'Forex News', value: 'forex_news_rss' },
+  ],
+};
+
+/** Get source filter options for the selected regions. */
+export function getRegionSourceFilterOptions(regions: Set<NewsRegion>): { label: string; value: string }[] {
+  const opts = new Map<string, { label: string; value: string }>();
+  const regionKeys = regions.has('all') || regions.size === 0
+    ? ALL_REGIONS
+    : Array.from(regions);
+  for (const r of regionKeys) {
+    for (const opt of SOURCE_OPTIONS_BY_REGION[r] || []) {
+      opts.set(opt.value, opt);
+    }
+  }
+  // Always include global sources
+  for (const opt of SOURCE_OPTIONS_BY_REGION.global || []) {
+    opts.set(opt.value, opt);
+  }
+  return [{ label: 'All Sources', value: '' }, ...Array.from(opts.values())];
 }
 
 /** Source badge configuration — abbreviation + color for compact chips. */
@@ -131,6 +222,19 @@ export const SOURCE_BADGE_CONFIG: Record<string, { abbr: string; color: string }
   searchapi: { abbr: 'GN', color: '#6B7280' },
   eodhd: { abbr: 'EODHD', color: '#14B8A6' },
   newsdata: { abbr: 'ND', color: '#EC4899' },
+  bbc_business: { abbr: 'BBC', color: '#BB1919' },
+  cnbc: { abbr: 'CNBC', color: '#005594' },
+  guardian_business: { abbr: 'GDN', color: '#052962' },
+  abc_australia: { abbr: 'ABC', color: '#E64626' },
+  nikkei: { abbr: 'NKI', color: '#003E7E' },
+  central_bank_rss: { abbr: 'CB', color: '#1E3A5F' },
+  fxstreet: { abbr: 'FXS', color: '#FF6600' },
+  google_news_us_rss: { abbr: 'GN', color: '#4285F4' },
+  google_news_uk_rss: { abbr: 'GN', color: '#4285F4' },
+  google_news_apac_rss: { abbr: 'GN', color: '#4285F4' },
+  google_news_em_rss: { abbr: 'GN', color: '#4285F4' },
+  google_news_scandinavia_rss: { abbr: 'GN', color: '#4285F4' },
+  forex_news_rss: { abbr: 'FX', color: '#22C55E' },
 };
 
 /** Known primary/trusted financial news publishers. */
@@ -139,8 +243,11 @@ export const PRIMARY_SOURCES = new Set([
   'Economic Times', 'LiveMint', 'Reuters', 'Bloomberg',
   'CNBC', 'Financial Express', 'Mint', 'ET',
   'The Hindu BusinessLine', 'NDTV Profit', 'Google News',
+  'BBC', 'The Guardian', 'Nikkei Asia', 'ABC News',
   // Backend identifiers (from RSS sources)
   'economic_times', 'livemint', 'hindu_businessline', 'moneycontrol', 'ndtv_profit', 'searchapi',
+  'bbc_business', 'cnbc', 'guardian_business', 'nikkei', 'abc_australia',
+  'central_bank_rss', 'fxstreet',
 ]);
 
 export function getSentimentColor(sentiment: string | null, score?: number | null): string {

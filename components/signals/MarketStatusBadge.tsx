@@ -15,7 +15,6 @@ const MARKET_LABELS: Record<string, string> = {
     nasdaq: 'NASDAQ',
     nyse: 'NYSE',
     lse: 'LSE',
-    sgx: 'SGX',
     hkse: 'HKSE',
     forex: 'Forex',
     commodity: 'MCX',

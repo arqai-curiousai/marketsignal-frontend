@@ -19,17 +19,17 @@ export function SimulationGrid() {
           className="text-center mb-16"
         >
           <motion.p variants={fadeUp} className="section-label justify-center">
-            9 SIMULATIONS
+            9 FREE TOOLS
           </motion.p>
           <motion.h2
             variants={fadeUp}
             className="font-display text-4xl md:text-5xl lg:text-6xl headline-xl text-white mb-6"
           >
-            <span className="font-bold">Every Model,</span>{' '}
-            <span className="font-serif italic gradient-text-hero">One Lab</span>
+            <span className="font-bold">Wall Street Tools,</span>{' '}
+            <span className="font-serif italic gradient-text-hero">Your Hands</span>
           </motion.h2>
           <motion.p variants={fadeUp} className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Volatility estimation, regime detection, Monte Carlo simulation, portfolio optimization, backtesting, and risk scoring — in a single workspace
+            Check how risky a stock really is. See where your portfolio could go in a crash. Test any strategy against real history. Build the perfect mix of investments. All in one place — and all completely free.
           </motion.p>
         </motion.div>
 

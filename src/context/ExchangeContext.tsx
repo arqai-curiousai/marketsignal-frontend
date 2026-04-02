@@ -1,7 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
-import { type ExchangeCode, type ExchangeConfig, EXCHANGES, isValidExchange, ACTIVE_EXCHANGES } from '@/lib/exchange/config';
+import { type ExchangeCode, type ExchangeConfig, EXCHANGES, isValidExchange, ACTIVE_EXCHANGES, updateMarketHours } from '@/lib/exchange/config';
+import { getMarketStatus } from '@/src/lib/api/signalApi';
 
 interface ExchangeContextValue {
   selectedExchange: ExchangeCode;
@@ -25,6 +26,16 @@ export function ExchangeProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // localStorage unavailable
     }
+  }, []);
+
+  // Hydrate exchange configs with live market hours from the backend
+  useEffect(() => {
+    let cancelled = false;
+    getMarketStatus().then((result) => {
+      if (cancelled || !result.success || !result.data?.exchanges) return;
+      updateMarketHours(result.data.exchanges);
+    });
+    return () => { cancelled = true; };
   }, []);
 
   const setExchange = useCallback((code: ExchangeCode) => {

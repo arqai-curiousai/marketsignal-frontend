@@ -21,9 +21,9 @@ export const PULSE_ACCENT = {
 
 // ── Hero ──
 export const PULSE_HERO = {
-  headlineBold: 'Capital Moves',
-  headlineSerif: 'Follow It',
-  sub: 'Sector heatmaps, DCC-GARCH dynamic correlations, and AI-curated news intelligence across 260+ stocks and 6 global exchanges.',
+  headlineBold: 'Every Headline',
+  headlineSerif: 'Decoded in Real Time',
+  sub: 'AI-curated news intelligence from 20+ sources across 6 global regions — with sentiment scoring, impact detection, and story threading. Backed by sector analytics and dynamic correlations across 260+ stocks.',
   primaryCta: { label: 'Open the Dashboard', href: '/login' },
   secondaryCta: { label: 'Explore Modules', href: '#modules' },
   video: {
@@ -58,6 +58,25 @@ export interface PulseModule {
 
 export const PULSE_MODULES: PulseModule[] = [
   {
+    id: 'news',
+    icon: Newspaper,
+    label: 'NEWS INTELLIGENCE',
+    headline: 'Intelligence From Every Source',
+    description:
+      'AI-curated news feed from 20+ sources across 6 global regions with real-time sentiment scoring, impact detection, and story threading. Morning briefs, trend alerts, and network graph visualization.',
+    features: [
+      'AI sentiment scoring per article (Bullish/Bearish/Neutral)',
+      'Impact detection linking news events to market price movements',
+      'Story threading — follow narratives across sources',
+      'Morning brief synthesis for rapid catch-up',
+      'News network graph revealing topic connections',
+    ],
+    href: '/signals?tab=news',
+    cta: 'Explore News',
+    glowColor: 'emerald',
+    video: { webm: '/landing/videos/pulse-news.webm', mp4: '/landing/videos/pulse-news.mp4' },
+  },
+  {
     id: 'sectors',
     icon: BarChart3,
     label: 'SECTOR INTELLIGENCE',
@@ -73,7 +92,7 @@ export const PULSE_MODULES: PulseModule[] = [
     ],
     href: '/signals',
     cta: 'Explore Sectors',
-    glowColor: 'emerald',
+    glowColor: 'amber',
     video: { webm: '/landing/videos/pulse-sectors.webm', mp4: '/landing/videos/pulse-sectors.mp4' },
   },
   {
@@ -92,27 +111,8 @@ export const PULSE_MODULES: PulseModule[] = [
     ],
     href: '/signals?tab=correlation',
     cta: 'Explore Correlations',
-    glowColor: 'amber',
-    video: { webm: '/landing/videos/pulse-correlation.webm', mp4: '/landing/videos/pulse-correlation.mp4' },
-  },
-  {
-    id: 'news',
-    icon: Newspaper,
-    label: 'NEWS INTELLIGENCE',
-    headline: 'Signal From the Noise',
-    description:
-      'AI-curated news feed with real-time sentiment scoring, impact detection, and story threading. Morning briefs, divergence alerts, and network graph visualization.',
-    features: [
-      'AI sentiment scoring per article (Bullish/Bearish/Neutral)',
-      'Impact detection with market response correlation',
-      'Story threading — follow narratives across sources',
-      'Morning brief synthesis for rapid catch-up',
-      'News network graph revealing topic connections',
-    ],
-    href: '/signals?tab=news',
-    cta: 'Explore News',
     glowColor: 'blue',
-    video: { webm: '/landing/videos/pulse-news.webm', mp4: '/landing/videos/pulse-news.mp4' },
+    video: { webm: '/landing/videos/pulse-correlation.webm', mp4: '/landing/videos/pulse-correlation.mp4' },
   },
 ];
 
@@ -120,7 +120,7 @@ export const PULSE_MODULES: PulseModule[] = [
 export const PULSE_SECTOR_SHOWCASE = {
   label: 'SECTOR ANALYSIS',
   headline: 'From Macro to Micro',
-  sub: 'Every NIFTY 50 sector dissected — from market-cap weighted valuations to FII ownership trends, earnings calendars, and Mansfield relative strength charting.',
+  sub: 'Sectors across 5 global exchanges dissected — from market-cap weighted valuations to ownership trends, earnings calendars, and Mansfield relative strength charting.',
   features: [
     { title: 'Heatmap Grid', description: 'Market-cap weighted sector performance at a glance' },
     { title: 'Relative Rotation', description: 'RRG quadrants showing momentum and relative strength cycles' },

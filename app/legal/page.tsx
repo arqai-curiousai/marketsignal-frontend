@@ -14,7 +14,7 @@ const colorMap = {
 const dataSources = [
   {
     title: 'Exchange Market Data',
-    description: 'Live and historical pricing from NSE via Kite Connect (Zerodha), and global exchanges (NASDAQ, NYSE, LSE, SGX, HKSE) via EODHD.',
+    description: 'Live and historical pricing from NSE via Kite Connect (Zerodha), and global exchanges (NASDAQ, NYSE, LSE, HKSE) via EODHD.',
     color: 'blue' as const,
   },
   {

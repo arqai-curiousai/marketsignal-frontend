@@ -11,7 +11,7 @@ import { formatDateTime } from '@/src/lib/exchange/formatting';
 import { toast } from 'sonner';
 import { getPriceAlerts, createPriceAlert, deletePriceAlert } from '@/src/lib/api/analyticsApi';
 import type { IPriceAlert } from '@/src/types/analytics';
-import { NSE_FOREX_PAIRS } from './constants';
+import { ALL_FOREX_PAIRS } from './constants';
 
 const ANIM = {
   initial: { opacity: 0, y: 12 },
@@ -71,7 +71,7 @@ function NewAlertForm({
               onChange={e => setPair(e.target.value)}
               className="w-full bg-white/[0.04] border border-white/[0.08] rounded-lg px-2 py-1.5 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-sky-500/40"
             >
-              {NSE_FOREX_PAIRS.map(p => (
+              {ALL_FOREX_PAIRS.map(p => (
                 <option key={p} value={p}>{p}</option>
               ))}
             </select>

@@ -2,6 +2,7 @@ import {
   Shield,
   Eye,
   Database,
+  Clock,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -9,16 +10,16 @@ import {
 export const DUAL_AGENT = {
   label: 'THE ENGINE',
   headline: 'Two Minds',
-  headlineSerif: 'One Signal',
-  sub: 'Every market snapshot is analyzed independently by two AI agents with opposing mandates. Their disagreement is the signal.',
+  headlineSerif: 'One Verdict',
+  sub: 'Every market snapshot is analyzed independently by two AI agents with opposing mandates. Their disagreement is the insight.',
   callouts: [
     {
       title: 'Hallucination Guard',
       description: 'Confidence capped at 0.85 for extreme outputs',
     },
     {
-      title: 'Divergence Signals',
-      description: 'When agents disagree, conviction is highest',
+      title: 'Divergence Detection',
+      description: 'When agents disagree, the analysis is most informative',
     },
     {
       title: 'Deterministic Resolver',
@@ -36,7 +37,7 @@ export interface TrustCard {
   icon: LucideIcon;
   title: string;
   description: string;
-  visual: 'filter' | 'agents' | 'data-flow';
+  accent: 'emerald' | 'blue' | 'violet' | 'amber';
 }
 
 export const TRUST = {
@@ -48,24 +49,42 @@ export const TRUST = {
       icon: Shield,
       title: 'Regulatory Compliance',
       description:
-        'SEBI-compliant by design. Regulatory content filtering blocks investment advice keywords. We surface signals and analytics — never buy or sell recommendations.',
-      visual: 'filter' as const,
+        'Content filtering blocks investment advice keywords. We surface analytics, patterns, and data — never buy or sell recommendations.',
+      accent: 'emerald' as const,
     },
     {
       icon: Eye,
       title: 'AI Transparency',
       description:
-        'Every signal shows both agent perspectives, conflict type, and confidence scores. Hallucination guard caps confidence at 0.85 for extreme outputs. No black boxes.',
-      visual: 'agents' as const,
+        'Both agent perspectives, conflict types, and confidence scores are always visible. Hallucination guard caps confidence at 0.85. No black boxes.',
+      accent: 'blue' as const,
     },
     {
       icon: Database,
       title: 'Data Integrity',
       description:
-        'S3 archival with upload verification before deletion. MongoDB hot data with Beanie ODM. 5-minute refresh cycles. Market-hours-aware scheduling prevents stale data.',
-      visual: 'data-flow' as const,
+        'S3 archival with verified uploads. MongoDB hot data with 5-minute refresh. Market-hours-aware scheduling prevents stale data.',
+      accent: 'violet' as const,
+    },
+    {
+      icon: Clock,
+      title: 'Market Hours Aware',
+      description:
+        'Signal refresh respects trading hours across NSE, Forex, and Commodity sessions. Data goes stale-safe during off-hours.',
+      accent: 'amber' as const,
     },
   ] as TrustCard[],
+  testimonial: {
+    quote: 'The dual-agent approach surfaces insights I wouldn\'t see with a single model. The divergence signals are genuinely useful for timing entries.',
+    author: 'Early Beta Tester',
+    role: 'Forex Trader, Mumbai',
+  },
+  badges: [
+    'SEBI Compliant',
+    'No Investment Advice',
+    'End-to-End Encrypted',
+    'Open Beta',
+  ],
   disclaimer:
-    'MarketSignal is an analytics platform. Information only — not investment advice. Past signals are not indicative of future performance.',
+    'MarketSignal is an analytics platform. Information only — not investment advice. Past patterns are not indicative of future performance.',
 };

@@ -9,7 +9,7 @@ export function Footer() {
                     <div className="col-span-1 md:col-span-2">
                         <span className="text-xl font-bold tracking-tight gradient-text mb-4 block">MarketSignal AI</span>
                         <p className="text-muted-foreground max-w-sm text-sm leading-relaxed">
-                            AI-powered investment research and signals platform. Providing real-time monitoring and sourced insights without buy/sell recommendations.
+                            AI-powered market analytics platform. Real-time monitoring, pattern detection, and data-driven intelligence — without buy/sell recommendations.
                         </p>
                     </div>
                     <div>
@@ -44,7 +44,7 @@ export function Footer() {
                         &copy; {new Date().getFullYear()} MarketSignal AI. All rights reserved.
                     </p>
                     <p className="text-[10px] text-muted-foreground/60 uppercase tracking-widest">
-                        Information only &mdash; not investment advice
+                        MarketSignal provides pattern detection and market analysis for informational and educational purposes only. Not investment advice.
                     </p>
                 </div>
             </div>

@@ -4,19 +4,19 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Search, SlidersHorizontal, X } from 'lucide-react';
 import type { INewsArticle } from '@/types/analytics';
-import { TIME_RANGES, getSourceFilterOptions } from './constants';
-import type { NewsScope } from './constants';
+import { TIME_RANGES, getRegionSourceFilterOptions } from './constants';
+import type { NewsRegion } from './constants';
 import type { SentimentFilterValue } from './hooks/useNewsFilters';
 
-export type ViewMode = 'feed' | 'explore';
+export type ViewMode = 'feed' | 'deck' | 'explore';
 
 interface NewsFilterBarProps {
   // View toggle
   view: ViewMode;
   onViewChange: (view: ViewMode) => void;
 
-  // Scope (for dynamic source options)
-  scope: NewsScope;
+  // Regions (for dynamic source options)
+  regions: Set<NewsRegion>;
 
   // Filter state
   timeRange: number;
@@ -48,6 +48,7 @@ interface NewsFilterBarProps {
 
 const VIEW_OPTIONS: { value: ViewMode; label: string }[] = [
   { value: 'feed', label: 'Feed' },
+  { value: 'deck', label: 'Deck' },
   { value: 'explore', label: 'Explore' },
 ];
 
@@ -61,7 +62,7 @@ const VIEW_OPTIONS: { value: ViewMode; label: string }[] = [
 export function NewsFilterBar({
   view,
   onViewChange,
-  scope,
+  regions,
   timeRange,
   sentimentFilter,
   sourceFilter,
@@ -87,7 +88,7 @@ export function NewsFilterBar({
   const filterRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const sourceOptions = getSourceFilterOptions(scope);
+  const sourceOptions = getRegionSourceFilterOptions(regions);
 
   // Clean up debounce timer on unmount
   useEffect(() => () => clearTimeout(debounceRef.current ?? undefined), []);

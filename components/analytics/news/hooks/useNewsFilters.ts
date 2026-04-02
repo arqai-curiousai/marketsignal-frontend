@@ -3,23 +3,18 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import type { INewsArticle, INewsCluster } from '@/types/analytics';
-import { SENTIMENT_THRESHOLDS, scopeToExchange } from '../constants';
-import type { NewsScope } from '../constants';
+import { SENTIMENT_THRESHOLDS, regionsToApiParam, ALL_REGIONS, getRegionSourceFilterOptions } from '../constants';
+import type { NewsRegion } from '../constants';
 
 export type SentimentFilterValue = 'all' | 'bullish' | 'bearish';
 
-export interface NewsFiltersState {
-  scope: NewsScope;
-  timeRange: number;
-  sentimentFilter: SentimentFilterValue;
-  sourceFilter: string;
-  searchQuery: string;
-}
-
 export interface UseNewsFiltersReturn {
-  // State
-  scope: NewsScope;
-  exchange: string;
+  // Region state
+  regions: Set<NewsRegion>;
+  regionParam: string;  // comma-separated for API calls, empty string = all
+  exchange: string;     // backward compat — derived from regions
+
+  // Filter state
   timeRange: number;
   sentimentFilter: SentimentFilterValue;
   sourceFilter: string;
@@ -27,7 +22,8 @@ export interface UseNewsFiltersReturn {
   activeFilterCount: number;
 
   // Setters
-  setScope: (scope: NewsScope) => void;
+  toggleRegion: (region: NewsRegion) => void;
+  setRegions: (regions: Set<NewsRegion>) => void;
   setTimeRange: (range: number) => void;
   setSentimentFilter: (filter: SentimentFilterValue) => void;
   setSourceFilter: (source: string) => void;
@@ -42,10 +38,9 @@ export interface UseNewsFiltersReturn {
 
 const VALID_TIME_RANGES = new Set([6, 24, 72, 168]);
 const VALID_SENTIMENTS = new Set<SentimentFilterValue>(['all', 'bullish', 'bearish']);
-const VALID_SCOPES = new Set<NewsScope>(['india', 'global']);
 
 function syncFilterParams(
-  scope: NewsScope,
+  regions: Set<NewsRegion>,
   timeRange: number,
   sentimentFilter: SentimentFilterValue,
   sourceFilter: string,
@@ -53,11 +48,14 @@ function syncFilterParams(
 ) {
   if (typeof window === 'undefined') return;
   const url = new URL(window.location.href);
-  if (scope !== 'india') url.searchParams.set('scope', scope); else url.searchParams.delete('scope');
+  const regionStr = Array.from(regions).sort().join(',');
+  if (regionStr) url.searchParams.set('regions', regionStr); else url.searchParams.delete('regions');
   if (timeRange !== 24) url.searchParams.set('hours', String(timeRange)); else url.searchParams.delete('hours');
   if (sentimentFilter !== 'all') url.searchParams.set('sentiment', sentimentFilter); else url.searchParams.delete('sentiment');
   if (sourceFilter) url.searchParams.set('source', sourceFilter); else url.searchParams.delete('source');
   if (searchQuery) url.searchParams.set('q', searchQuery); else url.searchParams.delete('q');
+  // Clean up legacy scope param
+  url.searchParams.delete('scope');
   window.history.replaceState({}, '', url.toString());
 }
 
@@ -65,9 +63,17 @@ export function useNewsFilters(): UseNewsFiltersReturn {
   const searchParams = useSearchParams();
   const isInitRef = useRef(true);
 
-  const [scope, setScopeState] = useState<NewsScope>(() => {
-    const v = searchParams.get('scope') as NewsScope;
-    return VALID_SCOPES.has(v) ? v : 'india';
+  const [regions, setRegionsState] = useState<Set<NewsRegion>>(() => {
+    const v = searchParams.get('regions');
+    if (v) {
+      const parsed = v.split(',').filter(r => ALL_REGIONS.includes(r as NewsRegion)) as NewsRegion[];
+      return new Set(parsed);
+    }
+    // Backward compat: check for old ?scope= param
+    const scope = searchParams.get('scope');
+    if (scope === 'global') return new Set<NewsRegion>(ALL_REGIONS.filter(r => r !== 'india'));
+    if (scope === 'india') return new Set<NewsRegion>(['india']);
+    return new Set<NewsRegion>();  // empty = all
   });
   const [timeRange, setTimeRange] = useState(() => {
     const v = parseInt(searchParams.get('hours') || '', 10);
@@ -80,20 +86,52 @@ export function useNewsFilters(): UseNewsFiltersReturn {
   const [sourceFilter, setSourceFilter] = useState(() => searchParams.get('source') || '');
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get('q') || '');
 
-  // Reset source filter when scope changes (sources differ per scope)
-  const setScope = useCallback((newScope: NewsScope) => {
-    setScopeState(newScope);
+  // Toggle a single region on/off; 'all' resets to empty set
+  const toggleRegion = useCallback((region: NewsRegion) => {
+    setRegionsState(prev => {
+      const next = new Set(prev);
+      if (region === 'all') {
+        return new Set<NewsRegion>();  // empty = all
+      }
+      if (next.has(region)) {
+        next.delete(region);
+      } else {
+        next.add(region);
+      }
+      return next;
+    });
+    setSourceFilter('');  // Reset source filter when regions change
+  }, []);
+
+  // Bulk-set regions (for programmatic use)
+  const setRegions = useCallback((newRegions: Set<NewsRegion>) => {
+    setRegionsState(newRegions);
     setSourceFilter('');
   }, []);
 
-  // Derive exchange from scope
-  const exchange = useMemo(() => scopeToExchange(scope), [scope]);
+  // Derive regionParam for API calls
+  const regionParam = useMemo(() => regionsToApiParam(regions), [regions]);
 
-  // Sync filter state → URL (skip first render to avoid overwriting on mount)
+  // Derive exchange for backward compat
+  const exchange = useMemo(() => {
+    if (regions.size === 0) return '';  // all
+    if (regions.size === 1 && regions.has('india')) return 'NSE';
+    return 'GLOBAL';
+  }, [regions]);
+
+  // Validate source filter against available options when regions change
+  useEffect(() => {
+    if (!sourceFilter) return;
+    const available = getRegionSourceFilterOptions(regions);
+    const isValid = available.some(o => o.value === sourceFilter);
+    if (!isValid) setSourceFilter('');
+  }, [regions, sourceFilter]);
+
+  // Sync filter state -> URL (skip first render to avoid overwriting on mount)
   useEffect(() => {
     if (isInitRef.current) { isInitRef.current = false; return; }
-    syncFilterParams(scope, timeRange, sentimentFilter, sourceFilter, searchQuery);
-  }, [scope, timeRange, sentimentFilter, sourceFilter, searchQuery]);
+    syncFilterParams(regions, timeRange, sentimentFilter, sourceFilter, searchQuery);
+  }, [regions, timeRange, sentimentFilter, sourceFilter, searchQuery]);
 
   const matchesSource = useCallback(
     (source: string) => {
@@ -154,14 +192,16 @@ export function useNewsFilters(): UseNewsFiltersReturn {
   }, [sentimentFilter, sourceFilter, timeRange]);
 
   return {
-    scope,
+    regions,
+    regionParam,
     exchange,
     timeRange,
     sentimentFilter,
     sourceFilter,
     searchQuery,
     activeFilterCount,
-    setScope,
+    toggleRegion,
+    setRegions,
     setTimeRange,
     setSentimentFilter,
     setSourceFilter,

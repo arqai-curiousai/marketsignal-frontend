@@ -88,7 +88,7 @@ const MODULES: PulseModule[] = [
     id: 'sectors',
     label: 'Sectors',
     tagline: 'Sector Intelligence',
-    description: 'Heatmaps, relative strength & sector rotation across Nifty 50',
+    description: 'Heatmaps, relative strength & sector rotation across global exchanges',
     icon: Grid3X3,
     accentFrom: '#6EE7B7',
     accentTo: '#34D399',

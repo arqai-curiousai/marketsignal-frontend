@@ -90,7 +90,7 @@ function HeroSection() {
                         className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-4"
                     >
                         MarketSignal by arQai brings the same analytical tools used by institutional
-                        trading desks to every investor. Two independent AI agents analyze every signal.
+                        trading desks to every investor. Two independent AI agents analyze every data point.
                         A deterministic resolver settles every disagreement. No black boxes. No guesswork.
                     </motion.p>
 
@@ -117,25 +117,25 @@ const milestones = [
         year: '2024',
         title: 'The Dual-Agent Engine',
         description:
-            'MarketSignal launched with a first-of-its-kind signal architecture: two independent AI agents — a Market Maker (institutional perspective) and a Retail Investor (crowd sentiment) — analyze every market snapshot. A deterministic conflict resolver maps their biases to BUY, SELL, or HOLD signals. Divergence between smart money and retail crowds produces the highest-conviction calls.',
+            'MarketSignal launched with a first-of-its-kind analytical architecture: two independent AI agents — a Market Maker (institutional perspective) and a Retail Investor (crowd sentiment) — analyze every market snapshot. A deterministic conflict resolver maps their biases into actionable pattern classifications. Divergence between smart money and retail crowds produces the most informative analysis.',
     },
     {
         year: '2025 Q1',
         title: 'Multi-Exchange Expansion',
         description:
-            'Coverage expanded from NSE alone to 6 global exchanges — NASDAQ, NYSE, LSE, SGX, and HKSE — with 260+ tracked stocks. Sector intelligence dashboards brought heatmaps, relative rotation graphs, Mansfield RS, FII/DII ownership tracking, and valuation aggregates across all exchanges.',
+            'Coverage expanded from NSE alone to 5 global stock exchanges — NASDAQ, NYSE, LSE, and HKSE — with 260+ tracked stocks. Sector intelligence dashboards brought heatmaps, relative rotation graphs, Mansfield RS, FII/DII ownership tracking, and valuation aggregates across all exchanges.',
     },
     {
         year: '2025 Q1',
-        title: 'Forex Analytics & 28 Pairs',
+        title: 'Forex Analytics & 42 Pairs',
         description:
-            'A dedicated forex analytics suite launched with 28 global currency pairs: real-time heatmaps, currency strength meters, carry trade analysis, multi-timeframe technicals, volatility regime detection, and session tracking across Asia, London, and New York. Powered by 5-minute OHLCV data and AI-curated news impact scoring.',
+            'A dedicated forex analytics suite launched with 42 global currency pairs across 17 currencies: real-time heatmaps with G10/Full/Exotics matrix modes, currency strength meters, carry trade analysis, multi-timeframe technicals, volatility regime detection, and session tracking across Asia, London, and New York. Powered by 5-minute OHLCV data and AI-curated news impact scoring.',
     },
     {
         year: '2025 Q2',
         title: 'Analytics Intelligence Suite',
         description:
-            'Deep analytics dashboards arrived — DCC-GARCH dynamic correlations, F&O option chain analysis with Greeks and GEX, multi-timeframe pattern detection with candlestick confirmation, volatility intelligence with range-based estimators and GARCH forecasts, and a news intelligence engine with sentiment scoring from 10+ sources.',
+            'Deep analytics dashboards arrived — DCC-GARCH dynamic correlations, F&O option chain analysis with Greeks and GEX, multi-timeframe pattern detection with candlestick confirmation, volatility intelligence with range-based estimators and GARCH forecasts, and a news intelligence engine with sentiment scoring from 20+ sources across 6 global regions.',
     },
     {
         year: 'Now',
@@ -170,7 +170,7 @@ function TimelineSection() {
                         variants={fadeUp}
                         className="font-display text-3xl sm:text-4xl md:text-5xl headline-xl text-white"
                     >
-                        Built signal by signal
+                        Built insight by insight
                     </motion.h2>
                 </motion.div>
 
@@ -262,21 +262,21 @@ const values = [
         icon: Eye,
         title: 'AI Transparency',
         description:
-            'Every signal shows both agent perspectives — Market Maker and Retail Investor — plus the conflict type. You see why the AI decided, not just what it decided. Confidence scores are capped to prevent hallucination overreach.',
+            'Every analysis shows both agent perspectives — Market Maker and Retail Investor — plus the conflict type. You see why the AI decided, not just what it decided. Confidence scores are capped to prevent hallucination overreach.',
         color: 'emerald' as const,
     },
     {
         icon: Globe2,
-        title: 'India-First, Global Reach',
+        title: 'Built in India, Watching the World',
         description:
-            'Built on NSE and NIFTY 50, then expanded to NASDAQ, NYSE, LSE, SGX, and HKSE. 28 forex pairs cover every major, minor, and INR cross. 5 MCX commodities round out the coverage. Local first, global always.',
+            'Built on NSE and NIFTY 50, then expanded to NASDAQ, NYSE, LSE, and HKSE. 42 forex pairs across 17 currencies — G10, Scandinavian, Asia-Pacific, and Emerging Markets. 5 MCX commodities and 20+ news sources across 6 regions round out the coverage. Local roots, global reach.',
         color: 'blue' as const,
     },
     {
         icon: ShieldCheck,
         title: 'Information, Not Advice',
         description:
-            'MarketSignal is an analytics platform, not a tipster. We surface signals, patterns, and data — never buy or sell recommendations. SEBI-compliant by design, with regulatory content filtering built into every response.',
+            'MarketSignal is an analytics platform, not a tipster. We surface patterns, data, and intelligence — never buy or sell recommendations. Regulatory-compliant by design, with content filtering built into every response.',
         color: 'violet' as const,
     },
     {
@@ -377,7 +377,7 @@ function ValuesSection() {
 }
 
 /* ═══════════════════════════════════════════════════════════
-   Section 5 — CTA: Join The Signal
+   Section 5 — CTA: Join The Platform
    ═══════════════════════════════════════════════════════════ */
 
 const starPositions = [
@@ -443,7 +443,7 @@ function CTASection() {
                     transition={{ duration: 0.7 }}
                 >
                     <h2 className="font-display headline-xl text-4xl sm:text-5xl md:text-6xl text-white mb-5">
-                        <span className="font-bold">Ready to see the signal?</span>
+                        <span className="font-bold">Ready to see the full picture?</span>
                     </h2>
                     <p className="text-lg md:text-xl text-muted-foreground mb-12 max-w-lg mx-auto">
                         Join the next generation of market intelligence.
