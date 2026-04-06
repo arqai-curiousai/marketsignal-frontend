@@ -3,57 +3,10 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { TRUST_STATS } from './constants';
+import { FlipClockNumber } from './pretext/FlipDigit';
+import { TrustBarCanvas } from './shared/TrustBarCanvas';
 
 type TrustStat = { value: string; suffix?: string; label: string; icon: string };
-
-/* ── Animated count-up with overshoot ── */
-function AnimatedNumber({ value, suffix = '' }: { value: string; suffix?: string }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-  const [display, setDisplay] = useState('0');
-  const [done, setDone] = useState(false);
-  const numericValue = parseInt(value, 10);
-
-  useEffect(() => {
-    if (!isInView) return;
-    const duration = 1000;
-    const overshoot = 1.08;
-    const start = performance.now();
-
-    const tick = (now: number) => {
-      const elapsed = now - start;
-      const progress = Math.min(elapsed / duration, 1);
-      // Ease out with slight overshoot then settle
-      const eased = progress < 0.85
-        ? (1 - Math.pow(1 - progress / 0.85, 3)) * overshoot
-        : 1;
-      setDisplay(Math.round(numericValue * Math.min(eased, overshoot)).toString());
-      if (progress < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        setDisplay(numericValue.toString());
-        setDone(true);
-      }
-    };
-
-    requestAnimationFrame(tick);
-  }, [isInView, numericValue]);
-
-  return (
-    <span ref={ref} className="tabular-nums">
-      {display}
-      {suffix && (
-        <motion.span
-          initial={{ opacity: 0 }}
-          animate={{ opacity: done ? 1 : 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          {suffix}
-        </motion.span>
-      )}
-    </span>
-  );
-}
 
 /* ── Monoline SVG icons — cleaner, white/40 ── */
 function MonoIcon({ type }: { type: string }) {
@@ -145,7 +98,7 @@ function StatItem({ stat }: { stat: TrustStat }) {
       <MonoIcon type={stat.icon} />
       <div className="flex flex-col relative">
         <span className="text-xl font-bold text-white font-display leading-none tracking-tight">
-          <AnimatedNumber value={stat.value} suffix={stat.suffix} />
+          <FlipClockNumber value={stat.value} suffix={stat.suffix} />
         </span>
         <span className="text-[10px] text-white/35 uppercase tracking-[0.15em] mt-1">
           {stat.label}
@@ -157,7 +110,7 @@ function StatItem({ stat }: { stat: TrustStat }) {
 }
 
 /* ── Main component ── */
-export function TrustBar({ stats }: { stats?: TrustStat[] }) {
+export function TrustBar({ stats, accentColor }: { stats?: TrustStat[]; accentColor?: string }) {
   const data = stats ?? TRUST_STATS;
   return (
     <div className="relative">
@@ -169,9 +122,12 @@ export function TrustBar({ stats }: { stats?: TrustStat[] }) {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true, margin: '-40px' }}
         transition={{ duration: 0.8 }}
-        className="relative w-full py-8 bg-gradient-to-b from-white/[0.015] to-transparent"
+        className="relative w-full py-12 bg-gradient-to-b from-white/[0.015] to-transparent"
       >
-        <div className="container max-w-7xl mx-auto px-6">
+        {/* Data aurora canvas background */}
+        <TrustBarCanvas accentColor={accentColor} />
+
+        <div className="container max-w-7xl mx-auto px-6 relative z-10">
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-5 md:gap-x-0 md:flex-nowrap md:justify-between items-center">
             {data.map((stat, i) => (
               <React.Fragment key={stat.label}>

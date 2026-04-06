@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'AI Research Assistant | MarketSignal',
+  title: 'AI Research Assistant | Meridian',
   description: 'Ask questions and get AI-powered research insights with sourced references.',
 };
 

@@ -103,7 +103,7 @@ export default function LegalPage() {
               </div>
               <div className="space-y-4 text-white/80 leading-relaxed">
                 <p className="font-bold text-white uppercase tracking-tight text-sm">
-                  MarketSignal AI is an informational research platform only.
+                  Meridian is an informational research platform only.
                 </p>
                 <p className="text-sm">
                   The content, signals, and AI-generated analysis provided on this platform do not constitute investment, financial, tax, or legal advice. No part of this platform should be construed as a recommendation to buy, sell, or hold any security or financial instrument.

@@ -36,7 +36,7 @@ interface BackendResearchRequest {
 }
 
 /**
- * AI Client for MarketSignal AI
+ * AI Client for Meridian AI
  * Connects to backend RAG-powered Q&A API with strict compliance filtering.
  */
 export class AIClient {
@@ -81,7 +81,7 @@ export class AIClient {
       confidence: this.mapConfidence(backendData.confidence),
       timestamp: new Date(),
       metadata: {
-        model: 'marketsignal-rag-v1',
+        model: 'meridian-rag-v1',
         disclaimer: backendData.disclaimer,
       },
     };

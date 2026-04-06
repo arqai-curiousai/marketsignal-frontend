@@ -13,7 +13,7 @@ import {
   fadeUp,
   EASE_OUT_EXPO,
 } from './animations';
-import { VideoClip } from './VideoClip';
+import { DualAgentCanvas } from './forex/DualAgentCanvas';
 
 /* ── Agent state cycling ── */
 const MM_STATES = ['Accumulating', 'Distributing', 'Neutral'] as const;
@@ -184,14 +184,8 @@ export function DualAgentEngine() {
 
   return (
     <section className="landing-section relative overflow-hidden">
-      {/* Background video */}
-      <VideoClip
-        webm={DUAL_AGENT.video.webm}
-        mp4={DUAL_AGENT.video.mp4}
-        overlay
-        opacity={0.12}
-        blendMode="screen"
-      />
+      {/* Background canvas — flowing agent analysis text */}
+      <DualAgentCanvas />
 
       <div className="container max-w-7xl mx-auto relative z-10">
         {/* Header */}

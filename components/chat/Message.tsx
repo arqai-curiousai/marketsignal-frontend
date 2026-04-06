@@ -3,6 +3,7 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
 import { Activity, User } from 'lucide-react';
+import { BRAND } from '@/lib/brand';
 
 interface MessageProps {
     role: 'user' | 'assistant';
@@ -32,7 +33,7 @@ export function Message({ role, content, timestamp }: MessageProps) {
             <div className="flex-1 space-y-2 overflow-hidden">
                 <div className="flex items-center gap-2">
                     <span className="text-xs font-semibold uppercase tracking-widest text-white/50">
-                        {isAssistant ? 'MarketSignal AI' : 'You'}
+                        {isAssistant ? `${BRAND.name} AI` : 'You'}
                     </span>
                     <span className="text-[10px] text-white/30">
                         {new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

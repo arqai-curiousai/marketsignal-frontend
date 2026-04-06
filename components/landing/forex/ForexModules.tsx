@@ -6,7 +6,7 @@ import { motion, useInView } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { FOREX_MODULES } from '../constants/forex';
 import { staggerContainer, clipRevealUp } from '../animations';
-import { VideoClip } from '../VideoClip';
+import { ForexModuleCanvas, type ForexModuleType } from './ForexModuleCanvas';
 
 /* ── Number badge data ── */
 const STAT_BADGES: Record<string, string> = {
@@ -158,17 +158,12 @@ export function ForexModules() {
               return (
                 <motion.div key={mod.id} variants={clipRevealUp}>
                   <MagneticCard glowColor={glowColor} isHero={i === 0}>
-                    {/* Video preview */}
+                    {/* Canvas preview */}
                     <div className="relative aspect-[16/9] rounded-xl overflow-hidden mb-5 bg-white/[0.02] border border-white/[0.04]">
-                      <VideoClip
-                        webm={mod.video.webm}
-                        mp4={mod.video.mp4}
-                        overlay={false}
-                        opacity={1}
-                      />
+                      <ForexModuleCanvas type={mod.id as ForexModuleType} />
                       {/* Number badge */}
                       {badge && (
-                        <div className="absolute top-3 right-3 flex items-baseline gap-1 bg-black/50 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/[0.06]">
+                        <div className="absolute top-3 right-3 flex items-baseline gap-1 bg-black/50 backdrop-blur-md rounded-lg px-3 py-1.5 border border-white/[0.06] pointer-events-none">
                           <span className="font-display text-2xl font-bold text-white tabular-nums leading-none">
                             {badge}
                           </span>

@@ -29,7 +29,7 @@ function KPIBadge({
 }) {
   return (
     <motion.div
-      className="flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.04]"
+      className="group flex flex-col items-center gap-0.5 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.04] hover:border-white/[0.08] hover:scale-[1.02] hover:bg-white/[0.05] transition-all duration-300"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.05 + 0.1, type: 'spring', stiffness: 150, damping: 20 }}

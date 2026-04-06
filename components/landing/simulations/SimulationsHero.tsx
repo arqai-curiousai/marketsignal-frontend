@@ -2,6 +2,7 @@
 
 import { LandingHero } from '../shared/LandingHero';
 import { SIM_HERO } from '../constants/simulations';
+import { ProbabilityCascadeCanvas } from './ProbabilityCascadeCanvas';
 
 export function SimulationsHero() {
   return (
@@ -20,6 +21,8 @@ export function SimulationsHero() {
       ]}
       accentColor="violet"
       socialProof="Monte Carlo \u00B7 Portfolio Optimizer \u00B7 Free"
+      canvasOverride={<ProbabilityCascadeCanvas />}
+      splitLayout
     />
   );
 }

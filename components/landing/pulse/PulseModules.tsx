@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import { PULSE_MODULES } from '../constants/pulse';
 import { fadeUp, staggerContainer, scaleReveal } from '../animations';
-import { VideoClip } from '../VideoClip';
+import { PulseModuleCanvas } from './PulseModuleCanvas';
 
 const GLOW_MAP: Record<string, string> = {
   emerald: 'rgba(110,231,183,0.06)',
@@ -24,6 +24,12 @@ const DOT_MAP: Record<string, string> = {
   emerald: 'bg-brand-emerald shadow-[0_0_6px_rgba(110,231,183,0.4)]',
   amber: 'bg-brand-amber shadow-[0_0_6px_rgba(251,191,36,0.4)]',
   blue: 'bg-brand-blue shadow-[0_0_6px_rgba(96,165,250,0.4)]',
+};
+
+const MODULE_CANVAS_MAP: Record<string, 'news' | 'sectors' | 'correlation'> = {
+  news: 'news',
+  sectors: 'sectors',
+  correlation: 'correlation',
 };
 
 export function PulseModules() {
@@ -66,6 +72,7 @@ export function PulseModules() {
             const glowColor = GLOW_MAP[mod.glowColor] ?? GLOW_MAP.emerald;
             const textColor = TEXT_MAP[mod.glowColor] ?? TEXT_MAP.emerald;
             const dotColor = DOT_MAP[mod.glowColor] ?? DOT_MAP.emerald;
+            const canvasType = MODULE_CANVAS_MAP[mod.id] ?? 'news';
 
             return (
               <motion.div
@@ -75,14 +82,9 @@ export function PulseModules() {
                 transition={{ type: 'spring', stiffness: 300, damping: 20 }}
                 className="bento-card flex flex-col group"
               >
-                {/* Video preview */}
+                {/* Canvas preview (replaces video) */}
                 <div className="relative aspect-[16/9] rounded-lg overflow-hidden mb-4 bg-white/[0.02] border border-white/[0.06]">
-                  <VideoClip
-                    webm={mod.video.webm}
-                    mp4={mod.video.mp4}
-                    overlay={false}
-                    opacity={1}
-                  />
+                  <PulseModuleCanvas type={canvasType} />
                   <div
                     className="absolute inset-0 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{ boxShadow: `inset 0 0 60px ${glowColor}` }}

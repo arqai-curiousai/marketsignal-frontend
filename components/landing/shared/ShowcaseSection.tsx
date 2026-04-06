@@ -13,6 +13,7 @@ import {
   EASE_OUT_EXPO,
 } from '../animations';
 import { VideoClip } from '../VideoClip';
+import { ParallaxDepthField } from './ParallaxDepthField';
 
 interface Feature {
   title: string;
@@ -28,6 +29,8 @@ interface ShowcaseSectionProps {
   /** Even sections mirror (copy right, visual left) */
   mirror?: boolean;
   accentColor?: 'blue' | 'emerald' | 'amber' | 'violet';
+  /** Optional canvas element to replace the VideoFrame */
+  canvasOverride?: React.ReactNode;
 }
 
 /* ── Accordion feature list ── */
@@ -114,6 +117,40 @@ function VideoFrame({ video, mirror }: { video: { webm: string; mp4: string }; m
   );
 }
 
+/* ── Canvas frame with perspective reveal (replaces VideoFrame when canvasOverride is provided) ── */
+function CanvasFrame({ children, mirror }: { children: React.ReactNode; mirror?: boolean }) {
+  const variant = mirror ? perspectiveRevealRight : perspectiveRevealLeft;
+
+  return (
+    <motion.div
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, margin: '-60px' }}
+      variants={variant}
+      className="relative"
+      style={{ perspective: '1200px' }}
+    >
+      <div className="relative rounded-2xl overflow-hidden border border-white/[0.06] bg-white/[0.02]">
+        <div className="aspect-[16/10] relative">
+          {children}
+        </div>
+        <div
+          className="absolute inset-0 pointer-events-none rounded-2xl"
+          style={{ boxShadow: 'inset 0 0 80px rgba(96,165,250,0.04)' }}
+        />
+      </div>
+
+      {/* Reflection */}
+      <div
+        className="hidden md:block mt-1 rounded-2xl overflow-hidden opacity-[0.03]"
+        style={{ transform: 'scaleY(-1)', filter: 'blur(10px)', height: '50px' }}
+      >
+        <div className="aspect-[16/10] bg-white/[0.02]" />
+      </div>
+    </motion.div>
+  );
+}
+
 /* ── Main showcase section ── */
 export function ShowcaseSection({
   label,
@@ -123,6 +160,7 @@ export function ShowcaseSection({
   video,
   mirror = false,
   accentColor = 'blue',
+  canvasOverride,
 }: ShowcaseSectionProps) {
   const copyVariant = mirror ? slideFromRight : slideFromLeft;
 
@@ -155,11 +193,16 @@ export function ShowcaseSection({
     </motion.div>
   );
 
-  const videoContent = <VideoFrame video={video} mirror={mirror} />;
+  const videoContent = canvasOverride
+    ? <CanvasFrame mirror={mirror}>{canvasOverride}</CanvasFrame>
+    : <VideoFrame video={video} mirror={mirror} />;
 
   return (
     <section className="landing-section relative overflow-hidden">
-      <div className="container max-w-7xl mx-auto">
+      {/* Parallax depth field background */}
+      <ParallaxDepthField />
+
+      <div className="container max-w-7xl mx-auto relative z-10">
         <div
           className={`grid grid-cols-1 md:grid-cols-[40%_60%] gap-10 md:gap-16 items-center ${mirror ? 'md:grid-cols-[60%_40%]' : ''}`}
         >

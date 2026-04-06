@@ -18,7 +18,8 @@ import {
     Users,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { ExchangeSelector } from '@/components/layout/ExchangeSelector';
+import { BRAND } from '@/lib/brand';
+
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     DropdownMenu,
@@ -111,9 +112,9 @@ export function Header() {
                         <SheetContent side="left" className="w-80 bg-brand-slate border-white/[0.06] p-0">
                             <div className="px-6 pt-6 pb-4 border-b border-white/[0.06]">
                                 <SheetHeader className="p-0">
-                                    <SheetTitle className="gradient-text text-left text-lg">Market Signal</SheetTitle>
+                                    <SheetTitle className="gradient-text text-left text-lg">{BRAND.name}</SheetTitle>
                                 </SheetHeader>
-                                <p className="text-[11px] text-white/30 mt-1">Investment Research Platform</p>
+                                <p className="text-[11px] text-white/30 mt-1">{BRAND.tagline}</p>
                             </div>
 
                             {/* User card in mobile */}
@@ -272,7 +273,7 @@ export function Header() {
                             <Activity className="h-full w-full text-white" />
                             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-white/20 to-transparent" />
                         </motion.div>
-                        <span className="hidden sm:inline text-lg font-bold tracking-tight gradient-text">Market Signal</span>
+                        <span className="hidden sm:inline text-lg font-bold tracking-tight gradient-text">{BRAND.name}</span>
                         <div className="hidden sm:flex items-center gap-1 border-l border-white/[0.06] pl-3">
                             <span className="text-[11px] font-semibold tracking-wider text-white/50">ar</span>
                             <span className="text-[13px] font-bold bg-gradient-to-r from-brand-blue to-brand-violet bg-clip-text text-transparent">Q</span>
@@ -280,7 +281,7 @@ export function Header() {
                         </div>
                     </Link>
 
-                    {!isLanding && <ExchangeSelector />}
+
                 </div>
 
                 {/* ── Zone B: Navigation (centered) ── */}

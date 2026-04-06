@@ -86,5 +86,5 @@ export const TRUST = {
     'Open Beta',
   ],
   disclaimer:
-    'MarketSignal is an analytics platform. Information only — not investment advice. Past patterns are not indicative of future performance.',
+    'Meridian is an analytics platform. Information only — not investment advice. Past patterns are not indicative of future performance.',
 };

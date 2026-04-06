@@ -60,6 +60,23 @@
   @apply bg-white/5 backdrop-blur-lg border border-white/10 rounded-2xl;
 }
 
+/* Login glass card — animated gradient border + glow */
+.login-glass-card {
+  --gradient-angle: 0deg;
+  background: conic-gradient(
+    from var(--gradient-angle),
+    rgba(96, 165, 250, 0.25),
+    rgba(110, 231, 183, 0.15),
+    rgba(167, 139, 250, 0.2),
+    rgba(96, 165, 250, 0.25)
+  );
+  animation: rotate-gradient 6s linear infinite;
+  box-shadow:
+    0 0 80px rgba(96, 165, 250, 0.06),
+    0 0 160px rgba(96, 165, 250, 0.03),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.04);
+}
+
 .gradient-text {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-brand-emerald via-brand-blue to-brand-violet;
 }
@@ -388,4 +405,32 @@
 .header-lit-edge {
   box-shadow: 0 1px 0 0 rgba(110, 231, 183, 0.04), 0 4px 12px 0 rgba(0, 0, 0, 0.3);
 }
+
+/* ── Pretext: Flip-clock digit ── */
+.flip-digit {
+  perspective: 400px;
+  display: inline-block;
+}
+
+.flip-digit-half {
+  overflow: hidden;
+  position: relative;
+  backface-visibility: hidden;
+}
+
+/* ── Pretext: Canvas layer positioning ── */
+.pretext-canvas-layer {
+  @apply absolute inset-0 pointer-events-none;
+  z-index: 2;
+}
+
+/* ── Pretext: Gravity headline word ── */
+.gravity-word {
+  @apply absolute whitespace-nowrap font-serif font-bold;
+  will-change: transform;
+}
+
+/* ── Pretext: Sentiment glow for river ── */
+.sentiment-glow-bullish { text-shadow: 0 0 20px rgba(110, 231, 183, 0.3); }
+.sentiment-glow-bearish { text-shadow: 0 0 20px rgba(248, 113, 113, 0.3); }
 

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Simulation Lab | MarketSignal',
+  title: 'Simulation Lab | Meridian',
   description: 'AI signal pipeline, volatility intelligence, Monte Carlo simulations, and portfolio optimization.',
 };
 

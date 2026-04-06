@@ -2,6 +2,7 @@
 
 import { LandingHero } from '../shared/LandingHero';
 import { FOREX_HERO } from '../constants/forex';
+import { ForexConstellationCanvas } from './ForexConstellationCanvas';
 
 export function ForexHero() {
   return (
@@ -19,7 +20,9 @@ export function ForexHero() {
         'bg-brand-emerald/[0.02]',
       ]}
       accentColor="blue"
-      socialProof="Free forever \u00B7 No credit card required"
+      socialProof="Free forever &middot; No credit card required"
+      canvasOverride={<ForexConstellationCanvas />}
+      splitLayout
     />
   );
 }

@@ -8,6 +8,8 @@ import { ArrowRight } from 'lucide-react';
 import { FINAL_CTA } from './constants';
 import { scaleReveal } from './animations';
 import { VideoClip } from './VideoClip';
+import { GravityHeadline } from './pretext/GravityHeadline';
+import { ConvergenceCanvas } from './shared/ConvergenceCanvas';
 
 type CTAContent = {
   headline: string;
@@ -76,6 +78,9 @@ export function FinalCTA({ content, accentColor }: { content?: CTAContent; accen
         />
       </div>
 
+      {/* Gravitational convergence canvas */}
+      <ConvergenceCanvas accentColor={accentColor} />
+
       {/* Drifting star dots */}
       {starPositions.map((star, i) => (
         <motion.div
@@ -105,9 +110,17 @@ export function FinalCTA({ content, accentColor }: { content?: CTAContent; accen
           viewport={{ once: true }}
           variants={scaleReveal}
         >
-          <h2 className="font-serif headline-xl text-[2.5rem] sm:text-5xl md:text-[5rem] lg:text-[6rem] text-white mb-6 font-bold">
-            {data.headline}
-          </h2>
+          <GravityHeadline
+            text={data.headline}
+            className="mb-6"
+            accentColor={
+              accentColor === 'blue'
+                ? 'rgba(96,165,250,0.12)'
+                : accentColor === 'violet'
+                  ? 'rgba(167,139,250,0.12)'
+                  : 'rgba(110,231,183,0.12)'
+            }
+          />
           <p className="text-lg md:text-xl text-white/50 mb-14 max-w-md mx-auto">
             {data.sub}
           </p>

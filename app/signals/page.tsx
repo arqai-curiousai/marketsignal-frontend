@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useCallback, useEffect, Suspense, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, Suspense, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import {
   Grid3X3,
   Newspaper,
@@ -14,34 +14,30 @@ import { cn } from '@/lib/utils';
 import { useExchange } from '@/context/ExchangeContext';
 import { MarketStatusBadge } from '@/components/signals/MarketStatusBadge';
 import { TabErrorBoundary } from '@/components/ui/TabErrorBoundary';
+import { DashboardAmbient } from '@/components/shared/DashboardAmbient';
+import { DashboardHeader } from '@/components/shared/DashboardHeader';
+import { TabLoadingFallback } from '@/components/shared/DashboardSkeleton';
 import dynamic from 'next/dynamic';
 
 /* ─────────────────────────────────────────────────────────────────────────────
  * Lazy-loaded dashboard components
  * ─────────────────────────────────────────────────────────────────────────── */
 
-const TabLoadingFallback = () => (
-  <div className="flex items-center justify-center py-24">
-    <div className="flex flex-col items-center gap-3">
-      <Loader2 className="h-7 w-7 animate-spin text-white/20" />
-      <span className="text-xs text-white/30 tracking-wide">Loading module</span>
-    </div>
-  </div>
-);
+const PulseTabLoading = () => <TabLoadingFallback accent="emerald" />;
 
 const UnifiedSectorDashboard = dynamic(
   () => import('@/components/analytics/sectors/UnifiedSectorDashboard').then(m => ({ default: m.UnifiedSectorDashboard })),
-  { ssr: false, loading: TabLoadingFallback },
+  { ssr: false, loading: PulseTabLoading },
 );
 
 const CorrelationExplorer = dynamic(
   () => import('@/components/analytics/CorrelationExplorer').then(m => ({ default: m.CorrelationExplorer })),
-  { ssr: false, loading: TabLoadingFallback },
+  { ssr: false, loading: PulseTabLoading },
 );
 
 const NewsRiver = dynamic(
   () => import('@/components/analytics/news/NewsRiver').then(m => ({ default: m.NewsRiver })),
-  { ssr: false, loading: TabLoadingFallback },
+  { ssr: false, loading: PulseTabLoading },
 );
 
 
@@ -148,40 +144,30 @@ function PulseInner() {
     router.replace(`${pathname}?${params.toString()}`, { scroll: false });
   }, [searchParams, router, pathname]);
 
+  // Re-trigger content entrance animation on tab switch
+  const contentControls = useAnimation();
+  const prevTabRef = useRef(activeId);
+
+  useEffect(() => {
+    if (prevTabRef.current !== activeId) {
+      prevTabRef.current = activeId;
+      contentControls.set({ opacity: 0.6, y: 6 });
+      contentControls.start({ opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] } });
+    }
+  }, [activeId, contentControls]);
+
   return (
-    <div className="container py-6 md:py-10 px-4 md:px-6 max-w-[1440px] mx-auto">
+    <>
+      <DashboardAmbient accent="emerald" />
+      <div className="relative z-[1] container py-6 md:py-10 px-4 md:px-6 max-w-[1440px] mx-auto">
 
       {/* ━━━ Header ━━━ */}
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="mb-10"
-      >
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-1">
-              <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-white/90 to-white/50">
-                  Pulse
-                </span>
-              </h1>
-              {/* Live dot */}
-              <span className="relative flex h-2.5 w-2.5 mt-1">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-50" />
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-400" />
-              </span>
-            </div>
-            <p className="text-sm text-muted-foreground/70 tracking-wide max-w-md">
-              Real-time market intelligence &mdash; sectors, correlations & news in one view
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <MarketStatusBadge market={selectedExchange.toLowerCase()} />
-          </div>
-        </div>
-      </motion.div>
+      <DashboardHeader
+        title="Pulse"
+        subtitle="Real-time market intelligence — sectors, correlations & news in one view"
+        accent="emerald"
+        actions={<MarketStatusBadge market={selectedExchange.toLowerCase()} />}
+      />
 
       {/* ━━━ Module Selector — Three Cards ━━━ */}
       <motion.div
@@ -305,17 +291,26 @@ function PulseInner() {
                     {mod.tagline}
                   </h3>
 
-                  {/* Description */}
-                  <p
-                    className={cn(
-                      'text-xs leading-relaxed transition-all duration-500',
-                      isActive
-                        ? 'text-white/50'
-                        : 'text-white/20 group-hover:text-white/30',
-                    )}
-                  >
-                    {mod.description}
-                  </p>
+                  {/* Description with clip-reveal on active */}
+                  <div className="overflow-hidden">
+                    <motion.p
+                      className={cn(
+                        'text-xs leading-relaxed transition-colors duration-500',
+                        isActive
+                          ? 'text-white/50'
+                          : 'text-white/20 group-hover:text-white/30',
+                      )}
+                      initial={false}
+                      animate={{
+                        clipPath: isActive ? 'inset(0% 0 0 0)' : 'inset(0% 0 0 0)',
+                        y: isActive ? 0 : 0,
+                        opacity: isActive ? 1 : 0.6,
+                      }}
+                      transition={{ duration: 0.4, ease: [0.77, 0, 0.175, 1] }}
+                    >
+                      {mod.description}
+                    </motion.p>
+                  </div>
 
                   {/* Bottom accent bar */}
                   <div className="mt-5">
@@ -347,15 +342,17 @@ function PulseInner() {
       {/* ━━━ Content Area ━━━ */}
       {/* Uses CSS hidden instead of AnimatePresence to keep tabs mounted and preserve state */}
       <div className="relative">
-        {/* Color accent line at top of content */}
-        <div
+        {/* Animated color accent line at top of content */}
+        <motion.div
           className="absolute top-0 left-1/2 -translate-x-1/2 h-px w-2/3 pointer-events-none"
-          style={{
+          animate={{
             background: `linear-gradient(90deg, transparent, ${activeModule.accentFrom}20, ${activeModule.accentTo}20, transparent)`,
+            boxShadow: `0 4px 20px -4px ${activeModule.accentFrom}10`,
           }}
+          transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
         />
 
-        <div className="pt-2">
+        <motion.div className="pt-2" animate={contentControls}>
           <div className={activeId === 'sectors' ? '' : 'hidden'}>
             <TabErrorBoundary tabName="Sectors">
               <UnifiedSectorDashboard exchange={selectedExchange} />
@@ -374,8 +371,9 @@ function PulseInner() {
             </TabErrorBoundary>
           </div>
 
-        </div>
+        </motion.div>
       </div>
     </div>
+    </>
   );
 }

@@ -21,9 +21,9 @@ export const PULSE_ACCENT = {
 
 // ── Hero ──
 export const PULSE_HERO = {
-  headlineBold: 'Every Headline',
-  headlineSerif: 'Decoded in Real Time',
-  sub: 'AI-curated news intelligence from 20+ sources across 6 global regions — with sentiment scoring, impact detection, and story threading. Backed by sector analytics and dynamic correlations across 260+ stocks.',
+  headlineBold: 'News Decoded',
+  headlineSerif: 'Markets Connected',
+  sub: 'AI-curated news intelligence from 25 sources across 6 global regions \u2014 with sentiment scoring, impact detection, and story threading. Backed by sector analytics and dynamic correlations across 260+ instruments.',
   primaryCta: { label: 'Open the Dashboard', href: '/login' },
   secondaryCta: { label: 'Explore Modules', href: '#modules' },
   video: {

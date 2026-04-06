@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import { cn } from '@/lib/utils';
 import type { ICurrencyStrength, IMarketClock, ITopMovers, ICurrencyOverview } from '@/src/types/analytics';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,6 +20,7 @@ interface KPICardData {
   icon: typeof Activity;
   color: string;
   accentBg: string;
+  glowColor?: string;
 }
 
 function deriveKPIs(
@@ -39,6 +41,7 @@ function deriveKPIs(
     icon: Activity,
     color: 'text-blue-400',
     accentBg: 'from-blue-500/10 to-blue-500/0',
+    glowColor: 'rgba(96,165,250,0.1)',
   };
 
   // 2. Strongest Currency
@@ -49,6 +52,7 @@ function deriveKPIs(
     icon: TrendingUp,
     color: 'text-emerald-400',
     accentBg: 'from-emerald-500/10 to-emerald-500/0',
+    glowColor: 'rgba(110,231,183,0.1)',
   };
 
   if (strength?.currencies) {
@@ -69,6 +73,7 @@ function deriveKPIs(
         icon: TrendingUp,
         color: 'text-emerald-400',
         accentBg: 'from-emerald-500/10 to-emerald-500/0',
+        glowColor: 'rgba(110,231,183,0.1)',
       };
     }
   }
@@ -81,6 +86,7 @@ function deriveKPIs(
     icon: TrendingDown,
     color: 'text-orange-400',
     accentBg: 'from-orange-500/10 to-orange-500/0',
+    glowColor: 'rgba(251,146,60,0.1)',
   };
 
   if (strength?.currencies) {
@@ -101,6 +107,7 @@ function deriveKPIs(
         icon: TrendingDown,
         color: 'text-orange-400',
         accentBg: 'from-orange-500/10 to-orange-500/0',
+        glowColor: 'rgba(251,146,60,0.1)',
       };
     }
   }
@@ -116,6 +123,7 @@ function deriveKPIs(
     icon: Zap,
     color: 'text-amber-400',
     accentBg: 'from-amber-500/10 to-amber-500/0',
+    glowColor: 'rgba(251,191,36,0.1)',
   };
 
   // 5. Pairs Tracked — derive from overview data
@@ -129,6 +137,7 @@ function deriveKPIs(
     icon: BarChart3,
     color: 'text-violet-400',
     accentBg: 'from-violet-500/10 to-violet-500/0',
+    glowColor: 'rgba(167,139,250,0.1)',
   };
 
   return [activeSessions, strongestCcy, weakestCcy, topMover, pairsTracked];
@@ -149,14 +158,15 @@ function KPICard({ kpi, isLoading }: { kpi: KPICardData; isLoading: boolean }) {
 
   return (
     <div className={cn(
-      'relative rounded-xl border border-white/[0.06] p-3.5 overflow-hidden',
+      'group relative rounded-xl border border-white/[0.06] p-3.5 overflow-hidden',
       'bg-white/[0.03] backdrop-blur-md',
       'shadow-[0_2px_16px_rgba(0,0,0,0.15)]',
-      'hover:border-white/[0.1] transition-all duration-300',
-    )}>
+      'hover:border-white/[0.12] hover:scale-[1.02] transition-all duration-300',
+      'hover:shadow-[0_2px_16px_rgba(0,0,0,0.15),0_0_20px_-4px_var(--kpi-glow)]',
+    )} style={{ '--kpi-glow': kpi.glowColor ?? 'rgba(255,255,255,0.05)' } as React.CSSProperties}>
       {/* Subtle gradient accent */}
       <div className={cn(
-        'absolute inset-0 bg-gradient-to-br opacity-60 pointer-events-none',
+        'absolute inset-0 bg-gradient-to-br opacity-60 group-hover:opacity-80 pointer-events-none transition-opacity duration-300',
         kpi.accentBg,
       )} />
 

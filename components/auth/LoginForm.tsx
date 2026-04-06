@@ -2,16 +2,72 @@
 
 import React, { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
 import { toast } from 'sonner';
-import { Loader2, Mail, KeyRound, ArrowLeft } from 'lucide-react';
+import { Loader2, Mail, KeyRound, ArrowLeft, ArrowRight, UserPlus } from 'lucide-react';
 import { apiClient } from '@/lib/api/apiClient';
 
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
+
+/* ── Step indicator ── */
+function StepIndicator({ step }: { readonly step: 'email' | 'register' | 'otp' }) {
+    const steps = [
+        { key: 'email', label: 'Email' },
+        { key: 'register', label: 'Profile' },
+        { key: 'otp', label: 'Verify' },
+    ];
+    const activeIdx = step === 'email' ? 0 : step === 'register' ? 1 : 2;
+
+    return (
+        <div className="flex items-center justify-center gap-2 mb-6">
+            {steps.map((s, i) => {
+                // Skip register step indicator if we go directly email→otp
+                const isActive = i === activeIdx;
+                const isPast = i < activeIdx;
+                return (
+                    <React.Fragment key={s.key}>
+                        {i > 0 && (
+                            <div
+                                className={`h-px w-6 transition-colors duration-500 ${
+                                    isPast ? 'bg-brand-blue/50' : 'bg-white/[0.06]'
+                                }`}
+                            />
+                        )}
+                        <div className="flex items-center gap-1.5">
+                            <div
+                                className={`w-1.5 h-1.5 rounded-full transition-all duration-500 ${
+                                    isActive
+                                        ? 'bg-brand-blue shadow-[0_0_8px_rgba(96,165,250,0.6)]'
+                                        : isPast
+                                          ? 'bg-brand-blue/50'
+                                          : 'bg-white/10'
+                                }`}
+                            />
+                            <span
+                                className={`text-[10px] uppercase tracking-[0.15em] transition-colors duration-500 ${
+                                    isActive ? 'text-white/60' : 'text-white/20'
+                                }`}
+                            >
+                                {s.label}
+                            </span>
+                        </div>
+                    </React.Fragment>
+                );
+            })}
+        </div>
+    );
+}
+
+/* ── Slide variants ── */
+const slideVariants = {
+    enter: (dir: number) => ({ x: dir > 0 ? 60 : -60, opacity: 0, filter: 'blur(4px)' }),
+    center: { x: 0, opacity: 1, filter: 'blur(0px)' },
+    exit: (dir: number) => ({ x: dir > 0 ? -60 : 60, opacity: 0, filter: 'blur(4px)' }),
+};
 
 export function LoginForm(): React.ReactElement {
     const searchParams = useSearchParams();
@@ -35,6 +91,9 @@ export function LoginForm(): React.ReactElement {
         userExists: false,
     });
 
+    // Track direction for slide animation
+    const [direction, setDirection] = useState(1);
+
     const handleEmailSubmit = async (e: React.FormEvent): Promise<void> => {
         e.preventDefault();
 
@@ -48,7 +107,6 @@ export function LoginForm(): React.ReactElement {
         setState(prev => ({ ...prev, isLoading: true }));
 
         try {
-            // Step 1: Check if user exists (uses apiClient for CSRF protection)
             const result = await apiClient.post<{ userExists: boolean }>('/api/auth/check-email', {
                 email: state.email.trim().toLowerCase(),
             });
@@ -58,10 +116,9 @@ export function LoginForm(): React.ReactElement {
             }
 
             if (result.data.userExists) {
-                // User exists, request OTP immediately
                 await requestOtp(state.email);
             } else {
-                // User does not exist, move to registration step
+                setDirection(1);
                 setState(prev => ({
                     ...prev,
                     step: 'register',
@@ -85,7 +142,6 @@ export function LoginForm(): React.ReactElement {
         }
 
         setState(prev => ({ ...prev, isLoading: true }));
-        // Request OTP with registration details
         await requestOtp(state.email, state.firstName, state.lastName);
     };
 
@@ -102,6 +158,7 @@ export function LoginForm(): React.ReactElement {
             }
 
             toast.success('OTP sent to your email');
+            setDirection(1);
             setState(prev => ({ ...prev, step: 'otp', isLoading: false }));
         } catch {
             toast.error('Failed to send OTP. Please try again.');
@@ -129,10 +186,7 @@ export function LoginForm(): React.ReactElement {
                 throw new Error('Invalid OTP');
             }
 
-            // No localStorage storage directly - rely on HttpOnly cookies
-
             toast.success('Login successful!');
-            // Redirect to the page they were trying to access, or default to /signals
             const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/signals';
             window.location.href = destination;
         } catch {
@@ -141,198 +195,258 @@ export function LoginForm(): React.ReactElement {
         }
     };
 
-    const handleBackToEmail = (): void => {
+    const handleBack = (): void => {
+        setDirection(-1);
         setState(prev => ({ ...prev, step: 'email', otp: '' }));
     };
 
-    const handleBackToRegister = (): void => {
-        // If we go back from OTP during registration, we might want to go back to register or email
-        // Simplest is back to email to restart flow or register if we want to change names
-        // Let's go back to email to be safe and restart the check
-        setState(prev => ({ ...prev, step: 'email', otp: '' }));
-    };
+    const stepTitle =
+        state.step === 'email'
+            ? 'Sign In'
+            : state.step === 'register'
+              ? 'Create Account'
+              : 'Verify Identity';
+
+    const stepDescription =
+        state.step === 'email'
+            ? 'Enter your email to receive a one-time passcode.'
+            : state.step === 'register'
+              ? 'Tell us your name to set up your account.'
+              : `Enter the 6-digit code sent to ${state.email}`;
 
     return (
-        <Card className="w-full max-w-md border-border/80 bg-background/85 backdrop-blur-xl shadow-2xl">
-            <CardHeader className="space-y-1 pb-4">
-                <CardTitle className="text-2xl font-bold text-foreground">
-                    {state.step === 'email' ? 'Sign in to Market Signal' :
-                        state.step === 'register' ? 'Complete Profile' : 'Enter OTP'}
-                </CardTitle>
-                <CardDescription className="text-muted-foreground">
-                    {state.step === 'email'
-                        ? 'We\'ll send you a one-time passcode to verify your identity.'
-                        : state.step === 'register'
-                            ? 'Please provide your details to create an account.'
-                            : `Enter the 6-digit code sent to ${state.email}`}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                {state.step === 'email' && (
-                    <motion.form
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        onSubmit={handleEmailSubmit}
-                        className="space-y-4"
+        <div className="login-glass-card rounded-2xl p-px">
+            <div className="rounded-2xl bg-white/[0.02] backdrop-blur-xl p-8 md:p-10">
+                {/* Header */}
+                <div className="mb-8">
+                    <StepIndicator step={state.step} />
+
+                    <motion.h2
+                        key={stepTitle}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+                        className="text-2xl font-bold text-white text-center"
+                        style={{ textShadow: '0 0 30px rgba(96,165,250,0.06)' }}
                     >
-                        <div className="space-y-2">
-                            <Label htmlFor="email" className="text-foreground/80">Email address</Label>
-                            <div className="relative">
-                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    placeholder="you@example.com"
-                                    value={state.email}
-                                    onChange={(e) => setState(prev => ({ ...prev, email: e.target.value }))}
-                                    className="pl-10 bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
-                                    disabled={state.isLoading}
-                                    required
-                                />
-                            </div>
-                        </div>
-                        <Button
-                            type="submit"
-                            className="w-full bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90"
-                            disabled={state.isLoading}
+                        {stepTitle}
+                    </motion.h2>
+                    <motion.p
+                        key={stepDescription}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.1, duration: 0.4 }}
+                        className="text-sm text-white/40 text-center mt-2"
+                    >
+                        {stepDescription}
+                    </motion.p>
+                </div>
+
+                {/* Forms with animated transitions */}
+                <AnimatePresence mode="wait" custom={direction}>
+                    {state.step === 'email' && (
+                        <motion.form
+                            key="email"
+                            custom={direction}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
+                            onSubmit={handleEmailSubmit}
+                            className="space-y-5"
                         >
-                            {state.isLoading ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Checking...
-                                </>
-                            ) : (
-                                'Continue'
-                            )}
-                        </Button>
-                    </motion.form>
-                )}
-
-                {state.step === 'register' && (
-                    <motion.form
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        onSubmit={handleRegisterSubmit}
-                        className="space-y-4"
-                    >
-                        <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                                <Label htmlFor="firstName" className="text-foreground/80">First Name</Label>
-                                <Input
-                                    id="firstName"
-                                    placeholder="John"
-                                    value={state.firstName}
-                                    onChange={(e) => setState(prev => ({ ...prev, firstName: e.target.value }))}
-                                    className="bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
-                                    disabled={state.isLoading}
-                                    required
-                                />
+                                <Label htmlFor="email" className="text-[11px] text-white/40 uppercase tracking-[0.15em]">
+                                    Email address
+                                </Label>
+                                <div className="relative">
+                                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-white/25" />
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        placeholder="you@example.com"
+                                        value={state.email}
+                                        onChange={(e) => setState(prev => ({ ...prev, email: e.target.value }))}
+                                        className="pl-11 h-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 rounded-xl focus:border-brand-blue/40 focus:ring-brand-blue/20 transition-all"
+                                        disabled={state.isLoading}
+                                        required
+                                    />
+                                </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="lastName" className="text-foreground/80">Last Name</Label>
-                                <Input
-                                    id="lastName"
-                                    placeholder="Doe"
-                                    value={state.lastName}
-                                    onChange={(e) => setState(prev => ({ ...prev, lastName: e.target.value }))}
-                                    className="bg-secondary/50 border-border text-foreground placeholder:text-muted-foreground"
-                                    disabled={state.isLoading}
-                                    required
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex gap-2 pt-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleBackToRegister}
-                                className="flex-1 border-border text-muted-foreground hover:bg-secondary"
-                                disabled={state.isLoading}
-                            >
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Button>
                             <Button
                                 type="submit"
-                                className="flex-1 bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90"
+                                className="w-full h-12 bg-brand-blue text-white font-semibold rounded-xl shadow-[0_0_20px_rgba(96,165,250,0.2)] hover:shadow-[0_0_40px_rgba(96,165,250,0.3)] hover:opacity-90 transition-all btn-shimmer"
                                 disabled={state.isLoading}
                             >
                                 {state.isLoading ? (
                                     <>
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Sending OTP...
+                                        Checking...
                                     </>
                                 ) : (
-                                    'Register & Continue'
+                                    <>
+                                        Continue
+                                        <ArrowRight className="ml-2 h-4 w-4" />
+                                    </>
                                 )}
                             </Button>
-                        </div>
-                    </motion.form>
-                )}
+                        </motion.form>
+                    )}
 
-                {state.step === 'otp' && (
-                    <motion.form
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        onSubmit={handleOTPSubmit}
-                        className="space-y-4"
-                    >
-                        <div className="space-y-2">
-                            <Label className="text-foreground/80" htmlFor="otp-input">One-time passcode</Label>
-                            <div className="flex justify-center">
-                                <InputOTP
-                                    id="otp-input"
-                                    maxLength={6}
-                                    value={state.otp}
-                                    onChange={(value) => setState(prev => ({ ...prev, otp: value }))}
+                    {state.step === 'register' && (
+                        <motion.form
+                            key="register"
+                            custom={direction}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
+                            onSubmit={handleRegisterSubmit}
+                            className="space-y-5"
+                        >
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-2">
+                                    <Label htmlFor="firstName" className="text-[11px] text-white/40 uppercase tracking-[0.15em]">
+                                        First Name
+                                    </Label>
+                                    <Input
+                                        id="firstName"
+                                        placeholder="John"
+                                        value={state.firstName}
+                                        onChange={(e) => setState(prev => ({ ...prev, firstName: e.target.value }))}
+                                        className="h-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 rounded-xl focus:border-brand-blue/40 focus:ring-brand-blue/20 transition-all"
+                                        disabled={state.isLoading}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="lastName" className="text-[11px] text-white/40 uppercase tracking-[0.15em]">
+                                        Last Name
+                                    </Label>
+                                    <Input
+                                        id="lastName"
+                                        placeholder="Doe"
+                                        value={state.lastName}
+                                        onChange={(e) => setState(prev => ({ ...prev, lastName: e.target.value }))}
+                                        className="h-12 bg-white/[0.03] border-white/[0.06] text-white placeholder:text-white/20 rounded-xl focus:border-brand-blue/40 focus:ring-brand-blue/20 transition-all"
+                                        disabled={state.isLoading}
+                                        required
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-3 pt-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleBack}
+                                    className="flex-1 h-12 border-white/[0.06] bg-white/[0.02] text-white/50 hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/70 rounded-xl transition-all"
+                                    disabled={state.isLoading}
                                 >
-                                    <InputOTPGroup>
-                                        <InputOTPSlot index={0} className="bg-secondary/50 border-border" />
-                                        <InputOTPSlot index={1} className="bg-secondary/50 border-border" />
-                                        <InputOTPSlot index={2} className="bg-secondary/50 border-border" />
-                                        <InputOTPSlot index={3} className="bg-secondary/50 border-border" />
-                                        <InputOTPSlot index={4} className="bg-secondary/50 border-border" />
-                                        <InputOTPSlot index={5} className="bg-secondary/50 border-border" />
-                                    </InputOTPGroup>
-                                </InputOTP>
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Back
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="flex-1 h-12 bg-brand-blue text-white font-semibold rounded-xl shadow-[0_0_20px_rgba(96,165,250,0.2)] hover:shadow-[0_0_40px_rgba(96,165,250,0.3)] hover:opacity-90 transition-all btn-shimmer"
+                                    disabled={state.isLoading}
+                                >
+                                    {state.isLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Sending...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <UserPlus className="mr-2 h-4 w-4" />
+                                            Continue
+                                        </>
+                                    )}
+                                </Button>
                             </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={handleBackToEmail}
-                                className="flex-1 border-border text-muted-foreground hover:bg-secondary"
-                                disabled={state.isLoading}
-                            >
-                                <ArrowLeft className="mr-2 h-4 w-4" />
-                                Back
-                            </Button>
-                            <Button
-                                type="submit"
-                                className="flex-1 bg-gradient-to-r from-brand-blue to-brand-violet hover:opacity-90"
-                                disabled={state.isLoading || state.otp.length !== 6}
-                            >
-                                {state.isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Verifying...
-                                    </>
-                                ) : (
-                                    <>
-                                        <KeyRound className="mr-2 h-4 w-4" />
-                                        Verify
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </motion.form>
-                )}
-                <p className="mt-4 text-xs text-muted-foreground/70 text-center">
+                        </motion.form>
+                    )}
+
+                    {state.step === 'otp' && (
+                        <motion.form
+                            key="otp"
+                            custom={direction}
+                            variants={slideVariants}
+                            initial="enter"
+                            animate="center"
+                            exit="exit"
+                            transition={{ duration: 0.35, ease: EASE_OUT_EXPO }}
+                            onSubmit={handleOTPSubmit}
+                            className="space-y-5"
+                        >
+                            <div className="space-y-3">
+                                <Label className="text-[11px] text-white/40 uppercase tracking-[0.15em] block text-center" htmlFor="otp-input">
+                                    One-time passcode
+                                </Label>
+                                <div className="flex justify-center">
+                                    <InputOTP
+                                        id="otp-input"
+                                        maxLength={6}
+                                        value={state.otp}
+                                        onChange={(value) => setState(prev => ({ ...prev, otp: value }))}
+                                    >
+                                        <InputOTPGroup>
+                                            {[0, 1, 2, 3, 4, 5].map((idx) => (
+                                                <InputOTPSlot
+                                                    key={idx}
+                                                    index={idx}
+                                                    className="w-11 h-13 bg-white/[0.03] border-white/[0.08] text-white text-lg rounded-lg focus:border-brand-blue/50 focus:ring-brand-blue/20"
+                                                />
+                                            ))}
+                                        </InputOTPGroup>
+                                    </InputOTP>
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-1">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleBack}
+                                    className="flex-1 h-12 border-white/[0.06] bg-white/[0.02] text-white/50 hover:bg-white/[0.05] hover:border-white/[0.12] hover:text-white/70 rounded-xl transition-all"
+                                    disabled={state.isLoading}
+                                >
+                                    <ArrowLeft className="mr-2 h-4 w-4" />
+                                    Back
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    className="flex-1 h-12 bg-brand-blue text-white font-semibold rounded-xl shadow-[0_0_20px_rgba(96,165,250,0.2)] hover:shadow-[0_0_40px_rgba(96,165,250,0.3)] hover:opacity-90 transition-all btn-shimmer"
+                                    disabled={state.isLoading || state.otp.length !== 6}
+                                >
+                                    {state.isLoading ? (
+                                        <>
+                                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                            Verifying...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <KeyRound className="mr-2 h-4 w-4" />
+                                            Verify &amp; Enter
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </motion.form>
+                    )}
+                </AnimatePresence>
+
+                {/* Footer */}
+                <motion.p
+                    className="mt-6 text-[10px] text-white/20 text-center uppercase tracking-[0.15em]"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5, duration: 0.6 }}
+                >
                     By continuing, you agree to our Terms of Service and Privacy Policy.
-                </p>
-            </CardContent>
-        </Card>
+                </motion.p>
+            </div>
+        </div>
     );
 }

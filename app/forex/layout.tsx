@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Currency Intelligence | MarketSignal',
+  title: 'Currency Intelligence | Meridian',
   description: 'Forex analytics, currency heatmaps, session tracking, carry trade analysis, and central bank monitoring.',
 };
 

@@ -2,6 +2,7 @@
 
 import { ShowcaseSection } from '../shared/ShowcaseSection';
 import { FOREX_STRENGTH_SHOWCASE } from '../constants/forex';
+import { ForexShowcaseCanvas } from './ForexShowcaseCanvas';
 
 export function ForexStrengthShowcase() {
   return (
@@ -13,6 +14,7 @@ export function ForexStrengthShowcase() {
       video={FOREX_STRENGTH_SHOWCASE.video}
       mirror={true}
       accentColor="emerald"
+      canvasOverride={<ForexShowcaseCanvas type="strength" />}
     />
   );
 }

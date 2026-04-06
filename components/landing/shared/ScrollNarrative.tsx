@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { ScrollParticleField } from './ScrollParticleField';
 
 interface ScrollNarrativeProps {
   children: React.ReactNode;
@@ -45,6 +46,9 @@ export function ScrollNarrative({ children, accent = 'blue' }: ScrollNarrativePr
         className="fixed inset-0 pointer-events-none z-0"
         style={{ backgroundColor: bgColor }}
       />
+
+      {/* Scroll-linked particle density field (desktop only) */}
+      <ScrollParticleField accent={accent} containerRef={containerRef} />
 
       {/* Vignette overlay */}
       <div className="landing-vignette" />

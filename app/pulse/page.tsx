@@ -5,12 +5,13 @@ import { PulseModules } from '@/components/landing/pulse/PulseModules';
 import { SectorShowcase } from '@/components/landing/pulse/SectorShowcase';
 import { CorrelationShowcase } from '@/components/landing/pulse/CorrelationShowcase';
 import { NewsShowcase } from '@/components/landing/pulse/NewsShowcase';
+import { SentimentRiverSection } from '@/components/landing/pulse/SentimentRiverSection';
 import { FinalCTA } from '@/components/landing/FinalCTA';
 import { ScrollNarrative } from '@/components/landing/shared/ScrollNarrative';
 import { PULSE_STATS, PULSE_CTA } from '@/components/landing/constants/pulse';
 
 export const metadata: Metadata = {
-  title: 'Market Pulse — News Intelligence, Sectors & Correlations by arQai',
+  title: 'Meridian Pulse — News Intelligence, Sectors & Correlations by arQai',
   description:
     'AI-curated news intelligence, sector heatmaps, and DCC-GARCH correlations across 260+ stocks and 5 global exchanges.',
 };
@@ -25,6 +26,7 @@ export default function PulseLandingPage() {
       {/* Act II — The Proof */}
       <PulseModules />
       <NewsShowcase />
+      <SentimentRiverSection />
       <SectorShowcase />
       <CorrelationShowcase />
 

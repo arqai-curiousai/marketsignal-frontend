@@ -2,6 +2,7 @@
 
 import { ShowcaseSection } from '../shared/ShowcaseSection';
 import { FOREX_HEATMAP_SHOWCASE } from '../constants/forex';
+import { ForexShowcaseCanvas } from './ForexShowcaseCanvas';
 
 export function ForexHeatmapShowcase() {
   return (
@@ -13,6 +14,7 @@ export function ForexHeatmapShowcase() {
       video={FOREX_HEATMAP_SHOWCASE.video}
       mirror={false}
       accentColor="blue"
+      canvasOverride={<ForexShowcaseCanvas type="heatmap" />}
     />
   );
 }

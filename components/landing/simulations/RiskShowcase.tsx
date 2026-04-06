@@ -4,7 +4,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { SIM_RISK_SHOWCASE } from '../constants/simulations';
 import { fadeUp, staggerContainer, slideFromLeft, slideFromRight } from '../animations';
-import { VideoClip } from '../VideoClip';
+import { SimShowcaseCanvas } from './SimShowcaseCanvas';
 
 export function RiskShowcase() {
   return (
@@ -45,7 +45,7 @@ export function RiskShowcase() {
             </motion.div>
           </motion.div>
 
-          {/* Video */}
+          {/* Canvas visualization */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -53,13 +53,8 @@ export function RiskShowcase() {
             variants={slideFromRight}
             className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02]"
           >
-            <div className="aspect-[16/10]">
-              <VideoClip
-                webm={SIM_RISK_SHOWCASE.video.webm}
-                mp4={SIM_RISK_SHOWCASE.video.mp4}
-                overlay={false}
-                opacity={1}
-              />
+            <div className="aspect-[16/10] relative">
+              <SimShowcaseCanvas type="risk" />
             </div>
             <div
               className="absolute inset-0 pointer-events-none rounded-xl"

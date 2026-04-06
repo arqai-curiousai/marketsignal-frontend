@@ -72,7 +72,7 @@ module.exports = {
                     border: 'hsl(var(--sidebar-border))',
                     ring: 'hsl(var(--sidebar-ring))'
                 },
-                // MarketSignal brand colors — emerald primary with true spectral depth
+                // Meridian brand colors — emerald primary with true spectral depth
                 brand: {
                     slate: '#091412',      // Deepened dark bg
                     emerald: '#6EE7B7',    // Primary accent (unchanged)
@@ -154,6 +154,10 @@ module.exports = {
                     '0%': { transform: 'scale(1)', opacity: '0.6' },
                     '100%': { transform: 'scale(3)', opacity: '0' },
                 },
+                'flip-down': {
+                    '0%': { transform: 'rotateX(0deg)', opacity: '1' },
+                    '100%': { transform: 'rotateX(-90deg)', opacity: '0' },
+                },
             },
             animation: {
                 'accordion-down': 'accordion-down 0.2s ease-out',
@@ -168,6 +172,7 @@ module.exports = {
                 'radial-burst': 'radial-burst 15s linear infinite',
                 'drift': 'drift 6s ease-in-out infinite',
                 'radar-ping': 'radar-ping 2s ease-out infinite',
+                'flip-down': 'flip-down 0.35s ease-in-out',
             }
         }
     },

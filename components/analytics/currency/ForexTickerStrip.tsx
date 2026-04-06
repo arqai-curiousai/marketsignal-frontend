@@ -149,7 +149,13 @@ export function ForexTickerStrip({ onSelectPair, overview }: ForexTickerStripPro
       </div>
 
       {/* Scrolling ticker strip */}
-      <div className="relative overflow-hidden border-b border-white/[0.04] bg-white/[0.015]">
+      <div
+        className="relative overflow-hidden border-y border-white/[0.06] bg-white/[0.03] backdrop-blur-sm"
+        style={{
+          maskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
+          WebkitMaskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
+        }}
+      >
         {filteredPairs.length > 0 ? (
           <div
             className="flex items-center gap-1 py-2 hover:[animation-play-state:paused] motion-reduce:[animation-play-state:paused]"

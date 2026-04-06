@@ -369,7 +369,7 @@ function CommandBar({
   const pct = selectedSnap?.change_pct ?? 0;
 
   return (
-    <div className="sticky top-0 z-30 backdrop-blur-xl bg-background/80 border-b border-white/[0.04] -mx-4 md:-mx-6 px-4 md:px-6 py-2.5">
+    <div className="sticky top-0 z-30 backdrop-blur-xl bg-white/[0.04] border-b border-white/[0.06] -mx-4 md:-mx-6 px-4 md:px-6 py-2.5" style={{ boxShadow: 'inset 0 1px 0 0 rgba(255,255,255,0.03)' }}>
       <div className="flex items-center gap-3 flex-wrap">
         {/* Pair selector */}
         <div className="relative" ref={dropdownRef}>
@@ -590,10 +590,10 @@ export function ForexDashboard() {
           {activeId === 'markets' && (
             <motion.div
               key="markets"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               <MarketsView onSelectPair={handleSelectPair} overview={overview} />
             </motion.div>
@@ -601,10 +601,10 @@ export function ForexDashboard() {
           {activeId === 'analysis' && (
             <motion.div
               key="analysis"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               <AnalysisView selectedPair={selectedPair} timeframe={timeframe} onTimeframeChange={handleTimeframeChange} chartOverlays={chartOverlays} onChartOverlaysChange={setChartOverlays} />
             </motion.div>
@@ -612,10 +612,10 @@ export function ForexDashboard() {
           {activeId === 'macro' && (
             <motion.div
               key="macro"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               <MacroView selectedPair={selectedPair} />
             </motion.div>
@@ -623,10 +623,10 @@ export function ForexDashboard() {
           {activeId === 'patterns' && (
             <motion.div
               key="patterns"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               <ForexPatternScanner />
             </motion.div>
@@ -634,10 +634,10 @@ export function ForexDashboard() {
           {activeId === 'tools' && (
             <motion.div
               key="tools"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+              initial={{ opacity: 0, y: 16, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
             >
               <ForexCalculators selectedPair={selectedPair} />
             </motion.div>

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Settings | MarketSignal',
+  title: 'Settings | Meridian',
   description: 'Manage your account settings, preferences, and notification configuration.',
 };
 

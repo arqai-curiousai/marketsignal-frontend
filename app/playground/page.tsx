@@ -2,9 +2,8 @@
 
 import React, { useState, useMemo } from 'react';
 import dynamic from 'next/dynamic';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Beaker,
   FlaskConical,
   Activity,
   BarChart3,
@@ -16,73 +15,65 @@ import {
   Diamond,
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { SimulationProvider } from '@/context/SimulationContext';
 import { usePlaygroundHotkeys } from '@/lib/hooks/usePlaygroundHotkeys';
 import { SimShortcutHelp } from '@/components/playground/simulations/shared/SimShortcutHelp';
 import { DataFreshnessStrip } from '@/components/playground/simulations/shared/DataFreshnessStrip';
 import { CrossSimulationInsights } from '@/components/playground/CrossSimulationInsights';
+import { DashboardAmbient } from '@/components/shared/DashboardAmbient';
+import { DashboardHeader } from '@/components/shared/DashboardHeader';
+import { TabLoadingFallback } from '@/components/shared/DashboardSkeleton';
+
+const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 
 // Simple loading skeleton for lazy-loaded tabs
-function TabSkeleton() {
-  return (
-    <div className="space-y-3 p-4 animate-pulse">
-      <div className="flex gap-2">
-        {Array.from({ length: 4 }, (_, i) => (
-          <div key={i} className="h-8 flex-1 rounded bg-white/[0.04]" />
-        ))}
-      </div>
-      <div className="h-48 rounded bg-white/[0.04]" />
-      <div className="h-32 rounded bg-white/[0.04]" />
-    </div>
-  );
-}
+const SimTabLoading = () => <TabLoadingFallback accent="violet" />;
 
 // Lazy-load heavy tab content
 const SignalLabContent = dynamic(
   () => import('@/components/playground/SignalLabContent').then((m) => ({ default: m.SignalLabContent })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const VolatilityDashboard = dynamic(
   () => import('@/components/playground/simulations/volatility/VolatilityDashboard').then((m) => ({ default: m.VolatilityDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const RegimeDashboard = dynamic(
   () => import('@/components/playground/simulations/regimes/RegimeDashboard').then((m) => ({ default: m.RegimeDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const MonteCarloDashboard = dynamic(
   () => import('@/components/playground/simulations/montecarlo/MonteCarloDashboard').then((m) => ({ default: m.MonteCarloDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const PortfolioDashboard = dynamic(
   () => import('@/components/playground/simulations/portfolio/PortfolioDashboard').then((m) => ({ default: m.PortfolioDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const BacktestDashboard = dynamic(
   () => import('@/components/playground/simulations/backtesting/BacktestDashboard').then((m) => ({ default: m.BacktestDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const RiskScoreDashboard = dynamic(
   () => import('@/components/playground/simulations/risk/RiskScoreDashboard').then((m) => ({ default: m.RiskScoreDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const ScenarioDashboard = dynamic(
   () => import('@/components/playground/simulations/scenarios/ScenarioDashboard').then((m) => ({ default: m.ScenarioDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 const FactorDashboard = dynamic(
   () => import('@/components/playground/simulations/factors/FactorDashboard').then((m) => ({ default: m.FactorDashboard })),
-  { loading: () => <TabSkeleton />, ssr: false },
+  { loading: SimTabLoading, ssr: false },
 );
 
 // ─── Tab definitions ──────────────────────────────────────────────
@@ -94,6 +85,8 @@ interface SimTab {
   icon: React.ElementType;
   description: string;
   color: string;
+  glowColor: string;
+  group: 'analysis' | 'projection' | 'risk';
 }
 
 const SIMULATION_TABS: SimTab[] = [
@@ -104,6 +97,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: FlaskConical,
     description: 'AI-powered pattern detection across price, volume, and volatility',
     color: 'text-blue-400',
+    glowColor: 'rgba(96,165,250,0.3)',
+    group: 'analysis',
   },
   {
     id: 'volatility',
@@ -112,6 +107,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: Activity,
     description: 'How wildly could this stock move? Five risk models, one storm gauge',
     color: 'text-indigo-400',
+    glowColor: 'rgba(129,140,248,0.3)',
+    group: 'analysis',
   },
   {
     id: 'regimes',
@@ -120,6 +117,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: Waves,
     description: 'Is the market in rally mode, drift mode, or crash mode right now?',
     color: 'text-orange-400',
+    glowColor: 'rgba(251,146,60,0.3)',
+    group: 'analysis',
   },
   {
     id: 'montecarlo',
@@ -128,6 +127,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: Dice5,
     description: 'Simulate thousands of possible futures for any stock price',
     color: 'text-rose-400',
+    glowColor: 'rgba(251,113,133,0.3)',
+    group: 'projection',
   },
   {
     id: 'portfolio',
@@ -136,6 +137,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: PieChart,
     description: 'Find the ideal stock mix that balances your risk and return',
     color: 'text-amber-400',
+    glowColor: 'rgba(251,191,36,0.3)',
+    group: 'projection',
   },
   {
     id: 'backtesting',
@@ -144,6 +147,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: BarChart3,
     description: 'Test any strategy against real market history before risking money',
     color: 'text-emerald-400',
+    glowColor: 'rgba(52,211,153,0.3)',
+    group: 'projection',
   },
   {
     id: 'riskscore',
@@ -152,6 +157,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: Shield,
     description: 'Your personal risk score from 1 to 99 — and what to do about it',
     color: 'text-red-400',
+    glowColor: 'rgba(248,113,113,0.3)',
+    group: 'risk',
   },
   {
     id: 'scenarios',
@@ -160,6 +167,8 @@ const SIMULATION_TABS: SimTab[] = [
     icon: Zap,
     description: 'What happens to your money if the market crashes tomorrow?',
     color: 'text-orange-400',
+    glowColor: 'rgba(251,146,60,0.3)',
+    group: 'risk',
   },
   {
     id: 'factors',
@@ -168,8 +177,22 @@ const SIMULATION_TABS: SimTab[] = [
     icon: Diamond,
     description: 'Which hidden forces are actually driving your stock returns?',
     color: 'text-violet-400',
+    glowColor: 'rgba(167,139,250,0.3)',
+    group: 'risk',
   },
 ];
+
+const TAB_CONTENT: Record<string, React.ComponentType> = {
+  signals: SignalLabContent,
+  volatility: VolatilityDashboard,
+  regimes: RegimeDashboard,
+  montecarlo: MonteCarloDashboard,
+  portfolio: PortfolioDashboard,
+  backtesting: BacktestDashboard,
+  riskscore: RiskScoreDashboard,
+  scenarios: ScenarioDashboard,
+  factors: FactorDashboard,
+};
 
 // ─── Main Page ────────────────────────────────────────────────────
 
@@ -183,108 +206,151 @@ export default function PlaygroundPage() {
     tabIds,
   });
 
+  const activeTab = useMemo(
+    () => SIMULATION_TABS.find((t) => t.id === activeSimulation) ?? SIMULATION_TABS[1],
+    [activeSimulation],
+  );
+
+  const ActiveContent = TAB_CONTENT[activeSimulation];
+
   return (
     <SimulationProvider>
-    <div className="container py-4 px-4 max-w-7xl mx-auto space-y-4">
-      {/* Compact header */}
-      <motion.div
-        className="flex items-center gap-3"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <Beaker className="h-5 w-5 text-indigo-400 shrink-0" />
-        <h1 className="text-xl font-semibold text-white">Simulation Lab</h1>
-        <Badge
-          variant="outline"
-          className="border-indigo-500/30 text-indigo-400 text-[10px]"
+      <DashboardAmbient accent="violet" />
+      <div className="relative z-[1] container py-4 md:py-8 px-4 max-w-7xl mx-auto space-y-5">
+
+        {/* ━━━ Premium Header (D2) ━━━ */}
+        <DashboardHeader
+          title="Simulation Lab"
+          subtitle="9 quantitative engines — stress-test, optimize & forecast"
+          accent="violet"
+          actions={
+            <div className="flex items-center gap-2">
+              <Badge
+                variant="outline"
+                className="border-violet-500/30 text-violet-400 text-[10px]"
+              >
+                9 Simulations
+              </Badge>
+              <button
+                type="button"
+                onClick={() => setShowHelp(true)}
+                className="text-[10px] text-white/30 hover:text-white/60 px-1.5 py-0.5 rounded border border-white/[0.06] transition-colors"
+                title="Keyboard shortcuts (?)"
+              >
+                ? shortcuts
+              </button>
+            </div>
+          }
+        />
+
+        {/* Shortcut help dialog */}
+        <SimShortcutHelp open={showHelp} onOpenChange={setShowHelp} />
+
+        {/* ━━━ Glass insights strip (D3) ━━━ */}
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5, ease: EASE_OUT_EXPO }}
+          className="bg-white/[0.02] backdrop-blur-sm border border-white/[0.06] rounded-xl px-4 py-3 space-y-2"
         >
-          9 Simulations
-        </Badge>
-        <div className="flex-1" />
-        <button
-          type="button"
-          onClick={() => setShowHelp(true)}
-          className="text-[10px] text-white/30 hover:text-white/60 px-1.5 py-0.5 rounded border border-white/[0.06] transition-colors"
-          title="Keyboard shortcuts (?)"
+          <DataFreshnessStrip />
+          <div className="border-t border-white/[0.04] pt-2">
+            <CrossSimulationInsights />
+          </div>
+        </motion.div>
+
+        {/* ━━━ Navigation Strip (D1) ━━━ */}
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15, duration: 0.5, ease: EASE_OUT_EXPO }}
         >
-          ? shortcuts
-        </button>
-      </motion.div>
+          <div
+            className="relative bg-white/[0.02] backdrop-blur-sm border border-white/[0.06] rounded-2xl p-1.5 overflow-x-auto"
+            style={{
+              maskImage: 'linear-gradient(to right, black 2%, black 98%, transparent)',
+              WebkitMaskImage: 'linear-gradient(to right, black 2%, black 98%, transparent)',
+            }}
+            role="tablist"
+            aria-label="Simulation modules"
+          >
+            <div className="flex items-center gap-0.5 min-w-max">
+              {SIMULATION_TABS.map((tab, index) => {
+                const Icon = tab.icon;
+                const isActive = activeSimulation === tab.id;
+                // Show group separator before first item of a new group
+                const prevTab = index > 0 ? SIMULATION_TABS[index - 1] : null;
+                const showSeparator = prevTab && prevTab.group !== tab.group;
 
-      {/* Shortcut help dialog */}
-      <SimShortcutHelp open={showHelp} onOpenChange={setShowHelp} />
+                return (
+                  <React.Fragment key={tab.id}>
+                    {showSeparator && (
+                      <div className="w-px h-5 bg-white/[0.06] mx-1 shrink-0" />
+                    )}
+                    <button
+                      role="tab"
+                      aria-selected={isActive}
+                      onClick={() => setActiveSimulation(tab.id)}
+                      className={cn(
+                        'relative flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium transition-all duration-300 shrink-0',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/20',
+                        isActive
+                          ? 'text-white'
+                          : 'text-white/40 hover:text-white/60 hover:bg-white/[0.03]',
+                      )}
+                    >
+                      {/* Sliding active background */}
+                      {isActive && (
+                        <motion.div
+                          layoutId="simActiveTab"
+                          className="absolute inset-0 rounded-xl bg-white/[0.08] border border-white/[0.08]"
+                          style={{
+                            boxShadow: `0 0 20px -4px ${tab.glowColor}`,
+                          }}
+                          transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                        />
+                      )}
+                      <Icon className={cn('relative z-[1] h-3.5 w-3.5 transition-colors duration-300', isActive ? tab.color : '')} />
+                      <span className="relative z-[1] hidden sm:inline">{tab.label}</span>
+                      <span className="relative z-[1] sm:hidden">{tab.shortLabel}</span>
+                    </button>
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </div>
+        </motion.div>
 
-      {/* Data freshness indicators */}
-      <DataFreshnessStrip className="px-1" />
+        {/* ━━━ Active Description Bar (D5) ━━━ */}
+        <div className="flex items-center gap-2 px-1">
+          <div className="h-1 w-1 rounded-full bg-violet-400/60 shrink-0" />
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={activeSimulation}
+              initial={{ opacity: 0, x: 10 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -10 }}
+              transition={{ duration: 0.25, ease: EASE_OUT_EXPO }}
+              className="text-xs text-white/40"
+            >
+              {activeTab.description}
+            </motion.p>
+          </AnimatePresence>
+        </div>
 
-      {/* Cross-simulation insights strip */}
-      <CrossSimulationInsights />
-
-      {/* Simulation Tabs */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-      >
-        <Tabs value={activeSimulation} onValueChange={setActiveSimulation} className="w-full">
-          <TabsList className="bg-white/[0.03] border border-white/[0.06] h-auto flex-wrap gap-0.5 p-1">
-            {SIMULATION_TABS.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <TabsTrigger
-                  key={tab.id}
-                  value={tab.id}
-                  className={cn(
-                    'flex items-center gap-1.5 text-xs data-[state=active]:bg-white/[0.08]',
-                  )}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                  <span className="hidden sm:inline">{tab.label}</span>
-                  <span className="sm:hidden">{tab.shortLabel}</span>
-                </TabsTrigger>
-              );
-            })}
-          </TabsList>
-
-          <TabsContent value="signals" className="mt-4">
-            <SignalLabContent />
-          </TabsContent>
-
-          <TabsContent value="volatility" className="mt-4">
-            <VolatilityDashboard />
-          </TabsContent>
-
-          <TabsContent value="regimes" className="mt-4">
-            <RegimeDashboard />
-          </TabsContent>
-
-          <TabsContent value="montecarlo" className="mt-4">
-            <MonteCarloDashboard />
-          </TabsContent>
-
-          <TabsContent value="portfolio" className="mt-4">
-            <PortfolioDashboard />
-          </TabsContent>
-
-          <TabsContent value="backtesting" className="mt-4">
-            <BacktestDashboard />
-          </TabsContent>
-
-          <TabsContent value="riskscore" className="mt-4">
-            <RiskScoreDashboard />
-          </TabsContent>
-
-          <TabsContent value="scenarios" className="mt-4">
-            <ScenarioDashboard />
-          </TabsContent>
-
-          <TabsContent value="factors" className="mt-4">
-            <FactorDashboard />
-          </TabsContent>
-
-        </Tabs>
-      </motion.div>
-    </div>
+        {/* ━━━ Tab Content with entrance animation (D4) ━━━ */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeSimulation}
+            initial={{ opacity: 0, y: 12, filter: 'blur(4px)' }}
+            animate={{ opacity: 1, y: 0, filter: 'blur(0px)' }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+          >
+            {ActiveContent && <ActiveContent />}
+          </motion.div>
+        </AnimatePresence>
+      </div>
     </SimulationProvider>
   );
 }

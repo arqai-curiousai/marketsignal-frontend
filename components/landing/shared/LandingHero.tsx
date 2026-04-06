@@ -44,6 +44,9 @@ export interface LandingHeroProps {
   blobColors?: [string, string, string];
   accentColor?: 'emerald' | 'blue' | 'violet';
   socialProof?: string;
+  canvasOverride?: React.ReactNode;
+  /** Split layout: hero text on LEFT, canvas visualization on RIGHT */
+  splitLayout?: boolean;
 }
 
 const BUTTON_STYLES: Record<string, string> = {
@@ -71,6 +74,8 @@ export function LandingHero({
   blobColors,
   accentColor = 'emerald',
   socialProof,
+  canvasOverride,
+  splitLayout = false,
 }: LandingHeroProps) {
   const sectionRef = useRef<HTMLElement>(null);
   const { scrollYProgress } = useScroll({
@@ -112,15 +117,17 @@ export function LandingHero({
         />
       </motion.div>
 
-      {/* Layer 2: Particle field — data particles drifting upward */}
-      <motion.div
-        className="absolute inset-0 pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5, duration: 2 }}
-      >
-        <ParticleField count={50} />
-      </motion.div>
+      {/* Layer 2: Canvas visualization or particle field fallback (hidden in split layout — canvas is in the right column) */}
+      {!splitLayout && (
+        <motion.div
+          className="absolute inset-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 2 }}
+        >
+          {canvasOverride ?? <ParticleField count={50} />}
+        </motion.div>
+      )}
 
       {/* Layer 3: Atmospheric gradient blobs — larger, slower */}
       <div className="absolute inset-0 pointer-events-none">
@@ -168,95 +175,221 @@ export function LandingHero({
           perspective: '1400px',
         }}
       >
-        <motion.div
-          className="max-w-[1000px] mx-auto text-center px-6 pt-24 pb-16"
-          style={{ rotateX: perspectiveRotate }}
-        >
-          {/* Orchestrated stagger — each element has its own delay */}
-
-          {/* Badge — clip-reveals at 800ms */}
-          {badge && (
-            <motion.span
-              initial={{ clipPath: 'inset(0 100% 0 0)', opacity: 0 }}
-              animate={{ clipPath: 'inset(0 0% 0 0)', opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.8, ease: [0.77, 0, 0.175, 1] }}
-              className={`inline-block text-xs font-semibold uppercase tracking-[0.3em] ${badgeColor} rounded-full px-5 py-2 mb-10 gradient-border-animated`}
+        {splitLayout ? (
+          /* ── Split Layout: text LEFT, canvas RIGHT ── */
+          <div className="max-w-[1400px] mx-auto px-6 pt-24 pb-16 grid grid-cols-1 md:grid-cols-[50%_50%] lg:grid-cols-[52%_48%] gap-8 md:gap-4 items-center min-h-[80vh]">
+            {/* LEFT: Hero Copy */}
+            <motion.div
+              className="text-left"
+              style={{ rotateX: perspectiveRotate }}
             >
-              {badge}
-            </motion.span>
-          )}
+              {badge && (
+                <motion.span
+                  initial={{ clipPath: 'inset(0 100% 0 0)', opacity: 0 }}
+                  animate={{ clipPath: 'inset(0 0% 0 0)', opacity: 1 }}
+                  transition={{ delay: 0.8, duration: 0.8, ease: [0.77, 0, 0.175, 1] }}
+                  className={`inline-block text-xs font-semibold uppercase tracking-[0.3em] ${badgeColor} rounded-full px-5 py-2 mb-10 gradient-border-animated`}
+                >
+                  {badge}
+                </motion.span>
+              )}
 
-          {/* Headline Bold — blur-in at 1000ms */}
-          <motion.h1 className="font-display headline-xl text-white mb-2">
-            <motion.span
-              className="font-bold block text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[6.5rem]"
-              initial={{ opacity: 0, filter: 'blur(14px)', y: 40 }}
-              animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-              transition={{ delay: 1, duration: 1.2, ease: EASE_OUT_EXPO }}
+              <motion.h1 className="font-display headline-xl text-white mb-2">
+                <motion.span
+                  className="font-bold block text-[2.5rem] sm:text-5xl md:text-6xl lg:text-[5.5rem]"
+                  style={{
+                    textShadow: accentColor === 'blue'
+                      ? '0 0 40px rgba(96,165,250,0.08)'
+                      : accentColor === 'violet'
+                        ? '0 0 40px rgba(167,139,250,0.08)'
+                        : '0 0 40px rgba(110,231,183,0.08)',
+                  }}
+                  initial={{ opacity: 0, filter: 'blur(20px)', y: 40 }}
+                  animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                  transition={{ delay: 1, duration: 1.2, ease: EASE_OUT_EXPO }}
+                >
+                  {headlineBold}
+                </motion.span>
+                <motion.span
+                  className="font-serif italic block gradient-text-hero text-[2.75rem] sm:text-[3.5rem] md:text-[4.25rem] lg:text-[6rem] headline-xl"
+                  style={{
+                    textShadow: accentColor === 'blue'
+                      ? '0 0 60px rgba(96,165,250,0.1), 0 0 120px rgba(96,165,250,0.05)'
+                      : accentColor === 'violet'
+                        ? '0 0 60px rgba(167,139,250,0.1), 0 0 120px rgba(167,139,250,0.05)'
+                        : '0 0 60px rgba(110,231,183,0.1), 0 0 120px rgba(110,231,183,0.05)',
+                  }}
+                  initial={{ opacity: 0, filter: 'blur(20px)', y: 40 }}
+                  animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                  transition={{ delay: 1.2, duration: 1.2, ease: EASE_OUT_EXPO }}
+                >
+                  {headlineSerif}
+                </motion.span>
+              </motion.h1>
+
+              <motion.p
+                className="text-lg md:text-xl text-white/60 max-w-lg leading-relaxed mb-10 mt-6"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.6, duration: 0.8, ease: EASE_OUT_EXPO }}
+              >
+                {sub}
+              </motion.p>
+
+              <motion.div
+                className="flex flex-col sm:flex-row gap-4"
+                initial={{ opacity: 0, scale: 0.92, filter: 'blur(8px)' }}
+                animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                transition={{ delay: 2, duration: 0.8, ease: EASE_OUT_EXPO }}
+              >
+                <Link href={primaryCta.href}>
+                  <Button
+                    size="lg"
+                    className={`h-14 px-10 text-base font-semibold hover:opacity-90 transition-all btn-shimmer rounded-xl ${btnClass}`}
+                  >
+                    {primaryCta.label}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+                </Link>
+                <a href={secondaryCta.href}>
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="h-14 px-10 text-base border-white/10 bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] hover:border-white/20 text-white transition-all rounded-xl"
+                  >
+                    {secondaryCta.label}
+                  </Button>
+                </a>
+              </motion.div>
+
+              {socialProof && (
+                <motion.p
+                  className="text-[11px] text-white/35 mt-8 uppercase tracking-widest"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 2.4, duration: 1 }}
+                >
+                  {socialProof}
+                </motion.p>
+              )}
+            </motion.div>
+
+            {/* RIGHT: Canvas visualization (promoted to hero position) */}
+            <motion.div
+              className="relative w-full h-[400px] md:h-[560px] lg:h-[640px]"
+              initial={{ opacity: 0, scale: 0.9, filter: 'blur(12px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              transition={{ delay: 0.6, duration: 1.8, ease: EASE_OUT_EXPO }}
             >
-              {headlineBold}
-            </motion.span>
-
-            {/* Headline Serif — blur-in at 1200ms, LARGER than bold */}
-            <motion.span
-              className="font-serif italic block gradient-text-hero text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[7rem] headline-xl"
-              initial={{ opacity: 0, filter: 'blur(14px)', y: 40 }}
-              animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
-              transition={{ delay: 1.2, duration: 1.2, ease: EASE_OUT_EXPO }}
-            >
-              {headlineSerif}
-            </motion.span>
-          </motion.h1>
-
-          {/* Subheadline — fades in at 1600ms */}
-          <motion.p
-            className="text-lg md:text-xl text-white/60 max-w-xl mx-auto leading-relaxed mb-12 mt-8"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.6, duration: 0.8, ease: EASE_OUT_EXPO }}
-          >
-            {sub}
-          </motion.p>
-
-          {/* CTAs — scale up at 2000ms */}
+              {canvasOverride ?? <ParticleField count={50} />}
+            </motion.div>
+          </div>
+        ) : (
+          /* ── Default centered layout ── */
           <motion.div
-            className="flex flex-col sm:flex-row gap-4 justify-center"
-            initial={{ opacity: 0, scale: 0.92, filter: 'blur(8px)' }}
-            animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
-            transition={{ delay: 2, duration: 0.8, ease: EASE_OUT_EXPO }}
+            className="max-w-[1000px] mx-auto text-center px-6 pt-24 pb-16"
+            style={{ rotateX: perspectiveRotate }}
           >
-            <Link href={primaryCta.href}>
-              <Button
-                size="lg"
-                className={`h-14 px-10 text-base font-semibold hover:opacity-90 transition-all btn-shimmer rounded-xl ${btnClass}`}
-              >
-                {primaryCta.label}
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Link>
-            <a href={secondaryCta.href}>
-              <Button
-                size="lg"
-                variant="outline"
-                className="h-14 px-10 text-base border-white/10 bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] hover:border-white/20 text-white transition-all rounded-xl"
-              >
-                {secondaryCta.label}
-              </Button>
-            </a>
-          </motion.div>
+            {/* Orchestrated stagger — each element has its own delay */}
 
-          {/* Social proof snippet — fades in at 2400ms */}
-          {socialProof && (
+            {/* Badge — clip-reveals at 800ms */}
+            {badge && (
+              <motion.span
+                initial={{ clipPath: 'inset(0 100% 0 0)', opacity: 0 }}
+                animate={{ clipPath: 'inset(0 0% 0 0)', opacity: 1 }}
+                transition={{ delay: 0.8, duration: 0.8, ease: [0.77, 0, 0.175, 1] }}
+                className={`inline-block text-xs font-semibold uppercase tracking-[0.3em] ${badgeColor} rounded-full px-5 py-2 mb-10 gradient-border-animated`}
+              >
+                {badge}
+              </motion.span>
+            )}
+
+            {/* Headline Bold — cosmic blur-in at 1000ms */}
+            <motion.h1 className="font-display headline-xl text-white mb-2">
+              <motion.span
+                className="font-bold block text-[2.75rem] sm:text-6xl md:text-7xl lg:text-[6.5rem]"
+                style={{
+                  textShadow: accentColor === 'blue'
+                    ? '0 0 40px rgba(96,165,250,0.08)'
+                    : accentColor === 'violet'
+                      ? '0 0 40px rgba(167,139,250,0.08)'
+                      : '0 0 40px rgba(110,231,183,0.08)',
+                }}
+                initial={{ opacity: 0, filter: 'blur(20px)', y: 40 }}
+                animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                transition={{ delay: 1, duration: 1.2, ease: EASE_OUT_EXPO }}
+              >
+                {headlineBold}
+              </motion.span>
+
+              {/* Headline Serif — cosmic blur-in at 1200ms, LARGER than bold */}
+              <motion.span
+                className="font-serif italic block gradient-text-hero text-[3rem] sm:text-[4rem] md:text-[5rem] lg:text-[7rem] headline-xl"
+                style={{
+                  textShadow: accentColor === 'blue'
+                    ? '0 0 60px rgba(96,165,250,0.1), 0 0 120px rgba(96,165,250,0.05)'
+                    : accentColor === 'violet'
+                      ? '0 0 60px rgba(167,139,250,0.1), 0 0 120px rgba(167,139,250,0.05)'
+                      : '0 0 60px rgba(110,231,183,0.1), 0 0 120px rgba(110,231,183,0.05)',
+                }}
+                initial={{ opacity: 0, filter: 'blur(20px)', y: 40 }}
+                animate={{ opacity: 1, filter: 'blur(0px)', y: 0 }}
+                transition={{ delay: 1.2, duration: 1.2, ease: EASE_OUT_EXPO }}
+              >
+                {headlineSerif}
+              </motion.span>
+            </motion.h1>
+
+            {/* Subheadline — fades in at 1600ms */}
             <motion.p
-              className="text-[11px] text-white/35 mt-8 uppercase tracking-widest"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 2.4, duration: 1 }}
+              className="text-lg md:text-xl text-white/60 max-w-xl mx-auto leading-relaxed mb-12 mt-8"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1.6, duration: 0.8, ease: EASE_OUT_EXPO }}
             >
-              {socialProof}
+              {sub}
             </motion.p>
-          )}
-        </motion.div>
+
+            {/* CTAs — scale up at 2000ms */}
+            <motion.div
+              className="flex flex-col sm:flex-row gap-4 justify-center"
+              initial={{ opacity: 0, scale: 0.92, filter: 'blur(8px)' }}
+              animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+              transition={{ delay: 2, duration: 0.8, ease: EASE_OUT_EXPO }}
+            >
+              <Link href={primaryCta.href}>
+                <Button
+                  size="lg"
+                  className={`h-14 px-10 text-base font-semibold hover:opacity-90 transition-all btn-shimmer rounded-xl ${btnClass}`}
+                >
+                  {primaryCta.label}
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <a href={secondaryCta.href}>
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="h-14 px-10 text-base border-white/10 bg-white/[0.03] backdrop-blur-md hover:bg-white/[0.07] hover:border-white/20 text-white transition-all rounded-xl"
+                >
+                  {secondaryCta.label}
+                </Button>
+              </a>
+            </motion.div>
+
+            {/* Social proof snippet — fades in at 2400ms */}
+            {socialProof && (
+              <motion.p
+                className="text-[11px] text-white/35 mt-8 uppercase tracking-widest"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 2.4, duration: 1 }}
+              >
+                {socialProof}
+              </motion.p>
+            )}
+          </motion.div>
+        )}
       </motion.div>
 
       <ScrollIndicator />

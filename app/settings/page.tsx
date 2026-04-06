@@ -126,7 +126,7 @@ export default function SettingsPage() {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `marketsignal-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+            a.download = `meridian-data-export-${new Date().toISOString().slice(0, 10)}.json`;
             a.click();
             URL.revokeObjectURL(url);
             toast.success('Data exported');

@@ -63,7 +63,7 @@ export function PlatformShowcase() {
               {/* Fallback static image shown if video hasn't loaded */}
               <Image
                 src={PLATFORM.video.poster}
-                alt="MarketSignal platform dashboard"
+                alt="Meridian platform dashboard"
                 fill
                 className="object-cover -z-10"
                 priority={false}

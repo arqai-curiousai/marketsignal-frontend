@@ -2,6 +2,7 @@
 
 import { LandingHero } from '../shared/LandingHero';
 import { PULSE_HERO } from '../constants/pulse';
+import { GlobeCanvas } from './GlobeCanvas';
 
 export function PulseHero() {
   return (
@@ -19,7 +20,9 @@ export function PulseHero() {
         'bg-brand-blue/[0.02]',
       ]}
       accentColor="emerald"
-      socialProof="25 news sources \u00B7 6 global regions"
+      socialProof="25 news sources · 6 global regions"
+      canvasOverride={<GlobeCanvas />}
+      splitLayout
     />
   );
 }

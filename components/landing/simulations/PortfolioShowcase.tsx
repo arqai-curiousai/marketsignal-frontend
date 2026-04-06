@@ -4,14 +4,14 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { SIM_PORTFOLIO_SHOWCASE } from '../constants/simulations';
 import { fadeUp, staggerContainer, slideFromLeft, slideFromRight } from '../animations';
-import { VideoClip } from '../VideoClip';
+import { SimShowcaseCanvas } from './SimShowcaseCanvas';
 
 export function PortfolioShowcase() {
   return (
     <section className="landing-section relative overflow-hidden">
       <div className="container max-w-6xl mx-auto">
         <div className="grid grid-cols-1 md:grid-cols-[55%_45%] gap-8 md:gap-12 items-center">
-          {/* Video (left on desktop) */}
+          {/* Canvas visualization (left on desktop) */}
           <motion.div
             initial="hidden"
             whileInView="visible"
@@ -19,13 +19,8 @@ export function PortfolioShowcase() {
             variants={slideFromLeft}
             className="relative rounded-xl overflow-hidden border border-white/[0.06] bg-white/[0.02] order-2 md:order-1"
           >
-            <div className="aspect-[16/10]">
-              <VideoClip
-                webm={SIM_PORTFOLIO_SHOWCASE.video.webm}
-                mp4={SIM_PORTFOLIO_SHOWCASE.video.mp4}
-                overlay={false}
-                opacity={1}
-              />
+            <div className="aspect-[16/10] relative">
+              <SimShowcaseCanvas type="portfolio" />
             </div>
             <div
               className="absolute inset-0 pointer-events-none rounded-xl"

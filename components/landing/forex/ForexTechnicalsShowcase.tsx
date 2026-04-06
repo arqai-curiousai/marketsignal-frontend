@@ -2,6 +2,7 @@
 
 import { ShowcaseSection } from '../shared/ShowcaseSection';
 import { FOREX_TECHNICALS_SHOWCASE } from '../constants/forex';
+import { ForexShowcaseCanvas } from './ForexShowcaseCanvas';
 
 export function ForexTechnicalsShowcase() {
   return (
@@ -13,6 +14,7 @@ export function ForexTechnicalsShowcase() {
       video={FOREX_TECHNICALS_SHOWCASE.video}
       mirror={false}
       accentColor="amber"
+      canvasOverride={<ForexShowcaseCanvas type="technicals" />}
     />
   );
 }

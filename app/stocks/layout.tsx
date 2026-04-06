@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Stocks | MarketSignal',
+  title: 'Stocks | Meridian',
   description: 'Browse and analyze stocks across global exchanges with AI-powered signals and real-time quotes.',
 };
 

@@ -1,10 +1,10 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { SIM_GRID } from '../constants/simulations';
 import { fadeUp, staggerContainer, scaleReveal } from '../animations';
-import { VideoClip } from '../VideoClip';
+import { SimGridItemCanvas } from './SimGridItemCanvas';
 
 export function SimulationGrid() {
   return (
@@ -41,54 +41,57 @@ export function SimulationGrid() {
           variants={staggerContainer}
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {SIM_GRID.map((item) => {
-            const Icon = item.icon;
-
-            return (
-              <motion.div
-                key={item.id}
-                variants={scaleReveal}
-                whileHover={{ y: -4 }}
-                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                className="bento-card flex flex-col group relative overflow-hidden"
-              >
-                {/* Hover video reveal */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none">
-                  <VideoClip
-                    webm={item.video.webm}
-                    mp4={item.video.mp4}
-                    overlay={false}
-                    opacity={0.15}
-                    blendMode="screen"
-                  />
-                </div>
-
-                {/* Icon */}
-                <div className="w-9 h-9 rounded-lg bg-brand-violet/[0.08] border border-brand-violet/[0.12] flex items-center justify-center mb-3 relative z-10">
-                  <Icon className="h-4 w-4 text-brand-violet" />
-                </div>
-
-                {/* Content */}
-                <div className="relative z-10">
-                  <h3 className="text-sm font-bold text-white mb-0.5">{item.title}</h3>
-                  <p className="text-[10px] font-medium text-brand-violet/80 uppercase tracking-wider mb-2">
-                    {item.subtitle}
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {item.description}
-                  </p>
-                </div>
-
-                {/* Hover glow */}
-                <div
-                  className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"
-                  style={{ boxShadow: 'inset 0 0 60px rgba(167,139,250,0.06)' }}
-                />
-              </motion.div>
-            );
-          })}
+          {SIM_GRID.map((item) => (
+            <GridCard key={item.id} item={item} />
+          ))}
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function GridCard({ item }: { item: (typeof SIM_GRID)[number] }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const Icon = item.icon;
+
+  return (
+    <motion.div
+      variants={scaleReveal}
+      whileHover={{ y: -4 }}
+      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+      className="bento-card flex flex-col group relative overflow-hidden"
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+    >
+      {/* Canvas visualization — always visible, intensifies on hover */}
+      <div className="absolute inset-0 pointer-events-none opacity-60 group-hover:opacity-100 transition-opacity duration-500">
+        <SimGridItemCanvas
+          toolId={item.id as Parameters<typeof SimGridItemCanvas>[0]['toolId']}
+          isHovered={isHovered}
+        />
+      </div>
+
+      {/* Icon */}
+      <div className="w-9 h-9 rounded-lg bg-brand-violet/[0.08] border border-brand-violet/[0.12] flex items-center justify-center mb-3 relative z-10">
+        <Icon className="h-4 w-4 text-brand-violet" />
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <h3 className="text-sm font-bold text-white mb-0.5">{item.title}</h3>
+        <p className="text-[10px] font-medium text-brand-violet/80 uppercase tracking-wider mb-2">
+          {item.subtitle}
+        </p>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          {item.description}
+        </p>
+      </div>
+
+      {/* Hover glow */}
+      <div
+        className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none rounded-xl"
+        style={{ boxShadow: 'inset 0 0 60px rgba(167,139,250,0.06)' }}
+      />
+    </motion.div>
   );
 }
