@@ -13,7 +13,7 @@ import {
   drawSimTooltip,
 } from '@/components/pretext/canvasEffects';
 import { SIM_FONTS, SIM_TEXT } from '@/components/pretext/sim/simCanvasTokens';
-import type { IRegimeAnalysis, RegimeLabel } from '@/types/simulation';
+import type { IRegimeAnalysis } from '@/types/simulation';
 
 interface Props {
   data: IRegimeAnalysis;
@@ -203,7 +203,6 @@ export function RegimePhaseSpaceCanvas({ data, className }: Props) {
   );
 
   const currentLabel = data.currentState.label;
-  const currentColor = REGIME_COLORS[currentLabel] ?? REGIME_COLORS.Neutral;
 
   return (
     <div className={`relative ${className ?? ''}`} style={{ minHeight: isMobile ? 200 : 280 }}>

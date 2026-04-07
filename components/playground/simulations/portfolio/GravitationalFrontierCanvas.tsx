@@ -7,10 +7,8 @@ import {
   colorWithAlpha,
   drawGlowingNode,
   drawSonarPulse,
-  drawConnection,
   drawSimTooltip,
 } from '@/components/pretext/canvasEffects';
-import { drawTextGlow } from '@/components/pretext/textRenderer';
 import { SIM_COLORS, SIM_FONTS, SIM_TEXT } from '@/components/pretext/sim/simCanvasTokens';
 import type { IPortfolioOptimization } from '@/types/simulation';
 

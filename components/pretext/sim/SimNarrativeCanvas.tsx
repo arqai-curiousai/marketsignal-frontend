@@ -5,7 +5,7 @@ import { prepare, layout, type PreparedText } from '@chenglou/pretext';
 import { PretextCanvas } from '../PretextCanvas';
 import { useReducedMotion } from '../useReducedMotion';
 import { useMobileDetect } from '../useMobileDetect';
-import { colorWithAlpha, drawSonarPulse } from '../canvasEffects';
+import { colorWithAlpha } from '../canvasEffects';
 import { SIM_FONTS, SIM_TEXT } from './simCanvasTokens';
 
 interface SimNarrativeCanvasProps {
@@ -134,11 +134,7 @@ export function SimNarrativeCanvas({
       ctx.font = FONT;
       ctx.textBaseline = 'top';
 
-      let charIdx = 0;
-      const displayText = narrative.slice(0, revealedChars);
       // Split by lines using layout info
-      const lines: string[] = [];
-      let remaining = displayText;
       const fullLines: string[] = [];
       // Get full text lines first
       let fullRemaining = narrative;

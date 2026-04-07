@@ -9,7 +9,6 @@ import type {
 import {
   CURRENCIES,
   CURRENCIES_MOBILE,
-  SESSION_COLORS,
   TIER_RADIUS,
   TIER_RADIUS_MOBILE,
   type CurrencyDef,

@@ -14,7 +14,7 @@ import {
   dist,
 } from '@/components/landing/pretext/canvasEffects';
 import { useForexData } from '../ForexDataProvider';
-import { useForexCanvasData, type CanvasPairConnection } from './useForexCanvasData';
+import { useForexCanvasData } from './useForexCanvasData';
 import {
   SESSION_COLORS,
   TIER_RING,

@@ -4,7 +4,7 @@ import React, { useRef, useCallback } from 'react';
 import { PretextCanvas } from '../PretextCanvas';
 import { useReducedMotion } from '../useReducedMotion';
 import { useMobileDetect } from '../useMobileDetect';
-import { colorWithAlpha, drawDataPulse } from '../canvasEffects';
+import { colorWithAlpha } from '../canvasEffects';
 import { easeOutExpo } from '../textRenderer';
 import { SIM_FONTS, SIM_TEXT, SIM_BG } from './simCanvasTokens';
 import type { SimKPI } from '@/components/playground/simulations/shared/SimKPIStrip';
@@ -124,6 +124,7 @@ export function SimKPIStripCanvas({ kpis, accentColor = 'rgba(167, 139, 250, 1)'
 
   // Reduced motion fallback: use the original React component
   if (reduced) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { SimKPIStrip } = require('@/components/playground/simulations/shared/SimKPIStrip');
     return <SimKPIStrip kpis={kpis} className={className} />;
   }

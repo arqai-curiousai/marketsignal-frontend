@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useCallback, useMemo } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { PretextCanvas } from '@/components/pretext/PretextCanvas';
 import { useMobileDetect } from '@/components/pretext/useMobileDetect';
 import {

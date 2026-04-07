@@ -1,10 +1,9 @@
 'use client';
 
 import { useRef, useCallback, useState } from 'react';
-import { prepare, layout } from '@chenglou/pretext';
 import { PretextCanvas } from '@/components/landing/pretext/PretextCanvas';
 import { useMobileDetect } from '@/components/landing/pretext/useMobileDetect';
-import { colorWithAlpha, drawSonarPulse } from '@/components/landing/pretext/canvasEffects';
+import { drawSonarPulse } from '@/components/landing/pretext/canvasEffects';
 import { useForexData } from '../ForexDataProvider';
 import { changePctToHsl, FONT_CODE_SM, FONT_VALUE_SM, SONAR_CYCLE_MS } from './canvasConstants';
 import { cn } from '@/lib/utils';

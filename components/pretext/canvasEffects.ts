@@ -430,7 +430,6 @@ export function drawSimTooltip(
 
   // Clamp to canvas bounds
   const cw = ctx.canvas.offsetWidth;
-  const ch = ctx.canvas.offsetHeight;
   let cardX = x - cardW / 2;
   let cardY = y - cardH - 8;
   if (cardX < 4) cardX = 4;

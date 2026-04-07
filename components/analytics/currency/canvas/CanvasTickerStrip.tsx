@@ -43,7 +43,7 @@ export function CanvasTickerStrip({ onSelectPair }: Props) {
     let total = 0;
     const gap = 32;
     const sparkW = 40;
-    const padding = 16;
+
 
     for (const p of pairs) {
       const priceStr = p.price?.toFixed(p.price >= 100 ? 2 : 4) ?? '—';
@@ -96,7 +96,7 @@ export function CanvasTickerStrip({ onSelectPair }: Props) {
   }, [overview]);
 
   const draw = useCallback(
-    (ctx: CanvasRenderingContext2D, w: number, h: number, time: number) => {
+    (ctx: CanvasRenderingContext2D, w: number, h: number, _time: number) => {
       buildEntries();
       const entries = entriesRef.current;
       if (entries.length === 0) return;
@@ -193,7 +193,7 @@ export function CanvasTickerStrip({ onSelectPair }: Props) {
     hoveredRef.current = -1;
   }, []);
 
-  const handleMouseUp = useCallback((x: number, y: number) => {
+  const handleMouseUp = useCallback((_x: number, _y: number) => {
     const idx = hoveredRef.current;
     if (idx >= 0 && idx < entriesRef.current.length) {
       onSelectPair(entriesRef.current[idx].pair);

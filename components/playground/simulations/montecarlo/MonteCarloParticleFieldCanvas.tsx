@@ -7,7 +7,7 @@ import { colorWithAlpha, drawSimTooltip } from '@/components/pretext/canvasEffec
 import { drawTextGlow } from '@/components/pretext/textRenderer';
 import { SIM_COLORS, SIM_FONTS, SIM_TEXT } from '@/components/pretext/sim/simCanvasTokens';
 import type { IMonteCarloAnalysis } from '@/types/simulation';
-import { getVerdictConfig, fmtPrice, fmtPct } from './mc-tokens';
+import { getVerdictConfig, fmtPrice } from './mc-tokens';
 
 interface Props {
   data: IMonteCarloAnalysis;

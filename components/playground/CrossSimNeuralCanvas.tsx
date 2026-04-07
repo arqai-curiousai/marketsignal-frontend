@@ -9,7 +9,6 @@ import {
   drawConnection,
   drawDataPulse,
   drawSonarPulse,
-  drawSimTooltip,
 } from '@/components/pretext/canvasEffects';
 import { drawTextWithOpacity } from '@/components/pretext/textRenderer';
 import { SIM_FONTS, SIM_TEXT, TAB_ACCENT } from '@/components/pretext/sim/simCanvasTokens';
@@ -116,7 +115,6 @@ export function CrossSimNeuralCanvas({ activeTab, className }: CrossSimNeuralCan
 
   const draw = useCallback(
     (ctxCanvas: CanvasRenderingContext2D, w: number, h: number, time: number) => {
-      const mouse = mouseRef.current;
       const nodeCount = SIM_NODE_IDS.length;
       const nodeSpacing = w / (nodeCount + 1);
       const cy = h / 2;
@@ -152,7 +150,6 @@ export function CrossSimNeuralCanvas({ activeTab, className }: CrossSimNeuralCan
           // Center the text
           ctxCanvas.save();
           ctxCanvas.font = SIM_FONTS.tiny;
-          const tw = ctxCanvas.measureText(edge.text).width;
           ctxCanvas.restore();
         }
       });

@@ -107,7 +107,7 @@ export function RiskScoreDashboard() {
   // Fetch presets once
   useEffect(() => {
     const controller = new AbortController();
-    simulationApi.getPresets({ signal: controller.signal }).then((res) => {
+    simulationApi.getPresets(undefined, { signal: controller.signal }).then((res) => {
       if (res.success) setPresets(res.data);
     }).catch((err) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
