@@ -83,8 +83,8 @@ export function CorrelationToolbar({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const allAssets = useMemo(() => getAllAssets(exchange), [exchange]);
-  const quickGroups = useMemo(() => getQuickGroups(exchange), [exchange]);
+  const allAssets = useMemo(() => getAllAssets(exchange, assetScope), [exchange, assetScope]);
+  const quickGroups = useMemo(() => getQuickGroups(exchange, assetScope), [exchange, assetScope]);
 
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
@@ -339,7 +339,7 @@ export function CorrelationToolbar({
 
               {/* Asset Scope */}
               <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
-                {(['equity', 'cross_asset'] as AssetScope[]).map((s) => (
+                {(['equity', 'cross_asset', 'cross_exchange'] as AssetScope[]).map((s) => (
                   <button
                     key={s}
                     onClick={() => onAssetScopeChange(s)}
@@ -348,7 +348,7 @@ export function CorrelationToolbar({
                       s === assetScope ? 'bg-brand-blue/30 text-white' : 'text-muted-foreground hover:text-white',
                     )}
                   >
-                    {s === 'equity' ? 'Equity' : 'Cross-Asset'}
+                    {s === 'equity' ? 'Equity' : s === 'cross_asset' ? 'Cross-Asset' : 'Global'}
                   </button>
                 ))}
               </div>

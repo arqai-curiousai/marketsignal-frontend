@@ -211,8 +211,18 @@ const ALL_EXCHANGE_ASSETS: Asset[] = [
 ];
 export const ASSET_MAP = new Map(ALL_EXCHANGE_ASSETS.map((a) => [a.ticker, a]));
 
-/** Build the full asset list for a given exchange (stocks + currencies + commodities). */
-export function getAllAssets(exchange: string): Asset[] {
+/** Build the full asset list for a given exchange (stocks + currencies + commodities).
+ *  When scope is 'cross_exchange', includes top stocks from ALL exchanges. */
+export function getAllAssets(exchange: string, scope?: AssetScope): Asset[] {
+  if (scope === 'cross_exchange') {
+    // Include top 10 stocks from each exchange for cross-exchange analysis
+    const allStocks: Asset[] = [];
+    for (const ex of ['NSE', 'NASDAQ', 'NYSE', 'LSE', 'HKSE']) {
+      const stocks = getStockAssets(ex).slice(0, 10);
+      allStocks.push(...stocks);
+    }
+    return [...allStocks, ...CURRENCY_ASSETS, ...COMMODITY_ASSETS];
+  }
   return [...getStockAssets(exchange), ...CURRENCY_ASSETS, ...COMMODITY_ASSETS];
 }
 
@@ -253,8 +263,16 @@ const HKSE_QUICK_GROUPS = [
   { label: 'Consumer', tickers: ['1211', '2020'] },
 ];
 
+const CROSS_EXCHANGE_QUICK_GROUPS = [
+  { label: 'Global Banks', tickers: ['HDFCBANK', 'JPM', 'HSBA', '0005', 'GS'] },
+  { label: 'Global Tech', tickers: ['TCS', 'AAPL', 'MSFT', '0700', 'ASML'] },
+  { label: 'Global Energy', tickers: ['RELIANCE', 'XOM', 'SHEL', '0883', 'CVX'] },
+  { label: 'Global vs FX', tickers: ['INFY', 'AAPL', 'SHEL', 'USD/INR', 'EUR/USD'] },
+];
+
 /** Get quick groups for a given exchange. Falls back to NSE groups for unknown exchanges. */
-export function getQuickGroups(exchange: string): { label: string; tickers: string[] }[] {
+export function getQuickGroups(exchange: string, scope?: AssetScope): { label: string; tickers: string[] }[] {
+  if (scope === 'cross_exchange') return CROSS_EXCHANGE_QUICK_GROUPS;
   switch (exchange.toUpperCase()) {
     case 'NASDAQ': return NASDAQ_QUICK_GROUPS;
     case 'NYSE': return NYSE_QUICK_GROUPS;
@@ -342,4 +360,4 @@ export interface SimLink extends SimulationLinkDatum<GraphNode> {
 export type CorrelationMethod = 'pearson' | 'spearman' | 'kendall';
 export type ViewMode = 'network' | 'heatmap' | 'explorer';
 
-export type AssetScope = 'equity' | 'cross_asset';
+export type AssetScope = 'equity' | 'cross_asset' | 'cross_exchange';

@@ -160,7 +160,7 @@ export const PULSE_NEWS_SHOWCASE = {
 
 // ── Final CTA ──
 export const PULSE_CTA = {
-  headline: 'Stop Watching Tickers, Start Reading Markets',
+  headline: 'Read Markets, Not Tickers',
   sub: 'Sectors, correlations, and news intelligence — unified. Free to start',
   cta: { label: 'Open the Dashboard', href: '/login' },
   video: {

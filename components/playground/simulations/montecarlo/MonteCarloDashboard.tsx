@@ -16,7 +16,7 @@ import { S } from '@/components/playground/pyramid/tokens';
 import { HORIZON_OPTIONS, HORIZON_LABELS, fmtPrice, fmtPct, fmtProb } from './mc-tokens';
 import { TickerCombobox } from './TickerCombobox';
 import { MonteCarloKPIRow } from './MonteCarloKPIRow';
-import { SimulationGauge } from './SimulationGauge';
+import { MonteCarloParticleFieldCanvas } from './MonteCarloParticleFieldCanvas';
 import { NarrativeSummary } from './NarrativeSummary';
 import { ProbabilityCone } from './ProbabilityCone';
 import { PathDensityHeatmap } from './PathDensityHeatmap';
@@ -341,13 +341,12 @@ export function MonteCarloDashboard() {
           {/* Row 0: KPI Row */}
           <MonteCarloKPIRow data={data} />
 
-          {/* Row 1: SimulationGauge (2/5) + NarrativeSummary (3/5) */}
+          {/* Row 1: MonteCarloParticleFieldCanvas (2/5) + NarrativeSummary (3/5) */}
           {data.verdict && (
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-              <SimulationGauge
+              <MonteCarloParticleFieldCanvas
+                data={data}
                 className="md:col-span-2"
-                verdict={data.verdict}
-                qualityScore={data.qualityScore}
               />
               <NarrativeSummary
                 className="md:col-span-3"

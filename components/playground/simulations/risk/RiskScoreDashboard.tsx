@@ -14,7 +14,7 @@ import { downloadCSV, downloadPNG } from '@/lib/utils/export';
 import { T, S } from '@/components/playground/pyramid/tokens';
 
 import { SimPortfolioToolbar } from '@/components/playground/simulations/shared/SimPortfolioToolbar';
-import { RiskCompass } from './RiskCompass';
+import { RiskAuroraCanvas } from './RiskAuroraCanvas';
 import { RiskBreakdown } from './RiskBreakdown';
 import { RiskComparison } from './RiskComparison';
 import { RiskTimeline } from './RiskTimeline';
@@ -234,7 +234,7 @@ export function RiskScoreDashboard() {
           {/* Row 1: Compass + Breakdown */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2 flex items-center justify-center">
-              <RiskCompass data={data} />
+              <RiskAuroraCanvas data={data} />
             </div>
             <div className="md:col-span-3">
               <RiskBreakdown subScores={data.subScores} className="h-full" />

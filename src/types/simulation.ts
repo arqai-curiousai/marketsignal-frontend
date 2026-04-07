@@ -445,6 +445,7 @@ export interface IPresetBasket {
   label: string;
   description: string;
   tickers: string[];
+  exchange?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -493,6 +494,9 @@ export interface ITransactionImpact {
   netReturn: number;
   totalCostPct: number;
   costPerLakh: number;
+  costPerDenom?: number;
+  denomLabel?: string;
+  currencySymbol?: string;
   description: string;
 }
 
@@ -625,6 +629,7 @@ export interface IScenarioPreset {
   driftShock: number;
   correlationShift: number;
   sectorBetas: Record<string, number>;
+  exchanges?: string[];
 }
 
 export interface IScenarioResult {

@@ -20,7 +20,7 @@ import { SimulationProvider } from '@/context/SimulationContext';
 import { usePlaygroundHotkeys } from '@/lib/hooks/usePlaygroundHotkeys';
 import { SimShortcutHelp } from '@/components/playground/simulations/shared/SimShortcutHelp';
 import { DataFreshnessStrip } from '@/components/playground/simulations/shared/DataFreshnessStrip';
-import { CrossSimulationInsights } from '@/components/playground/CrossSimulationInsights';
+import { CrossSimNeuralCanvas } from '@/components/playground/CrossSimNeuralCanvas';
 import { DashboardAmbient } from '@/components/shared/DashboardAmbient';
 import { DashboardHeader } from '@/components/shared/DashboardHeader';
 import { TabLoadingFallback } from '@/components/shared/DashboardSkeleton';
@@ -255,7 +255,7 @@ export default function PlaygroundPage() {
         >
           <DataFreshnessStrip />
           <div className="border-t border-white/[0.04] pt-2">
-            <CrossSimulationInsights />
+            <CrossSimNeuralCanvas activeTab={activeSimulation} />
           </div>
         </motion.div>
 

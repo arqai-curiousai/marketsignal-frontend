@@ -9,14 +9,19 @@ import { useNewsData } from './hooks/useNewsData';
 import { useNewsFilters } from './hooks/useNewsFilters';
 import { useMarketIntelligence } from './hooks/useMarketIntelligence';
 
-// New components
+// Command & filter components
 import { RegionCommandBar } from './RegionCommandBar';
 import { MarketPulseBar } from './MarketPulseBar';
-import { BreakingWire } from './BreakingWire';
-
-// Existing components
 import { NewsFilterBar } from './NewsFilterBar';
 import type { ViewMode } from './NewsFilterBar';
+
+// Canvas-powered components (pretext)
+import { BreakingWireCanvas } from './canvas/BreakingWireCanvas';
+import { SentimentPulseCanvas } from './canvas/SentimentPulseCanvas';
+import { PulseGlobeCanvas } from './canvas/PulseGlobeCanvas';
+import { StoryArcCanvas } from './canvas/StoryArcCanvas';
+
+// Feed & detail components
 import { RiverFlow } from './RiverFlow';
 import { ArticleExpansion } from './ArticleExpansion';
 
@@ -26,8 +31,7 @@ import { DivergenceRow } from './DivergenceRow';
 import { PortfolioNewsPanel } from './PortfolioNewsPanel';
 import { StoryThread } from './StoryThread';
 
-// Map/Explore mode components
-import GeoSentimentMap from './GeoSentimentMap';
+// Explore mode components
 import { MultiRegionDeck } from './MultiRegionDeck';
 import { NewsNetworkGraph } from './NewsNetworkGraph';
 import { NewsMindMap } from './NewsMindMap';
@@ -269,7 +273,7 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
 
   return (
     <div className="space-y-3" ref={riverRef}>
-      {/* Region command bar — multi-select region pills */}
+      {/* ═══ COMMAND BAR ═══ */}
       <div className="flex items-center justify-between gap-3">
         <RegionCommandBar
           regions={filters.regions}
@@ -279,14 +283,41 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
         <ExportButton options={exportOptions} className="export-exclude shrink-0" />
       </div>
 
-      {/* Geo Sentiment Map — hero visualization */}
-      <GeoSentimentMap
-        geoSentiment={geoSentiment}
-        activeRegions={filters.regions}
-        onRegionClick={filters.toggleRegion}
-      />
+      {/* ═══ HERO ZONE — Canvas-powered live data strips ═══ */}
+      <div className="space-y-2">
+        {/* Breaking Wire — pretext-measured scrolling ticker tape */}
+        <BreakingWireCanvas
+          articles={data.breakingArticles}
+          onSelect={handleSelectArticle}
+          onDismiss={data.dismissBreaking}
+        />
 
-      {/* Market Pulse — global KPI cards + region row */}
+        {/* Sentiment Pulse — EKG heartbeat per region */}
+        <SentimentPulseCanvas
+          geoSentiment={geoSentiment}
+          breakingArticles={data.breakingArticles}
+          activeRegions={filters.regions}
+        />
+      </div>
+
+      {/* ═══ INTELLIGENCE ZONE — Globe + Story Arcs side by side ═══ */}
+      <div className="grid grid-cols-1 md:grid-cols-[2fr_3fr] gap-3">
+        {/* Pulse Globe — geographic news flow with animated connections */}
+        <PulseGlobeCanvas
+          geoSentiment={geoSentiment}
+          activeRegions={filters.regions}
+          breakingArticles={data.breakingArticles}
+          onRegionClick={filters.toggleRegion}
+        />
+
+        {/* Story Arcs — flowing narrative streams */}
+        <StoryArcCanvas
+          stories={intel.stories}
+          onSelectStory={intel.openStory}
+        />
+      </div>
+
+      {/* ═══ MARKET PULSE — KPI cards (DOM) ═══ */}
       <MarketPulseBar
         articles={filteredArticles}
         clusters={baseClusters}
@@ -294,7 +325,7 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
         geoSentiment={geoSentiment}
       />
 
-      {/* Filter bar with view toggle */}
+      {/* ═══ FILTER BAR ═══ */}
       <NewsFilterBar
         view={view}
         onViewChange={setView}
@@ -318,13 +349,6 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
         secondsAgo={data.secondsAgo}
       />
 
-      {/* Breaking Wire — multi-line ticker tape */}
-      <BreakingWire
-        articles={data.breakingArticles}
-        onSelect={handleSelectArticle}
-        onDismiss={data.dismissBreaking}
-      />
-
       {/* Error state */}
       {data.feedError && !data.feedLoading && (
         <div className="rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400 flex items-center gap-2">
@@ -336,7 +360,7 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
       {/* ═══ FEED VIEW ═══ */}
       {view === 'feed' && (
         <div className="space-y-4">
-          {/* Portfolio News — always shown */}
+          {/* Portfolio News */}
           <PortfolioNewsPanel exchange={filters.exchange} />
 
           {/* Global Brief — region-aware morning brief */}
@@ -353,71 +377,6 @@ export function NewsRiver({ exchange: _parentExchange }: NewsRiverProps) {
             divergences={intel.divergences}
             loading={intel.divergenceLoading}
           />
-
-          {/* Story Arc Cards — top active story arcs */}
-          {intel.stories.length > 0 && (
-            <div>
-              <div className="text-[10px] uppercase tracking-wider text-white/25 mb-2">
-                Active Stories
-              </div>
-              <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {intel.stories.slice(0, 5).map((story) => (
-                  <button
-                    key={story.id}
-                    onClick={() => intel.openStory(story)}
-                    className="group shrink-0 w-48 sm:w-56 rounded-lg border border-white/[0.06] bg-white/[0.02] p-2.5 sm:p-3 text-left hover:bg-white/[0.04] transition-colors"
-                  >
-                    {/* Phase badge */}
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span
-                        className="text-[9px] font-medium px-1.5 py-0.5 rounded"
-                        style={{
-                          backgroundColor:
-                            story.story_phase === 'breaking'
-                              ? 'rgba(239,68,68,0.15)'
-                              : story.story_phase === 'developing'
-                                ? 'rgba(245,158,11,0.15)'
-                                : story.story_phase === 'analysis'
-                                  ? 'rgba(129,140,248,0.15)'
-                                  : 'rgba(100,116,139,0.15)',
-                          color:
-                            story.story_phase === 'breaking'
-                              ? '#EF4444'
-                              : story.story_phase === 'developing'
-                                ? '#F59E0B'
-                                : story.story_phase === 'analysis'
-                                  ? '#818CF8'
-                                  : '#64748B',
-                        }}
-                      >
-                        {story.story_phase}
-                      </span>
-                      <span className="text-[10px] text-white/20">
-                        {story.article_count} articles
-                      </span>
-                    </div>
-
-                    {/* Label */}
-                    <div className="text-[12px] text-white/70 font-medium line-clamp-2 leading-snug mb-2 group-hover:text-white/80">
-                      {story.story_label}
-                    </div>
-
-                    {/* Ticker pills */}
-                    <div className="flex flex-wrap gap-1">
-                      {story.tickers.slice(0, 3).map((t) => (
-                        <span
-                          key={t}
-                          className="text-[9px] text-white/30 bg-white/[0.04] rounded px-1.5 py-0.5"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* River flow — cluster-based feed */}
           <RiverFlow

@@ -1,29 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useMarketAwarePolling } from '@/lib/hooks/useMarketAwarePolling';
 import { CurrencyPulseStrip } from './CurrencyPulseStrip';
 import { CurrencyChartPanel } from './CurrencyChartPanel';
 import { CurrencyTechnicalsTable } from './CurrencyTechnicalsTable';
 import { CurrencyVolatility } from './CurrencyVolatility';
 import { CurrencySessions } from './CurrencySessions';
 import { AlertPanel } from './AlertPanel';
-import {
-  getCurrencyTechnicals,
-  getCurrencyVolatility as getCurrencyVolatilityApi,
-  getCurrencyMarketClock,
-  getCurrencyMeanReversion,
-  getCurrencyRegime,
-} from '@/src/lib/api/analyticsApi';
-import type {
-  ICurrencyTechnicals,
-  ICurrencyVolatility,
-  IMarketClock,
-  ICurrencyMeanReversion,
-  ICurrencyRegime,
-} from '@/src/types/analytics';
+import { useForexData } from './ForexDataProvider';
 import { cn } from '@/lib/utils';
 import { Activity, BarChart3, Clock, RefreshCw } from 'lucide-react';
 
@@ -49,77 +35,31 @@ const ANIM = {
 };
 
 export function AnalysisView({ selectedPair, timeframe, onTimeframeChange, chartOverlays, onChartOverlaysChange }: AnalysisViewProps) {
-  const [technicals, setTechnicals] = useState<ICurrencyTechnicals | null>(null);
-  const [volatility, setVolatility] = useState<ICurrencyVolatility | null>(null);
-  const [marketClock, setMarketClock] = useState<IMarketClock | null>(null);
-  const [meanReversion, setMeanReversion] = useState<ICurrencyMeanReversion | null>(null);
-  const [regime, setRegime] = useState<ICurrencyRegime | null>(null);
-  const [loading, setLoading] = useState(true);
-  const prevPairRef = useRef(selectedPair);
-  const [lastRefresh, setLastRefresh] = useState(Date.now());
+  // Consume all pair-specific data from ForexDataProvider context
+  const {
+    technicals,
+    volatility,
+    regime,
+    meanReversion,
+    marketClock,
+    pairLoading: loading,
+    lastRefresh,
+    refresh,
+  } = useForexData();
+
+  // Staleness display
   const [minutesAgo, setMinutesAgo] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const settled = await Promise.allSettled([
-        getCurrencyTechnicals(selectedPair),
-        getCurrencyVolatilityApi(selectedPair),
-        getCurrencyMarketClock(),
-        getCurrencyMeanReversion(selectedPair),
-        getCurrencyRegime(selectedPair),
-      ]);
-      const unwrap = <T,>(r: PromiseSettledResult<T>): T | { success: false; data: null } =>
-        r.status === 'fulfilled' ? r.value : { success: false, data: null };
-      const techRes = unwrap(settled[0]);
-      const volRes = unwrap(settled[1]);
-      const mcRes = unwrap(settled[2]);
-      const mrRes = unwrap(settled[3]);
-      const rgRes = unwrap(settled[4]);
-      if (techRes.success) setTechnicals(techRes.data);
-      if (volRes.success) setVolatility(volRes.data);
-      if (mcRes.success) setMarketClock(mcRes.data);
-      if (mrRes.success) setMeanReversion(mrRes.data);
-      if (rgRes.success) setRegime(rgRes.data);
-      setLastRefresh(Date.now());
-      setMinutesAgo(0);
-    } catch {
-      // Components handle individual errors
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedPair]);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setMinutesAgo(0);
+  }, [lastRefresh]);
 
-  // Market-hours-aware polling: 60s when open, 5min when closed
-  useMarketAwarePolling({
-    fetchFn: fetchData,
-    marketType: 'forex',
-    activeIntervalMs: 60_000,
-    inactiveIntervalMs: 300_000,
-  });
-
-  // Update "minutes ago" display every 30s
   useEffect(() => {
     const timer = setInterval(() => {
       setMinutesAgo(Math.floor((Date.now() - lastRefresh) / 60_000));
     }, 30_000);
     return () => clearInterval(timer);
   }, [lastRefresh]);
-
-  // Reset on pair change
-  useEffect(() => {
-    if (prevPairRef.current !== selectedPair) {
-      setTechnicals(null);
-      setVolatility(null);
-      setMeanReversion(null);
-      setRegime(null);
-      prevPairRef.current = selectedPair;
-    }
-  }, [selectedPair]);
 
   return (
     <div className="space-y-4">
@@ -129,7 +69,7 @@ export function AnalysisView({ selectedPair, timeframe, onTimeframeChange, chart
           {minutesAgo === 0 ? 'Just updated' : `Updated ${minutesAgo}m ago`}
         </span>
         <button
-          onClick={fetchData}
+          onClick={refresh}
           className="p-1 rounded hover:bg-white/[0.06] transition-colors"
           title="Refresh analysis data"
         >
@@ -236,7 +176,7 @@ export function AnalysisView({ selectedPair, timeframe, onTimeframeChange, chart
           className="space-y-4"
         >
           <CurrencyTechnicalsTable technicals={technicals} />
-          <CurrencyVolatility pair={selectedPair} />
+          <CurrencyVolatility pair={selectedPair} data={volatility} />
           <CurrencySessions pair={selectedPair} />
           <AlertPanel selectedPair={selectedPair} />
         </motion.div>

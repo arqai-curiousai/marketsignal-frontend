@@ -23,7 +23,7 @@ import {
 
 import { PortfolioKPIRow } from './PortfolioKPIRow';
 import { AllocationSunburst } from './AllocationSunburst';
-import { EfficientFrontierChart } from './EfficientFrontierChart';
+import { GravitationalFrontierCanvas } from './GravitationalFrontierCanvas';
 import { StrategyComparisonCards } from './StrategyComparisonCards';
 import { WeightTable } from './WeightTable';
 import { RiskDecompositionPanel } from './RiskDecompositionPanel';
@@ -137,7 +137,7 @@ export function PortfolioDashboard() {
     const controller = new AbortController();
     async function loadPresets() {
       try {
-        const result = await simulationApi.getPresets({ signal: controller.signal });
+        const result = await simulationApi.getPresets(exchangeConfig.code, { signal: controller.signal });
         if (controller.signal.aborted) return;
         if (result.success) {
           setPresets(result.data);
@@ -149,7 +149,7 @@ export function PortfolioDashboard() {
     }
     loadPresets();
     return () => controller.abort();
-  }, []);
+  }, [exchangeConfig.code]);
 
   // Abort optimize on unmount
   useEffect(() => {
@@ -381,13 +381,7 @@ export function PortfolioDashboard() {
               />
             </div>
             <div className="md:col-span-3">
-              <EfficientFrontierChart
-                frontier={data.efficientFrontier}
-                strategies={data.strategies}
-                individualStocks={data.individualStocks}
-                activeStrategy={activeStrategy.mode}
-                riskFreeRate={data.riskFreeRate}
-              />
+              <GravitationalFrontierCanvas data={data} />
             </div>
           </div>
 

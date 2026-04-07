@@ -383,11 +383,13 @@ export const simulationApi = {
   },
 
   async getPresets(
+    exchange?: string,
     options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IPresetBasket[]>> {
+    const params = exchange ? { exchange } : undefined;
     const result = await apiClient.get<{ presets: Array<Record<string, unknown>> }>(
       '/api/simulations/portfolio/presets',
-      undefined,
+      params,
       { signal: options?.signal },
     );
     if (result.success) {
@@ -398,6 +400,7 @@ export const simulationApi = {
           label: p.label as string,
           description: p.description as string,
           tickers: p.tickers as string[],
+          exchange: (p.exchange as string) || 'NSE',
         })),
       };
     }
@@ -527,11 +530,13 @@ export const simulationApi = {
   },
 
   async getRiskBenchmarks(
+    exchange?: string,
     options?: { signal?: AbortSignal },
   ): Promise<ApiResult<Record<string, { label: string; score: number; description: string }>>> {
+    const params = exchange ? { exchange } : undefined;
     const result = await apiClient.get<{ benchmarks: Record<string, Record<string, unknown>> }>(
       '/api/simulations/risk-score/benchmarks',
-      undefined,
+      params,
       { signal: options?.signal },
     );
     if (result.success) {
@@ -598,11 +603,13 @@ export const simulationApi = {
   },
 
   async getScenarioPresets(
+    exchange?: string,
     options?: { signal?: AbortSignal },
   ): Promise<ApiResult<IScenarioPreset[]>> {
+    const params = exchange ? { exchange } : undefined;
     const res = await apiClient.get<{ presets: RawScenarioPreset[] }>(
       '/api/simulations/scenarios/presets',
-      undefined,
+      params,
       { signal: options?.signal },
     );
     if (res.success) {
@@ -1000,7 +1007,10 @@ interface RawTransactionImpact {
   gross_return: number;
   net_return: number;
   total_cost_pct: number;
-  cost_per_lakh: number;
+  cost_per_lakh?: number;
+  cost_per_denom?: number;
+  denom_label?: string;
+  currency_symbol?: string;
   description: string;
 }
 
@@ -1421,7 +1431,10 @@ function transformBacktestAnalysis(raw: RawBacktestAnalysis): IBacktestAnalysis 
         grossReturn: s.transaction_impact?.gross_return,
         netReturn: s.transaction_impact?.net_return,
         totalCostPct: s.transaction_impact?.total_cost_pct,
-        costPerLakh: s.transaction_impact?.cost_per_lakh,
+        costPerLakh: s.transaction_impact?.cost_per_denom ?? s.transaction_impact?.cost_per_lakh,
+        costPerDenom: s.transaction_impact?.cost_per_denom ?? s.transaction_impact?.cost_per_lakh,
+        denomLabel: s.transaction_impact?.denom_label ?? 'lakh',
+        currencySymbol: s.transaction_impact?.currency_symbol ?? '\u20b9',
         description: s.transaction_impact?.description,
       },
     })),

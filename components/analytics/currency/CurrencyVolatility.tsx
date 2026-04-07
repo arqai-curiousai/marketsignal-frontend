@@ -9,6 +9,7 @@ import { Shield, AlertTriangle, Flame, Zap } from 'lucide-react';
 
 interface Props {
   pair: string;
+  data?: ICurrencyVolatility | null;
 }
 
 const REGIME_COLORS: Record<string, string> = {
@@ -44,21 +45,25 @@ function PercentileBar({ value }: { value: number }) {
   );
 }
 
-export function CurrencyVolatility({ pair }: Props) {
-  const [data, setData] = useState<ICurrencyVolatility | null>(null);
-  const [loading, setLoading] = useState(true);
+export function CurrencyVolatility({ pair, data: externalData }: Props) {
+  const [localData, setLocalData] = useState<ICurrencyVolatility | null>(null);
+  const [loading, setLoading] = useState(!externalData);
+
+  // Use external data from context if provided; otherwise fetch independently
+  const data = externalData ?? localData;
 
   const fetchData = useCallback(async () => {
+    if (externalData !== undefined) return; // Skip if parent provides data
     setLoading(true);
     try {
       const res = await getCurrencyVolatility(pair);
-      if (res.success) setData(res.data);
+      if (res.success) setLocalData(res.data);
     } catch {
       // silent
     } finally {
       setLoading(false);
     }
-  }, [pair]);
+  }, [pair, externalData]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

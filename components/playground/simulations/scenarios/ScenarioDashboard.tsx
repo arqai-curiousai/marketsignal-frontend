@@ -20,7 +20,7 @@ import { ScenarioSelector } from './ScenarioSelector';
 import { ScenarioKPIRow } from './ScenarioKPIRow';
 import { ScenarioComparisonChart } from './ScenarioComparisonChart';
 import { ScenarioImpactTable } from './ScenarioImpactTable';
-import { ShockwaveGauge } from './ShockwaveGauge';
+import { ShockwaveRippleCanvas } from './ShockwaveRippleCanvas';
 
 // ─── Default tickers ─────────────────────────────────────────
 
@@ -167,14 +167,14 @@ export function ScenarioDashboard() {
   // Fetch presets once
   useEffect(() => {
     const controller = new AbortController();
-    simulationApi.getScenarioPresets({ signal: controller.signal }).then((res) => {
+    simulationApi.getScenarioPresets(exchangeConfig.code, { signal: controller.signal }).then((res) => {
       if (res.success) setPresets(res.data);
     }).catch((err) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       console.warn('Failed to load scenario presets:', err);
     });
 
-    simulationApi.getPresets({ signal: controller.signal }).then((res) => {
+    simulationApi.getPresets(exchangeConfig.code, { signal: controller.signal }).then((res) => {
       if (res.success) setPortfolioPresets(res.data);
     }).catch((err) => {
       if (err instanceof DOMException && err.name === 'AbortError') return;
@@ -182,7 +182,7 @@ export function ScenarioDashboard() {
     });
 
     return () => controller.abort();
-  }, []);
+  }, [exchangeConfig.code]);
 
   // Abort runScenario on unmount
   useEffect(() => {
@@ -330,18 +330,8 @@ export function ScenarioDashboard() {
 
       {data && !running && (
         <div id="scenario-dashboard-container" className="space-y-3">
-          {/* Shockwave Gauge hero */}
-          <ShockwaveGauge
-            baselineReturn={data.baselineMetrics.annualReturn}
-            stressedReturn={data.stressedMetrics.annualReturn}
-            baselineVol={data.baselineMetrics.annualVol}
-            stressedVol={data.stressedMetrics.annualVol}
-            baselineSharpe={data.baselineMetrics.sharpe}
-            stressedSharpe={data.stressedMetrics.sharpe}
-            baselineVaR={data.baselineMetrics.var95}
-            stressedVaR={data.stressedMetrics.var95}
-            scenarioLabel={data.scenario.label}
-          />
+          {/* Shockwave Ripple Canvas hero */}
+          <ShockwaveRippleCanvas data={data} />
 
           {/* Natural language summary */}
           <motion.div

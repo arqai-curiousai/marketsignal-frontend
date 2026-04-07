@@ -13,7 +13,7 @@ import { S } from '@/components/playground/pyramid/tokens';
 import { SimPortfolioToolbar } from '@/components/playground/simulations/shared/SimPortfolioToolbar';
 import type { IFactorDecomposition, IPresetBasket } from '@/types/simulation';
 
-import { FactorFingerprint } from './FactorFingerprint';
+import { FactorConstellationCanvas } from './FactorConstellationCanvas';
 import { FactorKPIRow } from './FactorKPIRow';
 import { FactorTiltTable } from './FactorTiltTable';
 import { FactorReturnAttribution } from './FactorReturnAttribution';
@@ -92,13 +92,13 @@ export function FactorDashboard() {
   // Fetch presets once
   useEffect(() => {
     const controller = new AbortController();
-    simulationApi.getPresets().then((res) => {
+    simulationApi.getPresets(exchangeConfig.code).then((res) => {
       if (!controller.signal.aborted && res.success) setPresets(res.data);
     }).catch((err) => {
       if (!controller.signal.aborted) console.warn('Failed to load presets:', err);
     });
     return () => controller.abort();
-  }, []);
+  }, [exchangeConfig.code]);
 
   const fetchData = useCallback(
     async (tickerList: string[], isRefresh = false) => {
@@ -209,11 +209,7 @@ export function FactorDashboard() {
 
           {/* Row 1: Fingerprint + Attribution */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <FactorFingerprint
-              factors={data.factors}
-              portfolioTilts={data.portfolioTilts}
-              benchmarkTilts={data.benchmarkTilts}
-            />
+            <FactorConstellationCanvas data={data} />
             <FactorReturnAttribution attribution={data.factorAttribution} />
           </div>
 

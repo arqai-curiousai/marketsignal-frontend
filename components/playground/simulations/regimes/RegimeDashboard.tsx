@@ -16,7 +16,7 @@ import { S } from '@/components/playground/pyramid/tokens';
 import { useInstrumentList } from '@/lib/hooks/useInstrumentList';
 
 import { RegimeKPIRow } from './RegimeKPIRow';
-import { RegimeCompass } from './RegimeCompass';
+import { RegimePhaseSpaceCanvas } from './RegimePhaseSpaceCanvas';
 import { RegimeTimeline } from './RegimeTimeline';
 import { RegimeStateCards } from './RegimeStateCards';
 import { RegimeTransitionMatrix } from './RegimeTransitionMatrix';
@@ -257,7 +257,7 @@ export function RegimeDashboard() {
           {/* Row 1: Compass (2/5) + Timeline (3/5) */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2 flex items-center justify-center">
-              <RegimeCompass data={data} />
+              <RegimePhaseSpaceCanvas data={data} />
             </div>
             <div className="md:col-span-3">
               <RegimeTimeline timeline={data.timeline} className="h-full" />

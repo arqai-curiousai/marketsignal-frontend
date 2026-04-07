@@ -118,17 +118,17 @@ function PulseInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
-  const rawTab = searchParams.get('tab') || 'sectors';
-  const initialTab = rawTab === 'pyramid' || rawTab === 'my-portfolio' || rawTab === 'patterns' || rawTab === 'fno' ? 'sectors' : rawTab;
+  const rawTab = searchParams.get('tab') || 'news';
+  const initialTab = rawTab === 'pyramid' || rawTab === 'my-portfolio' || rawTab === 'patterns' || rawTab === 'fno' ? 'news' : rawTab;
   const [activeId, setActiveId] = useState(
-    VALID_IDS.has(initialTab) ? initialTab : 'sectors'
+    VALID_IDS.has(initialTab) ? initialTab : 'news'
   );
 
   // Sync tab state when URL changes (e.g. browser back/forward)
   useEffect(() => {
-    const urlTab = searchParams.get('tab') || 'sectors';
-    const resolved = urlTab === 'pyramid' || urlTab === 'my-portfolio' || urlTab === 'patterns' || urlTab === 'fno' ? 'sectors' : urlTab;
-    const validTab = VALID_IDS.has(resolved) ? resolved : 'sectors';
+    const urlTab = searchParams.get('tab') || 'news';
+    const resolved = urlTab === 'pyramid' || urlTab === 'my-portfolio' || urlTab === 'patterns' || urlTab === 'fno' ? 'news' : urlTab;
+    const validTab = VALID_IDS.has(resolved) ? resolved : 'news';
     setActiveId((prev) => (prev !== validTab ? validTab : prev));
   }, [searchParams]);
 

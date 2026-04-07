@@ -202,10 +202,12 @@ export function CorrelationExplorer({ exchange }: CorrelationExplorerProps) {
         const isForceRefresh = forceRefreshRef.current;
         forceRefreshRef.current = false;
 
+        // For cross_exchange scope, use cross_asset backend type (triggers multi-exchange fetch)
+        const backendScope = assetScope === 'cross_exchange' ? 'cross_asset' : assetScope;
         const settled = await Promise.allSettled([
-          getCorrelations(windowValue, assetScope, exchange, isForceRefresh),
-          getEnhancedMatrix(windowValue, assetScope, method, exchange),
-          assetScope === 'cross_asset'
+          getCorrelations(windowValue, backendScope, exchange, isForceRefresh),
+          getEnhancedMatrix(windowValue, backendScope, method, exchange),
+          assetScope === 'cross_asset' || assetScope === 'cross_exchange'
             ? getCrossAsset(undefined, undefined, 0.1)
             : Promise.resolve({ success: false as const, data: null }),
           getGlobalIndices(),

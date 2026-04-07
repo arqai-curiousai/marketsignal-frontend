@@ -1,16 +1,2 @@
-'use client';
-
-import { useState, useEffect } from 'react';
-
-export function useMobileDetect(): boolean {
-  const [isMobile, setIsMobile] = useState(false);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
-
-  return isMobile;
-}
+// Re-export from shared location — all landing page imports continue working
+export { useMobileDetect } from '@/components/pretext/useMobileDetect';

@@ -187,7 +187,7 @@ export function LoginForm(): React.ReactElement {
             }
 
             toast.success('Login successful!');
-            const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/signals';
+            const destination = redirectTo && redirectTo.startsWith('/') ? redirectTo : '/forex';
             window.location.href = destination;
         } catch {
             toast.error('Invalid OTP. Please try again.');

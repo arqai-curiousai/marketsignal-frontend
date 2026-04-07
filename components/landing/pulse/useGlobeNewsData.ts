@@ -54,13 +54,13 @@ export function useGlobeNewsData(): GlobeNewsData {
         if (cancelled) return;
 
         // Geo-sentiment
-        if (geoResult.status === 'fulfilled' && geoResult.value.data) {
+        if (geoResult.status === 'fulfilled' && geoResult.value.success) {
           const data = geoResult.value.data;
           geoRef.current = Array.isArray(data) ? data : [];
         }
 
         // Headlines grouped by region
-        if (newsResult.status === 'fulfilled' && newsResult.value.data) {
+        if (newsResult.status === 'fulfilled' && newsResult.value.success) {
           const items = newsResult.value.data.items ?? [];
           articlesRef.current = items;
 
@@ -90,7 +90,7 @@ export function useGlobeNewsData(): GlobeNewsData {
     const geoInterval = setInterval(async () => {
       try {
         const result = await getGeoSentiment(24);
-        if (!cancelled && result.data) {
+        if (!cancelled && result.success) {
           const data = result.data;
           geoRef.current = Array.isArray(data) ? data : [];
         }
@@ -100,7 +100,7 @@ export function useGlobeNewsData(): GlobeNewsData {
     const newsInterval = setInterval(async () => {
       try {
         const result = await getMarketNews(72, 50);
-        if (!cancelled && result.data) {
+        if (!cancelled && result.success) {
           const items = result.data.items ?? [];
           articlesRef.current = items;
 

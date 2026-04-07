@@ -174,9 +174,9 @@ export function TransactionCostPanel({ strategies, className }: Props) {
                   style={{ backgroundColor: `${color}20`, color, border: `1px solid ${color}30` }}>
                   {fmtReturn(net)}
                 </span>
-                {/* Cost per lakh */}
+                {/* Cost per denomination */}
                 <span className="text-[9px] text-white/25 ml-auto">
-                  {fmtCurrency(ti.costPerLakh)}/lakh
+                  {ti.currencySymbol ?? '\u20b9'}{fmtCurrency(ti.costPerDenom ?? ti.costPerLakh)}/{ti.denomLabel ?? 'lakh'}
                 </span>
               </div>
             </div>

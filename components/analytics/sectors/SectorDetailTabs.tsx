@@ -181,12 +181,22 @@ function MomentumTab({ sector, sectorColor, exchange, days }: {
 // ─── Tab Content: Institutional ──────────────────────────────
 
 function InstitutionalTab({ sector, exchange }: { sector: string; exchange: string }) {
+  const isNSE = exchange === 'NSE';
+
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
-        <SectionLabel title="FII / FPI Flow" />
-        <SectorFIIFlowPanel sector={sector} exchange={exchange} />
-      </div>
+      {isNSE ? (
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <SectionLabel title="FII / FPI Flow" />
+          <SectorFIIFlowPanel sector={sector} exchange={exchange} />
+        </div>
+      ) : (
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
+          <div className="text-[10px] text-muted-foreground text-center py-3">
+            Institutional flow data is available for NSE only
+          </div>
+        </div>
+      )}
 
       <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] p-3">
         <SectionLabel title="Valuation" />

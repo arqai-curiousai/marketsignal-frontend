@@ -15,7 +15,7 @@ import { T, S } from '@/components/playground/pyramid/tokens';
 import { useInstrumentList } from '@/lib/hooks/useInstrumentList';
 
 import { BacktestKPIRow } from './BacktestKPIRow';
-import { EquityCurveRace } from './EquityCurveRace';
+import { EquityCurveRaceCanvas } from './EquityCurveRaceCanvas';
 import { StrategyScorecardGrid } from './StrategyScorecardGrid';
 import { DrawdownChart } from './DrawdownChart';
 import { OverfittingDetector } from './OverfittingDetector';
@@ -388,7 +388,7 @@ export function BacktestDashboard() {
           <BacktestKPIRow data={data} />
 
           {/* Equity Curve Race (full width, hero) */}
-          <EquityCurveRace strategies={data.strategies} />
+          <EquityCurveRaceCanvas data={data} />
 
           {/* Strategy Scorecard Grid (full width) */}
           <StrategyScorecardGrid

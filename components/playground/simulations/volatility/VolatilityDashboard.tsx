@@ -14,7 +14,7 @@ import { downloadCSV } from '@/lib/utils/export';
 import { S } from '@/components/playground/pyramid/tokens';
 import { useInstrumentList } from '@/lib/hooks/useInstrumentList';
 
-import { VolatilityStormGauge } from './VolatilityStormGauge';
+import { VolatilityVortexCanvas } from './VolatilityVortexCanvas';
 import { VolatilityConeChart } from './VolatilityConeChart';
 import { EstimatorComparisonPanel } from './EstimatorComparisonPanel';
 import { GARCHForecastChart } from './GARCHForecastChart';
@@ -228,7 +228,7 @@ export function VolatilityDashboard() {
           {/* Row 1: Storm Gauge + Cone */}
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             <div className="md:col-span-2 flex items-center justify-center">
-              <VolatilityStormGauge regime={data.regime} />
+              <VolatilityVortexCanvas data={data} />
             </div>
             <div className="md:col-span-3">
               <VolatilityConeChart cone={data.cone} className="h-full" />
